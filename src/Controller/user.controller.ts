@@ -1,15 +1,15 @@
-import { Controller, Get, Put, UseGuards, Request, Body } from '@nestjs/common';
+import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '../Auth/auth.guard';
 import { UserService } from 'src/Service/user.service';
 
 @Controller('users')
 export class UserController {
-    constructor(private readonly UserService: UserService) {}
+    constructor(private readonly userService: UserService) {}
   
     // Route tidak dilindungi (public)
     @Get('public')
     getPublicData() {
-    return this.UserService.getUser();
+        return this.userService.getUser();
     }
 
     // Route dilindungi (perlu JWT)
