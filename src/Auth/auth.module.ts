@@ -22,6 +22,8 @@ import { ConfigModule } from '@nestjs/config';
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],
-  exports: [AuthService, AuthGuard],
+  // Export JwtModule as well so JwtService (provided by JwtModule)
+  // is available to modules that import AuthModule and use AuthGuard.
+  exports: [AuthService, AuthGuard, JwtModule],
 })
 export class AuthModule {}
