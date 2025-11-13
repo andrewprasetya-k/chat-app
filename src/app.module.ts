@@ -4,9 +4,10 @@ import { AppService } from './app.service';
 import { UserController } from './Controller/user.controller';
 import { UserService } from './Service/user.service';
 import { AuthModule } from './Auth/auth.module';
+import { SupabaseModule } from './Supabase/supabase.module';
 
 @Module({
-  imports: [AuthModule],
+  imports: [AuthModule, SupabaseModule],
   controllers: [AppController, UserController],
   providers: [AppService, UserService],
 })
