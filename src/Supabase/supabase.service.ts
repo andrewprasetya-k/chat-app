@@ -10,7 +10,9 @@ export class SupabaseService implements OnModuleInit {
     const supabaseKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
     if (!supabaseUrl || !supabaseKey) {
-      throw new Error('Supabase URL or Service Key not found in environment variables');
+      throw new Error(
+        'Supabase URL or Service Key not found in environment variables',
+      );
     }
 
     this.client = createClient(supabaseUrl, supabaseKey);

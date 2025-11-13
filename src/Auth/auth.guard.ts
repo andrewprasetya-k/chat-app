@@ -1,4 +1,9 @@
-import { Injectable, CanActivate, ExecutionContext, UnauthorizedException } from '@nestjs/common';
+import {
+  Injectable,
+  CanActivate,
+  ExecutionContext,
+  UnauthorizedException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import { Request } from 'express';
 
@@ -28,7 +33,7 @@ export class AuthGuard implements CanActivate {
    * memverifikasi dan mendecode JWT.
    */
   constructor(private jwtService: JwtService) {}
-  
+
   /**
    * canActivate
    * - Dipanggil oleh NestJS sebelum request mencapai controller.
@@ -42,17 +47,16 @@ export class AuthGuard implements CanActivate {
     if (!token) {
       throw new UnauthorizedException('Token not found');
     }
-    
+
     try {
       const payload = await this.jwtService.verifyAsync(token, {
         secret: process.env.JWT_SECRET,
       });
       request['user'] = payload;
-      
     } catch (error) {
       throw new UnauthorizedException('Invalid token');
     }
-    
+
     return true;
   }
 

@@ -21,5 +21,4 @@ export class AuthController {
   async dbCheck() {
     return { message: 'api connection is healthy' };
   }
-
 }

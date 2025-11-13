@@ -5,7 +5,7 @@ import { CreateRoomDto } from './Dto/create-room.dto';
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly supabase: SupabaseService) { }
+  constructor(private readonly supabase: SupabaseService) {}
 
   // Dummy untuk test
   getAllMessages() {
@@ -33,7 +33,7 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
       return data;
-    } catch (error) { }
+    } catch (error) {}
   }
 
   // Kirim pesan ke Supabase

@@ -10,7 +10,12 @@
  * - register(registerDto) -> creates a new user (temporary in-memory)
  * - login(loginDto) -> validates credentials and returns a signed JWT
  */
-import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './Dto/login.dto';
@@ -19,22 +24,35 @@ import { UserService } from 'src/User/user.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService, private readonly userService: UserService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly userService: UserService,
+  ) {}
 
   // Register user baru (menggunakan UserService -> Supabase)
   async register(registerDto: RegisterDto) {
     try {
       const { email, password, fullName, role } = registerDto as any;
 
-      const created = await this.userService.createUser({ email, fullName, password, role });
+      const created = await this.userService.createUser({
+        email,
+        fullName,
+        password,
+        role,
+      });
 
-      return { message: 'User registered successfully', userId: created?.usr_id };
+      return {
+        message: 'User registered successfully',
+        userId: created?.usr_id,
+      };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
 
       if (err instanceof InternalServerErrorException) throw err;
 
-      throw new InternalServerErrorException(err?.message ?? 'Failed to register user');
+      throw new InternalServerErrorException(
+        err?.message ?? 'Failed to register user',
+      );
     }
   }
 
@@ -48,7 +66,10 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      const isPasswordValid = await bcrypt.compare(password, (user as any).usr_password || '');
+      const isPasswordValid = await bcrypt.compare(
+        password,
+        (user as any).usr_password || '',
+      );
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
       }
@@ -67,7 +88,11 @@ export class AuthService {
       if (err instanceof UnauthorizedException) throw err;
 
       // If lower layer already produced a Nest HTTP error, forward it
-      if (err instanceof InternalServerErrorException || err instanceof BadRequestException) throw err;
+      if (
+        err instanceof InternalServerErrorException ||
+        err instanceof BadRequestException
+      )
+        throw err;
 
       console.error('AuthService.login error:', err);
       throw new InternalServerErrorException(err?.message ?? 'Failed to login');
