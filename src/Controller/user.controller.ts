@@ -9,7 +9,7 @@ export class UserController {
     // Route tidak dilindungi (public)
     @Get('public')
     getPublicData() {
-        return this.userService.getUser();
+        return this.userService.getAllUsers();
     }
 
     // Route dilindungi (perlu JWT)
