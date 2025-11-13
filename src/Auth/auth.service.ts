@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './Dto/login.dto';
@@ -20,47 +20,59 @@ export class AuthService {
 
   //Register user baru
   async register(registerDto: RegisterDto) {
-    const { email, password } = registerDto;
+    try {
+      const { email, password } = registerDto;
 
-    // Cek apakah user sudah ada
-    const existingUser = users.find((u) => u.email === email);
-    if (existingUser) {
-      throw new BadRequestException('Email already registered');
+      // Cek apakah user sudah ada
+      const existingUser = users.find((u) => u.email === email);
+      if (existingUser) {
+        throw new BadRequestException('Email already registered');
+      }
+
+      // Hash password
+      const hashedPassword = await bcrypt.hash(password, 10);
+
+      // Simpan user ke "database"
+      const newUser: User = {
+        id: users.length + 1,
+        email,
+        password: hashedPassword,
+      };
+      users.push(newUser);
+
+      return { message: 'User registered successfully', userId: newUser.id };
+    } catch (err) {
+      // Rethrow known HTTP exceptions
+      if (err instanceof BadRequestException) throw err;
+      // Unexpected errors -> 500
+      throw new InternalServerErrorException('Failed to register user');
     }
-
-    // Hash password
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    // Simpan user ke "database"
-    const newUser: User = {
-      id: users.length + 1,
-      email,
-      password: hashedPassword,
-    };
-    users.push(newUser);
-
-    return { message: 'User registered successfully', userId: newUser.id };
   }
 
   //Login user
   async login(loginDto: LoginDto) {
-    const { username, password } = loginDto;
+    try {
+      const { username, password } = loginDto;
 
-    const user = users.find((u) => u.email === username);
-    if (!user) {
-      throw new UnauthorizedException('Invalid credentials');
+      const user = users.find((u) => u.email === username);
+      if (!user) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // Cek apakah password cocok
+      const isPasswordValid = await bcrypt.compare(password, user.password);
+      if (!isPasswordValid) {
+        throw new UnauthorizedException('Invalid credentials');
+      }
+
+      // Buat JWT token
+      const payload = { sub: user.id, email: user.email };
+      const token = this.jwtService.sign(payload);
+
+      return { access_token: token };
+    } catch (err) {
+      if (err instanceof UnauthorizedException) throw err;
+      throw new InternalServerErrorException('Failed to login');
     }
-
-    // Cek apakah password cocok
-    const isPasswordValid = await bcrypt.compare(password, user.password);
-    if (!isPasswordValid) {
-      throw new UnauthorizedException('Invalid credentials');
-    }
-
-    // Buat JWT token
-    const payload = { sub: user.id, email: user.email };
-    const token = this.jwtService.sign(payload);
-
-    return { access_token: token };
   }
 }
