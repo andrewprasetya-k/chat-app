@@ -63,26 +63,26 @@ export class ChatService {
 
     async createRoom(dto: CreateRoomDto) {
     const client = this.supabase.getClient();
-    const { room_name, is_group, members } = dto;
+    const { cr_name, cr_is_group, members } = dto;
 
     try {
     // Buat room baru
     const { data: room, error: roomError } = await client
-        .from('chat_rooms')
-        .insert([{ room_name, is_group }])
+        .from('chat_room')
+        .insert([{ cr_name, cr_is_group }])
         .select()
         .single();
 
     if (roomError) throw roomError;
 
     // Tambahkan anggota ke chat_room_members
-    const membersToInsert = members.map((user_id) => ({
-        room_id: room.room_id,
-        user_id,
+    const membersToInsert = members.map((usr_id) => ({
+        crm_cr_id: room.cr_id,
+        crm_usr_id: usr_id,
     }));
 
     const { error: memberError } = await client
-        .from('chat_room_members')
+        .from('chat_room_member')
         .insert(membersToInsert);
 
     if (memberError) throw memberError;

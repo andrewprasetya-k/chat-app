@@ -1,6 +1,7 @@
 import { Controller, Get, Post, Body } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './Dto/send-message.dto';
+import { CreateRoomDto } from './Dto/create-room.dto';
 
 @Controller('chat')
 export class ChatController {
@@ -12,11 +13,16 @@ export class ChatController {
   }
 
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
-  @Get('messages')
-  getMessages() {
-    return this.chatService.getAllMessages();
-  }
+  // @Get('messages')
+  // getMessages() {
+  //   return this.chatService.getMessagesByRoom();
+  // }
 
+  @Post('create-room')
+  createRoom(@Body() body: CreateRoomDto) {
+    return this.chatService.createRoom(body);
+  }
+  
   // Kirim pesan baru
   @Post('send')
   sendMessage(@Body() body: SendMessageDto) {

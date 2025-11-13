@@ -3,11 +3,11 @@ import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsArray, IsUUID, ArrayMinS
 export class CreateRoomDto {
   @IsOptional()
   @IsString()
-  room_name?: string; // boleh kosong kalau bukan grup
+  cr_name?: string; // boleh kosong kalau bukan grup
 
   @IsBoolean()
   @IsOptional()
-  is_group?: boolean = false;
+  cr_is_group?: boolean = false;
 
   @IsArray()
   @ArrayMinSize(2, { message: 'Minimal harus ada 2 anggota dalam room.' })
