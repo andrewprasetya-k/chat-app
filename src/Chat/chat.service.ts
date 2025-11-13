@@ -1,6 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from './Dto/send-message.dto';
+import { CreateRoomDto } from './Dto/create-room.dto';
 
 @Injectable()
 export class ChatService {
@@ -40,4 +41,37 @@ export class ChatService {
       throw new InternalServerErrorException(error?.message || 'Failed to send message');
     }
   }
+
+    async createRoom(dto: CreateRoomDto) {
+    const client = this.supabase.getClient();
+    const { room_name, is_group, members } = dto;
+
+    try {
+    // 1️⃣ Buat room baru
+    const { data: room, error: roomError } = await client
+        .from('chat_rooms')
+        .insert([{ room_name, is_group }])
+        .select()
+        .single();
+
+    if (roomError) throw roomError;
+
+    // 2️⃣ Tambahkan anggota ke chat_room_members
+    const membersToInsert = members.map((user_id) => ({
+        room_id: room.room_id,
+        user_id,
+    }));
+
+    const { error: memberError } = await client
+        .from('chat_room_members')
+        .insert(membersToInsert);
+
+    if (memberError) throw memberError;
+
+    return { success: true, room };
+    } catch (error: any) {
+    throw new InternalServerErrorException(error.message || 'Failed to create room');
+    }
+    }
+
 }

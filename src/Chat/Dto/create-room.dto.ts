@@ -1,15 +1,16 @@
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsIn, IsISO8601 } from 'class-validator';
+import { IsBoolean, IsNotEmpty, IsOptional, IsString, IsArray, IsUUID, ArrayMinSize } from 'class-validator';
 
 export class CreateRoomDto {
+  @IsOptional()
   @IsString()
-  @IsNotEmpty({ message: 'Full name should not be empty' })
-  fullName: string;
+  room_name?: string; // boleh kosong kalau bukan grup
 
-  @IsEmail({}, { message: 'Invalid email format' })
-  @IsNotEmpty({ message: 'Email should not be empty' })
-  email: string;
+  @IsBoolean()
+  @IsOptional()
+  is_group?: boolean = false;
 
-  @IsString()
-  @IsNotEmpty({ message: 'Password should not be empty' })
-  password: string;
+  @IsArray()
+  @ArrayMinSize(2, { message: 'Minimal harus ada 2 anggota dalam room.' })
+  @IsUUID('4', { each: true, message: 'Setiap user_id harus berupa UUID valid.' })
+  members: string[]; // daftar user_id (termasuk pembuatnya)
 }
