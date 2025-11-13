@@ -12,4 +12,8 @@ export class UserModel {
   @IsEmail({}, { message: 'Invalid email format' })
   @IsNotEmpty({ message: 'Email should not be empty' })
   email: string;
+
+  @IsString()
+  @IsNotEmpty({ message: 'Contact should not be empty' })
+  contact: string;
 }
