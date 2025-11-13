@@ -21,9 +21,9 @@ export class AuthController {
     return this.authService.login(loginDto);
   }
 
-  @Get('db-check')
+  @Get('api-check')
   async dbCheck() {
-    return { message: 'Database connection is healthy' };
+    return { message: 'api connection is healthy' };
   }
 
 }
