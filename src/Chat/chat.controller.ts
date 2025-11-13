@@ -13,16 +13,16 @@ export class ChatController {
   }
 
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
-  // @Get('messages')
-  // getMessages() {
-  //   return this.chatService.getMessagesByRoom();
-  // }
+  @Get('messages')
+  getMessages() {
+    return this.chatService.getMessagesByRoom();
+  }
 
   @Post('create-room')
   createRoom(@Body() body: CreateRoomDto) {
     return this.chatService.createRoom(body);
   }
-  
+
   // Kirim pesan baru
   @Post('send')
   sendMessage(@Body() body: SendMessageDto) {
