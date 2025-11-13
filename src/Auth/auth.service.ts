@@ -71,8 +71,17 @@ export class AuthService {
       const token = this.jwtService.sign(payload);
       return { access_token: token };
     } catch (err) {
+      // Forward Unauthorized errors unchanged
       if (err instanceof UnauthorizedException) throw err;
-      throw new InternalServerErrorException('Failed to login');
+
+      // If lower layer already produced a Nest HTTP error, forward it
+      if (err instanceof InternalServerErrorException || err instanceof BadRequestException) throw err;
+
+      // Log underlying error for debugging then surface message in 500
+      // (In production you might want to log to a file or external logging)
+      // eslint-disable-next-line no-console
+      console.error('AuthService.login error:', err);
+      throw new InternalServerErrorException(err?.message ?? 'Failed to login');
     }
   }
 }

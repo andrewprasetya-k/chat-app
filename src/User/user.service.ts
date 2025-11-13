@@ -39,10 +39,9 @@ export class UserService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-
       return data; // null jika tidak ada
     } catch (err) {
-      if (err instanceof InternalServerErrorException) throw err;
+      if (err instanceof BadRequestException || err instanceof InternalServerErrorException) throw err;
       throw new InternalServerErrorException('Failed to query user by email');
     }
   }
