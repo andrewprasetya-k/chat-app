@@ -17,7 +17,13 @@ export class ChatService {
         const client = this.supabase.getClient();
         const { data, error } = await client
           .from('chat_message')
-          .select('*')
+          .select(`
+            message_text,
+            created_at,
+            user:cm_usr_id (
+              usr_nama_lengkap
+            )
+          `)
           .eq('cm_cr_id', room_id)
           .order('created_at', { ascending: true });
 
