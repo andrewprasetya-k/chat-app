@@ -47,7 +47,7 @@ export class ChatService {
     const { room_name, is_group, members } = dto;
 
     try {
-    // 1️⃣ Buat room baru
+    // Buat room baru
     const { data: room, error: roomError } = await client
         .from('chat_rooms')
         .insert([{ room_name, is_group }])
@@ -56,7 +56,7 @@ export class ChatService {
 
     if (roomError) throw roomError;
 
-    // 2️⃣ Tambahkan anggota ke chat_room_members
+    // Tambahkan anggota ke chat_room_members
     const membersToInsert = members.map((user_id) => ({
         room_id: room.room_id,
         user_id,
