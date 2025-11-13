@@ -9,23 +9,31 @@
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from 'src/User/user.module';
+import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
 // import { JwtStrategy } from './jwt.strategy'; // nanti opsional
-import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
-    ConfigModule.forRoot(), // supaya bisa pakai .env
-    JwtModule.register({
-      secret: process.env.JWT_SECRET,
-      signOptions: {
-        expiresIn: (process.env.JWT_EXPIRES_IN
-          ? isNaN(Number(process.env.JWT_EXPIRES_IN))
-            ? process.env.JWT_EXPIRES_IN
-            : Number(process.env.JWT_EXPIRES_IN)
-          : '1h') as any,
+    ConfigModule.forRoot({ isGlobal: true }), // supaya bisa pakai .env dan ConfigService tersedia
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      inject: [ConfigService],
+      useFactory: async (configService: ConfigService) => {
+        const secret = configService.get<string>('JWT_SECRET');
+        const expiresIn = configService.get<string | number>('JWT_EXPIRES_IN') ?? '1h';
+
+        // Fail-fast in non-development environments if secret missing
+        if (!secret && process.env.NODE_ENV !== 'development') {
+          throw new Error('JWT_SECRET environment variable is required for JwtModule');
+        }
+
+        return {
+          secret: secret ?? 'dev-secret', // dev fallback only
+          signOptions: { expiresIn: isNaN(Number(expiresIn)) ? expiresIn : Number(expiresIn) as any },
+        };
       },
     }),
   // Import UserModule so AuthService can inject UserService
