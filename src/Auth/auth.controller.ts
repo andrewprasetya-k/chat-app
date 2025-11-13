@@ -1,4 +1,4 @@
-import { Controller, Post, Body } from '@nestjs/common';
+import { Controller, Post, Body, Get } from '@nestjs/common';
 import { AuthService } from './auth.service';
 import { LoginDto } from './Dto/login.dto';
 import { RegisterDto } from './Dto/register.dto';
@@ -20,4 +20,10 @@ export class AuthController {
     // Minta service untuk generate JWT token
     return this.authService.login(loginDto);
   }
+
+  @Get('db-check')
+  async dbCheck() {
+    return { message: 'Database connection is healthy' };
+  }
+
 }
