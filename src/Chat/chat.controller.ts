@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body } from '@nestjs/common';
+import { Controller, Get, Post, Body, Query } from '@nestjs/common';
 import { ChatService } from './chat.service';
 import { SendMessageDto } from './Dto/send-message.dto';
 import { CreateRoomDto } from './Dto/create-room.dto';
@@ -14,8 +14,8 @@ export class ChatController {
 
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
   @Get('messages')
-  getMessages() {
-    return this.chatService.getMessagesByRoom();
+  getMessages(@Query('room_id') room_id: string) {
+    return this.chatService.getMessagesByRoom(room_id);
   }
 
   @Post('create-room')

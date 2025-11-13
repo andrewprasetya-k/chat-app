@@ -18,7 +18,7 @@ export class ChatService {
         const { data, error } = await client
           .from('chat_message')
           .select('*')
-          .eq('room_id', room_id)
+          .eq('cm_cr_id', room_id)
           .order('created_at', { ascending: true });
 
         if (error) {
