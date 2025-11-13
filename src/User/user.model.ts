@@ -1,28 +1,33 @@
-import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString, IsOptional, IsISO8601, IsIn } from 'class-validator';
 
 export class UserModel {
   @IsString()
-  @IsNotEmpty({ message: 'Username should not be empty' })
-  username: string;
-  
-  @IsString()
-  @IsNotEmpty({ message: 'Password should not be empty' })
-  password: string;
-  
-  
-  @IsEmail({}, { message: 'Invalid email format' })
-  @IsNotEmpty({ message: 'Email should not be empty' })
-  email: string;
+  @IsOptional()
+  usr_id?: string;
 
   @IsString()
-  @IsNotEmpty({ message: 'Contact should not be empty' })
-  contact: string;
-  /**
-   * UserModel (domain model)
-   * ------------------------
-   * Represents the shape of a user in the application. This file currently
-   * mirrors the DTO validation shape, but if you switch to a DB-backed model
-   * (e.g. Supabase / TypeORM) you might replace this with an entity or
-   * a TypeScript interface describing persisted columns.
-   */
+  @IsNotEmpty({ message: 'Full name should not be empty' })
+  usr_nama_lengkap: string;
+
+  @IsEmail({}, { message: 'Invalid email format' })
+  @IsNotEmpty({ message: 'Email should not be empty' })
+  usr_email: string;
+
+  // Password hash stored in DB (do not expose in responses)
+  @IsString()
+  @IsOptional()
+  usr_password?: string;
+
+  @IsString()
+  @IsOptional()
+  @IsIn(['user', 'admin'])
+  usr_role?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  created_at?: string;
+
+  @IsOptional()
+  @IsISO8601()
+  updated_at?: string;
 }

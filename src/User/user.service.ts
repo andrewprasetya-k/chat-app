@@ -10,7 +10,10 @@ export class UserService {
   async getAllUsers() {
     try {
       const client = this.supabase.getClient();
-      const { data, error } = await client.from('user').select('*');
+      // Select public-facing columns only (do not return passwords)
+      const { data, error } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap, usr_email, usr_role, created_at, updated_at');
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
@@ -29,7 +32,7 @@ export class UserService {
       const { data, error } = await client
         .from('user')
         .select('*')
-        .eq('email', email)
+        .eq('usr_email', email)
         .limit(1)
         .maybeSingle();
 
@@ -45,7 +48,7 @@ export class UserService {
   }
 
   // Buat user baru (register)
-  async createUser(payload: { email: string; username?: string; password: string }) {
+  async createUser(payload: { email: string; fullName?: string; password: string; role?: string }) {
     try {
       const client = this.supabase.getClient();
 
@@ -58,12 +61,17 @@ export class UserService {
       // hash password
       const passwordHash = await bcrypt.hash(payload.password, 10);
 
+      const now = new Date().toISOString();
+
       const { data, error } = await client
         .from('user')
         .insert({
-          email: payload.email,
-          username: payload.username ?? null,
-          password_hash: passwordHash,
+          usr_nama_lengkap: payload.fullName ?? null,
+          usr_email: payload.email,
+          usr_password: passwordHash,
+          usr_role: payload.role ?? 'user',
+          created_at: now,
+          updated_at: now,
         })
         .select()
         .single();
@@ -77,10 +85,10 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Hapus password_hash sebelum return (opsional)
+      // Hapus password field before returning the user object
       if (data && typeof data === 'object') {
         // eslint-disable-next-line @typescript-eslint/no-dynamic-delete
-        delete (data as any).password_hash;
+        delete (data as any).usr_password;
       }
 
       return data;
