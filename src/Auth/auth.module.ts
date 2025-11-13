@@ -8,6 +8,7 @@
  */
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
+import { UserModule } from 'src/User/user.module';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
@@ -27,6 +28,8 @@ import { ConfigModule } from '@nestjs/config';
           : '1h') as any,
       },
     }),
+  // Import UserModule so AuthService can inject UserService
+  UserModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],
