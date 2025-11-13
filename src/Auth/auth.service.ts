@@ -31,8 +31,16 @@ export class AuthService {
 
       return { message: 'User registered successfully', userId: created?.usr_id };
     } catch (err) {
+      // If UserService already threw a BadRequest (e.g. duplicate email), forward it.
       if (err instanceof BadRequestException) throw err;
-      throw new InternalServerErrorException('Failed to register user');
+
+      // If it's already a Nest HTTP error, rethrow so we preserve correct status.
+      if (err instanceof InternalServerErrorException) throw err;
+
+      // For debugging: preserve the original error message inside the 500
+      // so the caller / logs can surface the real cause. In production you
+      // might want to hide details and log them instead.
+      throw new InternalServerErrorException(err?.message ?? 'Failed to register user');
     }
   }
 

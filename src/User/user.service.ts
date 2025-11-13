@@ -63,25 +63,38 @@ export class UserService {
 
       const now = new Date().toISOString();
 
-      const { data, error } = await client
-        .from('user')
-        .insert({
-          usr_nama_lengkap: payload.fullName ?? null,
-          usr_email: payload.email,
-          usr_password: passwordHash,
-          usr_role: payload.role ?? 'user',
-          created_at: now,
-          updated_at: now,
-        })
-        .select()
-        .single();
+      const insertPayload: any = {
+        usr_nama_lengkap: payload.fullName ?? null,
+        usr_email: payload.email,
+        usr_password: passwordHash,
+        created_at: now,
+        updated_at: now,
+      };
+
+      // Only include usr_role if client explicitly provided one. Do not
+      // force a default value here because the DB may define an enum type
+      // and reject unknown values (see error: invalid input value for enum).
+      if (payload.role !== undefined && payload.role !== null) {
+        insertPayload.usr_role = payload.role;
+      }
+
+      const { data, error } = await client.from('user').insert(insertPayload).select().single();
 
       if (error) {
+        // Map common DB errors to client-friendly responses.
+        const msg = String(error.message || error);
+
+        // Enum type error (e.g. invalid input value for enum role)
+        if (msg.includes('invalid input value for enum')) {
+          throw new BadRequestException('Invalid role value for usr_role; please use a valid role defined in the database enum');
+        }
+
         // If Supabase returns a constraint error (e.g., unique violation), map to BadRequest
         if (error.code && String(error.code).startsWith('235')) {
           // Postgres unique_violation codes usually start with '23505'
           throw new BadRequestException(error.message);
         }
+
         throw new InternalServerErrorException(error.message);
       }
 
