@@ -1,3 +1,15 @@
+/**
+ * AuthService
+ * -----------
+ * Responsible for user registration and authentication flows. Currently
+ * this service uses an in-memory array (`users`) as a temporary store.
+ * In a production setup this should delegate to a persistent user store
+ * (e.g. Supabase via `UserService`).
+ *
+ * Public methods:
+ * - register(registerDto) -> creates a new user (temporary in-memory)
+ * - login(loginDto) -> validates credentials and returns a signed JWT
+ */
 import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';

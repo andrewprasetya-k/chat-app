@@ -1,3 +1,11 @@
+/**
+ * AuthModule
+ * ----------
+ * Provides authentication-related wiring for the application.
+ * - Registers `JwtModule` using env config
+ * - Provides `AuthService`, `AuthController` and `AuthGuard`
+ * - Exports `AuthService`, `AuthGuard` and `JwtModule` for use in other modules
+ */
 import { Module } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { AuthService } from './auth.service';

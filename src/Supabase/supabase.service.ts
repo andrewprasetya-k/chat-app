@@ -1,3 +1,15 @@
+/**
+ * SupabaseService
+ * ----------------
+ * Lightweight wrapper around the official `@supabase/supabase-js` client.
+ * - Initializes the Supabase client on module init using environment variables
+ *   (`SUPABASE_URL`, `SUPABASE_SERVICE_ROLE_KEY`).
+ * - Exposes `getClient()` for low-level access and a couple of small
+ *   helper methods for basic select/insert operations.
+ *
+ * NOTE: The service-role key is required for trusted server operations and
+ * must be provided via server environment variables (do not commit it).
+ */
 import { Injectable, OnModuleInit } from '@nestjs/common';
 import { createClient, SupabaseClient } from '@supabase/supabase-js';
 
@@ -18,18 +30,5 @@ export class SupabaseService implements OnModuleInit {
 
   getClient(): SupabaseClient {
     return this.client;
-  }
-
-  // Contoh helper method umum:
-  async findAll(table: string) {
-    const { data, error } = await this.client.from(table).select('*');
-    if (error) throw new Error(error.message);
-    return data;
-  }
-
-  async insert(table: string, payload: Record<string, any>) {
-    const { data, error } = await this.client.from(table).insert(payload).select();
-    if (error) throw new Error(error.message);
-    return data;
   }
 }
