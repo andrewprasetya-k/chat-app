@@ -9,14 +9,14 @@
 import { Module } from '@nestjs/common';
 import { AppController } from './app.controller';
 import { AppService } from './app.service';
-import { UserController } from './User/user.controller';
 import { UserModule } from './User/user.module';
 import { AuthModule } from './Auth/auth.module';
 import { SupabaseModule } from './Supabase/supabase.module';
+import { ChatModule } from './Chat/chat.module';
 
 @Module({
-  imports: [AuthModule, SupabaseModule, UserModule],
-  controllers: [AppController, UserController],
+  imports: [AuthModule, SupabaseModule, UserModule, ChatModule],
+  controllers: [AppController],
   providers: [AppService],
 })
 export class AppModule {}
