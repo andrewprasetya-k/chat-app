@@ -1,8 +1,8 @@
 import { Injectable, UnauthorizedException, BadRequestException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { LoginDto } from './Dto/login.dto';
-import { RegisterDto } from './Dto/register.dto';
+import { LoginDto } from '../Dto/login.dto';
+import { RegisterDto } from '../Dto/register.dto';
 
 interface User {
   id: number;
