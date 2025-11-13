@@ -3,11 +3,11 @@ import { IsUUID, IsString, IsNotEmpty } from 'class-validator';
 export class SendMessageDto {
   @IsUUID()
   @IsNotEmpty()
-  room_id: string; // ID room tempat pesan dikirim
+  cm_cr_id: string; // ID room tempat pesan dikirim
 
   @IsUUID()
   @IsNotEmpty()
-  sender_id: string; // ID user pengirim pesan
+  cm_usr_id: string; // ID user pengirim pesan
 
   @IsString()
   @IsNotEmpty()

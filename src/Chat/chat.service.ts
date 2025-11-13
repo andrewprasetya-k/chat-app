@@ -33,7 +33,7 @@ export class ChatService {
   // Kirim pesan ke Supabase
   async sendMessage(dto: SendMessageDto) 
   {
-    const { room_id, sender_id, message_text } = dto;
+    const { cm_cr_id, cm_usr_id, message_text } = dto;
 
     try {
       const client = this.supabase.getClient();
@@ -41,8 +41,8 @@ export class ChatService {
         .from('chat_message') // pastikan tabel di Supabase bernama "messages"
         .insert([
           {
-            room_id,
-            sender_id,
+            cm_cr_id,
+            cm_usr_id,
             message_text,
           },
         ])
