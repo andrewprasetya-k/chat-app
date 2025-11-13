@@ -13,7 +13,6 @@ import { ConfigModule, ConfigService } from '@nestjs/config';
 import { AuthService } from './auth.service';
 import { AuthController } from './auth.controller';
 import { AuthGuard } from './auth.guard';
-// import { JwtStrategy } from './jwt.strategy'; // nanti opsional
 
 @Module({
   imports: [
@@ -30,7 +29,7 @@ import { AuthGuard } from './auth.guard';
         }
 
         return {
-          secret: secret ?? 'dev-secret', // dev fallback only
+          secret: secret ?? 'dev-secret',
           signOptions: { expiresIn: isNaN(Number(expiresIn)) ? expiresIn : Number(expiresIn) as any },
         };
       },
