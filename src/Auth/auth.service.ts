@@ -26,20 +26,14 @@ export class AuthService {
     try {
       const { email, password, fullName, role } = registerDto as any;
 
-      // Delegasikan pembuatan user ke UserService (akan melempar BadRequest jika email duplikat)
       const created = await this.userService.createUser({ email, fullName, password, role });
 
       return { message: 'User registered successfully', userId: created?.usr_id };
     } catch (err) {
-      // If UserService already threw a BadRequest (e.g. duplicate email), forward it.
       if (err instanceof BadRequestException) throw err;
 
-      // If it's already a Nest HTTP error, rethrow so we preserve correct status.
       if (err instanceof InternalServerErrorException) throw err;
 
-      // For debugging: preserve the original error message inside the 500
-      // so the caller / logs can surface the real cause. In production you
-      // might want to hide details and log them instead.
       throw new InternalServerErrorException(err?.message ?? 'Failed to register user');
     }
   }
@@ -54,13 +48,11 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // user.usr_password holds the hash
       const isPasswordValid = await bcrypt.compare(password, (user as any).usr_password || '');
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // Buat JWT token dengan payload yang berguna untuk aplikasi
       const payload = {
         sub: (user as any).usr_id,
         email: (user as any).usr_email,
@@ -77,9 +69,6 @@ export class AuthService {
       // If lower layer already produced a Nest HTTP error, forward it
       if (err instanceof InternalServerErrorException || err instanceof BadRequestException) throw err;
 
-      // Log underlying error for debugging then surface message in 500
-      // (In production you might want to log to a file or external logging)
-      // eslint-disable-next-line no-console
       console.error('AuthService.login error:', err);
       throw new InternalServerErrorException(err?.message ?? 'Failed to login');
     }

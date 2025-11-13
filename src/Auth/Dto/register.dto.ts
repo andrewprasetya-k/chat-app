@@ -1,13 +1,5 @@
 import { IsEmail, IsNotEmpty, IsString, IsOptional, IsIn, IsISO8601 } from 'class-validator';
 
-/**
- * RegisterDto
- * - fullName -> maps to `usr_nama_lengkap`
- * - email -> maps to `usr_email` (unique, not null)
- * - password -> plain password (will be hashed before insert -> usr_password)
- * - role -> optional, maps to `usr_role` (defaults to 'user' if not provided)
- */
-
 export class RegisterDto {
   @IsString()
   @IsNotEmpty({ message: 'Full name should not be empty' })

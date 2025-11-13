@@ -4,10 +4,10 @@ import { ValidationPipe } from '@nestjs/common';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
-  // Enable global validation pipe so DTOs (class-validator) are enforced
-  // - whitelist: strip properties that do not have any decorator in the DTO
-  // - forbidNonWhitelisted: throw error when unknown props are present
-  // - transform: automatically transform payloads to DTO instances
+  /* Enable global validation pipe so DTOs (class-validator) are enforced
+    - whitelist: strip properties that do not have any decorator in the DTO
+    - forbidNonWhitelisted: throw error when unknown props are present
+    - transform: automatically transform payloads to DTO instances */
   app.useGlobalPipes(
     new ValidationPipe({
       whitelist: true,

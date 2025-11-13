@@ -13,7 +13,6 @@ export class UserModel {
   @IsNotEmpty({ message: 'Email should not be empty' })
   usr_email: string;
 
-  // Password hash stored in DB (do not expose in responses)
   @IsString()
   @IsOptional()
   usr_password?: string;

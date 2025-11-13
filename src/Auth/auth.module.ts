@@ -17,7 +17,7 @@ import { AuthGuard } from './auth.guard';
 
 @Module({
   imports: [
-    ConfigModule.forRoot({ isGlobal: true }), // supaya bisa pakai .env dan ConfigService tersedia
+  ConfigModule.forRoot({ isGlobal: true }),
     JwtModule.registerAsync({
       imports: [ConfigModule],
       inject: [ConfigService],
@@ -25,7 +25,6 @@ import { AuthGuard } from './auth.guard';
         const secret = configService.get<string>('JWT_SECRET');
         const expiresIn = configService.get<string | number>('JWT_EXPIRES_IN') ?? '1h';
 
-        // Fail-fast in non-development environments if secret missing
         if (!secret && process.env.NODE_ENV !== 'development') {
           throw new Error('JWT_SECRET environment variable is required for JwtModule');
         }
@@ -36,13 +35,11 @@ import { AuthGuard } from './auth.guard';
         };
       },
     }),
-  // Import UserModule so AuthService can inject UserService
   UserModule,
   ],
   controllers: [AuthController],
   providers: [AuthService, AuthGuard],
-  // Export JwtModule as well so JwtService (provided by JwtModule)
-  // is available to modules that import AuthModule and use AuthGuard.
+  
   exports: [AuthService, AuthGuard, JwtModule],
 })
 export class AuthModule {}
