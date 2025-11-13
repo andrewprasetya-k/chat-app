@@ -15,72 +15,52 @@ import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { LoginDto } from './Dto/login.dto';
 import { RegisterDto } from './Dto/register.dto';
-
-interface User {
-  id: number;
-  email: string;
-  password: string;
-}
-
-// ⚠️ Catatan: nanti user akan diambil dari database
-// tapi untuk sementara kita simpan di array agar bisa dites
-const users: User[] = [];
+import { UserService } from 'src/User/user.service';
 
 @Injectable()
 export class AuthService {
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(private readonly jwtService: JwtService, private readonly userService: UserService) {}
 
-  //Register user baru
+  // Register user baru (menggunakan UserService -> Supabase)
   async register(registerDto: RegisterDto) {
     try {
-      const { email, password } = registerDto;
+      const { email, password, fullName, role } = registerDto as any;
 
-      // Cek apakah user sudah ada
-      const existingUser = users.find((u) => u.email === email);
-      if (existingUser) {
-        throw new BadRequestException('Email already registered');
-      }
+      // Delegasikan pembuatan user ke UserService (akan melempar BadRequest jika email duplikat)
+      const created = await this.userService.createUser({ email, fullName, password, role });
 
-      // Hash password
-      const hashedPassword = await bcrypt.hash(password, 10);
-
-      // Simpan user ke "database"
-      const newUser: User = {
-        id: users.length + 1,
-        email,
-        password: hashedPassword,
-      };
-      users.push(newUser);
-
-      return { message: 'User registered successfully', userId: newUser.id };
+      return { message: 'User registered successfully', userId: created?.usr_id };
     } catch (err) {
-      // Rethrow known HTTP exceptions
       if (err instanceof BadRequestException) throw err;
-      // Unexpected errors -> 500
       throw new InternalServerErrorException('Failed to register user');
     }
   }
 
-  //Login user
+  // Login user -> cari di DB dan verifikasi password
   async login(loginDto: LoginDto) {
     try {
-      const { email, password } = loginDto;
+      const { email, password } = loginDto as any;
 
-      const user = users.find((u) => u.email === email);
+      const user = await this.userService.findByEmail(email);
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // Cek apakah password cocok
-      const isPasswordValid = await bcrypt.compare(password, user.password);
+      // user.usr_password holds the hash
+      const isPasswordValid = await bcrypt.compare(password, (user as any).usr_password || '');
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      // Buat JWT token
-      const payload = { sub: user.id, email: user.email };
-      const token = this.jwtService.sign(payload);
+      // Buat JWT token dengan payload yang berguna untuk aplikasi
+      const payload = {
+        sub: (user as any).usr_id,
+        email: (user as any).usr_email,
+        name: (user as any).usr_nama_lengkap,
+        role: (user as any).usr_role,
+      };
 
+      const token = this.jwtService.sign(payload);
       return { access_token: token };
     } catch (err) {
       if (err instanceof UnauthorizedException) throw err;
