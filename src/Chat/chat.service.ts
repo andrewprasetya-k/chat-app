@@ -12,8 +12,27 @@ export class ChatService {
     return [{ id: 1, text: 'Hello, world!' }];
   }
 
+  async getMessagesByRoom(room_id:string){
+    try {
+        const client = this.supabase.getClient();
+        const { data, error } = await client
+          .from('chat_message')
+          .select('*')
+          .eq('room_id', room_id)
+          .order('created_at', { ascending: true });
+
+        if (error) {
+          throw new InternalServerErrorException(error.message);
+        }
+        return data;
+    } catch (error) {
+        
+    }
+  }
+
   // Kirim pesan ke Supabase
-  async sendMessage(dto: SendMessageDto) {
+  async sendMessage(dto: SendMessageDto) 
+  {
     const { room_id, sender_id, message_text } = dto;
 
     try {
