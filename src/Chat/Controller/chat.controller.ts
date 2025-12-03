@@ -17,18 +17,21 @@ import { User } from 'src/Auth/user.decorator';
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
-  @Get()
-  testChat() {
-    return this.chatService.getAllMessages();
+  @UseGuards(AuthGuard)
+  @Get('get-room-chat')
+  getRoomChat(@User('sub') userId: string) {
+    return this.chatService.getRoomChat(userId);
   }
 
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
-  @Get('get-all/:room_id')
+  @UseGuards(AuthGuard)
+  @Get('get-room-chat/:room_id')
   getMessages(@Param('room_id') cm_cr_id: string) {
     return this.chatService.getMessagesByRoom(cm_cr_id);
   }
 
   // Buat chat room baru
+  @UseGuards(AuthGuard)
   @Post('create-room')
   createRoom(@Body() body: CreateRoomDto, @User('sub') userId: string) {
     return this.chatService.createRoom(body, userId);

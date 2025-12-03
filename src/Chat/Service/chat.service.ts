@@ -7,9 +7,26 @@ import { CreateRoomDto } from '../Dto/create-room.dto';
 export class ChatService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  // Dummy untuk test
-  getAllMessages() {
-    return [{ id: 1, text: 'Hello, world!' }];
+  async getRoomChat(userId: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('chat_room (cr_id, cr_name, cr_is_group)')
+        .eq('crm_usr_id', userId)
+        .is('leave_at', null)
+        .order('joined_at', { ascending: true });
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return data;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to fetch rooms',
+      );
+    }
   }
 
   async getMessagesByRoom(room_id: string) {
@@ -33,7 +50,11 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
       return data;
-    } catch (error) {}
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to fetch messages',
+      );
+    }
   }
 
   // Kirim pesan ke Supabase
@@ -68,28 +89,7 @@ export class ChatService {
     }
   }
 
-  async validateUser(userId: string) {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select('usr_id, usr_nama_lengkap')
-        .eq('usr_id', userId);
-      if (data && data.length === 0) {
-        throw new InternalServerErrorException('User not found');
-      }
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return data;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate user',
-      );
-    }
-  }
-
-  async validateUsers(userIds: string[]) {
+  async validateUser(userIds: string[]) {
     const client = this.supabase.getClient();
     try {
       const { data, error } = await client
@@ -184,6 +184,8 @@ export class ChatService {
       dto.members.push(creatorId);
     }
 
+    console.log('Members in createRoom:', dto.members);
+
     //cek kalau mau buat chat personal
     if (members.length === 2 && !cr_is_group) {
       //validasi apakah personal chat sudah ada
@@ -201,18 +203,17 @@ export class ChatService {
     }
 
     //validasi members
-    await this.validateUsers(dto.members);
+    await this.validateUser(dto.members);
 
     try {
       // Buat room baru
       const { data: room, error: roomError } = await client
         .from('chat_room')
-        .insert([{ cr_name, cr_is_group }])
+        .insert([{ cr_name, cr_is_group, created_by: creatorId }])
         .select()
         .single();
 
       if (roomError) throw roomError;
-
       // Tambahkan anggota ke chat_room_members
       const membersToInsert = members.map((usr_id) => ({
         crm_cr_id: room.cr_id,

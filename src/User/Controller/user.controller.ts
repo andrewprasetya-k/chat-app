@@ -24,7 +24,7 @@ export class UserController {
     return {
       userId: req.user.sub,
       email: req.user.email,
-      username: req.user.username,
+      username: req.user.name,
     };
   }
 }

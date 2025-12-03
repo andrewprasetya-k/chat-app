@@ -18,7 +18,7 @@ export class CreateRoomDto {
   cr_is_group?: boolean = false;
 
   @IsArray()
-  @ArrayMinSize(2, { message: 'Minimal harus ada 2 anggota dalam room.' })
+  @ArrayMinSize(1, { message: 'Minimal harus ada 2 anggota dalam room.' })
   @IsUUID('4', {
     each: true,
     message: 'Setiap user_id harus berupa UUID valid.',
