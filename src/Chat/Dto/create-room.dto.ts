@@ -15,7 +15,7 @@ export class CreateRoomDto {
 
   @IsBoolean()
   @IsOptional()
-  cr_is_group?: boolean = false;
+  cr_is_group?: boolean = false; // menandai apakah room ini grup atau personal
 
   @IsArray()
   @ArrayMinSize(1, { message: 'Minimal harus ada 2 anggota dalam room.' })

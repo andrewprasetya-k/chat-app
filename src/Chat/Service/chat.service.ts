@@ -12,7 +12,9 @@ export class ChatService {
       const client = this.supabase.getClient();
       const { data, error } = await client
         .from('chat_room_member')
-        .select('chat_room (cr_id, cr_name, cr_is_group)')
+        .select(
+          'chat_room (cr_id, cr_name, cr_is_group, members:chat_room_member(user:crm_usr_id (usr_id,usr_nama_lengkap)))',
+        )
         .eq('crm_usr_id', userId)
         .is('leave_at', null)
         .order('joined_at', { ascending: true });
@@ -197,6 +199,8 @@ export class ChatService {
         members[0],
         members[1],
       ]);
+      dto.cr_name = ' '; //kosongkan nama kalau personal chat sudah ada
+      dto.cr_is_group = false;
       if (existingRoomId) {
         return {
           success: true,
@@ -213,7 +217,13 @@ export class ChatService {
       // Buat room baru
       const { data: room, error: roomError } = await client
         .from('chat_room')
-        .insert([{ cr_name, cr_is_group, created_by: creatorId }])
+        .insert([
+          {
+            cr_name: dto.cr_name,
+            cr_is_group: dto.cr_is_group,
+            created_by: creatorId,
+          },
+        ])
         .select()
         .single();
 
