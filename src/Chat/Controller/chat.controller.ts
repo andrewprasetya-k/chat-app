@@ -24,8 +24,8 @@ export class ChatController {
 
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
   @Get('get-all/:room_id')
-  getMessages(@Param('room_id') room_id: string) {
-    return this.chatService.getMessagesByRoom(room_id);
+  getMessages(@Param('room_id') cm_cr_id: string) {
+    return this.chatService.getMessagesByRoom(cm_cr_id);
   }
 
   // Buat chat room baru
@@ -36,12 +36,12 @@ export class ChatController {
 
   // Kirim pesan baru
   @UseGuards(AuthGuard)
-  @Post('send/:cm_cr_id')
+  @Post('send/:chatRoomId')
   sendMessage(
     @Body() body: SendMessageDto,
-    @Param('cm_cr_id') cm_cr_id: string,
-    @User('sub') cm_usr_id: string,
+    @Param('chatRoomId') chatRoomId: string,
+    @User('sub') userId: string,
   ) {
-    return this.chatService.sendMessage(body, cm_cr_id, cm_usr_id);
+    return this.chatService.sendMessage(body, chatRoomId, userId);
   }
 }

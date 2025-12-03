@@ -37,7 +37,7 @@ export class ChatService {
   }
 
   // Kirim pesan ke Supabase
-  async sendMessage(dto: SendMessageDto, cm_cr_id: string, cm_usr_id: string) {
+  async sendMessage(dto: SendMessageDto, chatRoomId: string, userId: string) {
     const { message_text } = dto;
 
     try {
@@ -46,8 +46,8 @@ export class ChatService {
         .from('chat_message') // pastikan tabel di Supabase bernama "messages"
         .insert([
           {
-            cm_cr_id,
-            cm_usr_id,
+            cm_cr_id: chatRoomId,
+            cm_usr_id: userId,
             message_text,
           },
         ])
@@ -59,7 +59,7 @@ export class ChatService {
 
       return {
         success: true,
-        data: data[0],
+        // message: data[0], buka komen ini untuk melihat data yang dikirim
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
