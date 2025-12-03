@@ -6,8 +6,8 @@
  * that relies on `AuthGuard` to ensure the request carries a valid JWT.
  */
 import { Controller, Get, UseGuards, Request } from '@nestjs/common';
-import { AuthGuard } from '../Auth/auth.guard';
-import { UserService } from 'src/User/user.service';
+import { AuthGuard } from '../../Auth/auth.guard';
+import { UserService } from 'src/User/Service/user.service';
 
 @Controller('users')
 export class UserController {
