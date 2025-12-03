@@ -19,32 +19,35 @@ export class ChatController {
 
   @UseGuards(AuthGuard)
   @Get('get-room-chat')
-  getRoomChat(@User('sub') userId: string) {
-    return this.chatService.getRoomChat(userId);
+  getAllRoomChatController(@User('sub') userId: string) {
+    return this.chatService.getAllRoomChatService(userId);
   }
 
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
   @UseGuards(AuthGuard)
   @Get('get-room-chat/:room_id')
-  getMessages(@Param('room_id') cm_cr_id: string) {
-    return this.chatService.getMessagesByRoom(cm_cr_id);
+  getDetailedRoomChatController(@Param('room_id') cm_cr_id: string) {
+    return this.chatService.getDetailedRoomChatService(cm_cr_id);
   }
 
   // Buat chat room baru
   @UseGuards(AuthGuard)
   @Post('create-room')
-  createRoom(@Body() body: CreateRoomDto, @User('sub') userId: string) {
-    return this.chatService.createRoom(body, userId);
+  createRoomController(
+    @Body() body: CreateRoomDto,
+    @User('sub') userId: string,
+  ) {
+    return this.chatService.createRoomService(body, userId);
   }
 
   // Kirim pesan baru
   @UseGuards(AuthGuard)
   @Post('send/:chatRoomId')
-  sendMessage(
+  sendMessageController(
     @Body() body: SendMessageDto,
     @Param('chatRoomId') chatRoomId: string,
     @User('sub') userId: string,
   ) {
-    return this.chatService.sendMessage(body, chatRoomId, userId);
+    return this.chatService.sendMessageService(body, chatRoomId, userId);
   }
 }

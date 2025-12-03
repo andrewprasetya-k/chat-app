@@ -7,7 +7,7 @@ import { CreateRoomDto } from '../Dto/create-room.dto';
 export class ChatService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getRoomChat(userId: string) {
+  async getAllRoomChatService(userId: string) {
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -29,7 +29,7 @@ export class ChatService {
     }
   }
 
-  async getMessagesByRoom(room_id: string) {
+  async getDetailedRoomChatService(room_id: string) {
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -58,7 +58,7 @@ export class ChatService {
   }
 
   // Kirim pesan ke Supabase
-  async sendMessage(dto: SendMessageDto, chatRoomId: string, userId: string) {
+  async sendMessageService(dto: SendMessageDto, chatRoomId: string, userId: string) {
     const { message_text } = dto;
 
     try {
@@ -176,7 +176,7 @@ export class ChatService {
     }
   }
 
-  async createRoom(dto: CreateRoomDto, creatorId: string) {
+  async createRoomService(dto: CreateRoomDto, creatorId: string) {
     const client = this.supabase.getClient();
     const { cr_name, cr_is_group, members } = dto;
     //memasukkan creatorId ke members
