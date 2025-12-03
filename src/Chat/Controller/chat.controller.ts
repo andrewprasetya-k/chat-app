@@ -30,8 +30,8 @@ export class ChatController {
 
   // Buat chat room baru
   @Post('create-room')
-  createRoom(@Body() body: CreateRoomDto) {
-    return this.chatService.createRoom(body);
+  createRoom(@Body() body: CreateRoomDto, @User('sub') userId: string) {
+    return this.chatService.createRoom(body, userId);
   }
 
   // Kirim pesan baru

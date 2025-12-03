@@ -68,9 +68,140 @@ export class ChatService {
     }
   }
 
-  async createRoom(dto: CreateRoomDto) {
+  async validateUser(userId: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap')
+        .eq('usr_id', userId);
+      if (data && data.length === 0) {
+        throw new InternalServerErrorException('User not found');
+      }
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return data;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate user',
+      );
+    }
+  }
+
+  async validateUsers(userIds: string[]) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap')
+        .in('usr_id', userIds);
+
+      if (error) {
+        throw new InternalServerErrorException(
+          'Database error during user validation',
+        );
+      }
+
+      // Check missing users
+      const foundIds = (data || []).map((user) => user.usr_id);
+      const missingIds = userIds.filter((id) => !foundIds.includes(id));
+
+      if (missingIds.length > 0) {
+        throw new InternalServerErrorException(
+          `Missing user IDs: ${missingIds.join(', ')}`,
+        );
+      }
+
+      return data;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate users',
+      );
+    }
+  }
+
+  async validatePersonalChat(
+    memberIds: [string, string],
+  ): Promise<string | null> {
+    const client = this.supabase.getClient();
+    try {
+      // Query semua rooms dimana kedua users adalah member
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('crm_cr_id, crm_usr_id')
+        .in('crm_usr_id', memberIds);
+
+      if (error) {
+        throw new InternalServerErrorException(
+          'Database error during room validation',
+        );
+      }
+
+      if (!data || data.length === 0) {
+        return null; // Tidak ada room bersama
+      }
+
+      // Hitung jumlah member per room
+      const roomMemberCount: { [roomId: string]: number } = {};
+
+      data.forEach((record) => {
+        const roomId = record.crm_cr_id;
+        roomMemberCount[roomId] = (roomMemberCount[roomId] || 0) + 1;
+      });
+
+      // Cari room yang memiliki EXACTLY 2 members (kedua users)
+      for (const roomId of Object.keys(roomMemberCount)) {
+        if (roomMemberCount[roomId] === 2) {
+          // Verifikasi bahwa room ini memiliki kedua users yang tepat
+          const roomMembers = data
+            .filter((record) => record.crm_cr_id === roomId)
+            .map((record) => record.crm_usr_id);
+
+          const hasBothUsers = memberIds.every((userId) =>
+            roomMembers.includes(userId),
+          );
+
+          if (hasBothUsers) {
+            return roomId; // Found personal chat room
+          }
+        }
+      }
+
+      return null; // Tidak ada personal chat yang cocok
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate room',
+      );
+    }
+  }
+
+  async createRoom(dto: CreateRoomDto, creatorId: string) {
     const client = this.supabase.getClient();
     const { cr_name, cr_is_group, members } = dto;
+    //memasukkan creatorId ke members
+    if (!dto.members.includes(creatorId)) {
+      dto.members.push(creatorId);
+    }
+
+    //cek kalau mau buat chat personal
+    if (members.length === 2 && !cr_is_group) {
+      //validasi apakah personal chat sudah ada
+      const existingRoomId = await this.validatePersonalChat([
+        members[0],
+        members[1],
+      ]);
+      if (existingRoomId) {
+        return {
+          success: true,
+          room: { cr_id: existingRoomId },
+          message: 'Personal chat room already exists',
+        };
+      }
+    }
+
+    //validasi members
+    await this.validateUsers(dto.members);
 
     try {
       // Buat room baru
