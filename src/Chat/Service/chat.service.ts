@@ -58,7 +58,11 @@ export class ChatService {
   }
 
   // Kirim pesan ke Supabase
-  async sendMessageService(dto: SendMessageDto, chatRoomId: string, userId: string) {
+  async sendMessageService(
+    dto: SendMessageDto,
+    chatRoomId: string,
+    userId: string,
+  ) {
     const { message_text } = dto;
 
     try {
@@ -230,6 +234,29 @@ export class ChatService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to create room',
+      );
+    }
+  }
+
+  async leaveRoomService(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const now = new Date().toISOString();
+      const { error } = await client
+        .from('chat_room_member')
+        .update({ leave_at: now })
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', userId)
+        .is('leave_at', null); // hanya update jika belum pernah leave
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return { success: true, message: 'Left the room successfully' };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to leave room',
       );
     }
   }

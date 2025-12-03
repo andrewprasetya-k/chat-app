@@ -50,4 +50,13 @@ export class ChatController {
   ) {
     return this.chatService.sendMessageService(body, chatRoomId, userId);
   }
+
+  @UseGuards(AuthGuard)
+  @Post('leave-room/:roomId')
+  leaveRoomController(
+    @Param('roomId') roomId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatService.leaveRoomService(roomId, userId);
+  }
 }
