@@ -127,9 +127,7 @@ export class ChatService {
     }
   }
 
-  async validatePersonalChat(
-    memberIds: [string, string],
-  ): Promise<string | null> {
+  async isPersonalChat(memberIds: [string, string]): Promise<string | null> {
     const client = this.supabase.getClient();
     try {
       // Query semua rooms dimana kedua users adalah member
@@ -158,7 +156,7 @@ export class ChatService {
 
       // Cari room yang memiliki EXACTLY 2 members (kedua users)
       for (const roomId of Object.keys(roomMemberCount)) {
-        if (roomMemberCount[roomId] === 2) {
+        if (roomMemberCount[roomId] <= 2) {
           // Verifikasi bahwa room ini memiliki kedua users yang tepat
           const roomMembers = data
             .filter((record) => record.crm_cr_id === roomId)
@@ -195,7 +193,7 @@ export class ChatService {
     //cek kalau mau buat chat personal
     if (members.length === 2 && !cr_is_group) {
       //validasi apakah personal chat sudah ada
-      const existingRoomId = await this.validatePersonalChat([
+      const existingRoomId = await this.isPersonalChat([
         members[0],
         members[1],
       ]);
