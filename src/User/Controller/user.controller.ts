@@ -13,11 +13,6 @@ import { UserService } from 'src/User/Service/user.service';
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
-  @Get('public')
-  getPublicData() {
-    return this.userService.getAllUsers();
-  }
-
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
