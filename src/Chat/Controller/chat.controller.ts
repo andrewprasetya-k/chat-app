@@ -1,7 +1,17 @@
-import { Controller, Get, Post, Body, Query } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  Post,
+  Body,
+  Query,
+  UseGuards,
+  Param,
+} from '@nestjs/common';
 import { ChatService } from '../Service/chat.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { CreateRoomDto } from '../Dto/create-room.dto';
+import { AuthGuard } from 'src/Auth/auth.guard';
+import { User } from 'src/Auth/user.decorator';
 
 @Controller('chat')
 export class ChatController {
@@ -18,14 +28,20 @@ export class ChatController {
     return this.chatService.getMessagesByRoom(room_id);
   }
 
+  // Buat chat room baru
   @Post('create-room')
   createRoom(@Body() body: CreateRoomDto) {
     return this.chatService.createRoom(body);
   }
 
   // Kirim pesan baru
-  @Post('send')
-  sendMessage(@Body() body: SendMessageDto) {
-    return this.chatService.sendMessage(body);
+  @UseGuards(AuthGuard)
+  @Post(':cm_cr_id/send-message')
+  sendMessage(
+    @Body() body: SendMessageDto,
+    @Param('cm_cr_id') cm_cr_id: string,
+    @User('sub') cm_usr_id: string,
+  ) {
+    return this.chatService.sendMessage(body, cm_cr_id, cm_usr_id);
   }
 }

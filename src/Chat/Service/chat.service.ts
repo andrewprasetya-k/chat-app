@@ -37,8 +37,8 @@ export class ChatService {
   }
 
   // Kirim pesan ke Supabase
-  async sendMessage(dto: SendMessageDto) {
-    const { cm_cr_id, cm_usr_id, message_text } = dto;
+  async sendMessage(dto: SendMessageDto, cm_cr_id: string, cm_usr_id: string) {
+    const { message_text } = dto;
 
     try {
       const client = this.supabase.getClient();
