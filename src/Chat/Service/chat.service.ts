@@ -1,7 +1,7 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
-import { SendMessageDto } from './Dto/send-message.dto';
-import { CreateRoomDto } from './Dto/create-room.dto';
+import { SendMessageDto } from '../Dto/send-message.dto';
+import { CreateRoomDto } from '../Dto/create-room.dto';
 
 @Injectable()
 export class ChatService {

@@ -11,20 +11,20 @@ import { UserService } from 'src/User/user.service';
 
 @Controller('users')
 export class UserController {
-    constructor(private readonly userService: UserService) {}
+  constructor(private readonly userService: UserService) {}
 
-    @Get('public')
-    getPublicData() {
-        return this.userService.getAllUsers();
-    }
+  @Get('public')
+  getPublicData() {
+    return this.userService.getAllUsers();
+  }
 
-    @UseGuards(AuthGuard)
-    @Get('profile')
-    getProfile(@Request() req) {
-        return {
-            userId: req.user.sub,
-            email: req.user.email,
-            username: req.user.username,
-        };
-    }
+  @UseGuards(AuthGuard)
+  @Get('profile')
+  getProfile(@Request() req) {
+    return {
+      userId: req.user.sub,
+      email: req.user.email,
+      username: req.user.username,
+    };
+  }
 }

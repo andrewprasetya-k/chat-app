@@ -10,8 +10,8 @@ import { Module, forwardRef } from '@nestjs/common';
 import { JwtModule } from '@nestjs/jwt';
 import { UserModule } from 'src/User/user.module';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { AuthService } from './auth.service';
-import { AuthController } from './auth.controller';
+import { AuthService } from './Service/auth.service';
+import { AuthController } from './Controller/auth.controller';
 import { AuthGuard } from './auth.guard';
 
 @Module({

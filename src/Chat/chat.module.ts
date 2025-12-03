@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { ChatController } from './chat.controller';
-import { ChatService } from './chat.service';
+import { ChatController } from './Controller/chat.controller';
+import { ChatService } from './Service/chat.service';
 import { SupabaseModule } from 'src/Supabase/supabase.module';
 
 @Module({

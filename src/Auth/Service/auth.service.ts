@@ -18,8 +18,8 @@ import {
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
-import { LoginDto } from './Dto/login.dto';
-import { RegisterDto } from './Dto/register.dto';
+import { LoginDto } from '../Dto/login.dto';
+import { RegisterDto } from '../Dto/register.dto';
 import { UserService } from 'src/User/user.service';
 
 @Injectable()
@@ -97,5 +97,9 @@ export class AuthService {
       console.error('AuthService.login error:', err);
       throw new InternalServerErrorException(err?.message ?? 'Failed to login');
     }
+  }
+
+  async logout() {
+    return { message: 'User logged out successfully' };
   }
 }

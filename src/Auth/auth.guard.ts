@@ -40,6 +40,7 @@ export class AuthGuard implements CanActivate {
    * - Mengembalikan `true` jika request diizinkan, atau melempar
    *   `UnauthorizedException` jika token tidak ada/invalid.
    */
+
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
     const token = this.extractTokenFromHeader(request);
