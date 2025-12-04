@@ -30,8 +30,8 @@ export class ChatService {
       );
     }
   }
-
-  async getDetailedRoomChatService(room_id: string) {
+  async getDetailedRoomChatService(roomId: string, userId: string) {
+    const isMember = await this.stillInChat(roomId, userId);
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -45,7 +45,7 @@ export class ChatService {
             )
           `,
         )
-        .eq('cm_cr_id', room_id)
+        .eq('cm_cr_id', roomId)
         .order('created_at', { ascending: true });
 
       if (error) {
@@ -59,6 +59,35 @@ export class ChatService {
     }
   }
 
+  async stillInChat(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('leave_at')
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', userId);
+
+      //cara baca/mapping key tertentu dari fetch data supabase
+      const leftGroup = data
+        ?.map((row) => row.leave_at)
+        .filter((leave_at) => leave_at !== null);
+
+      if (leftGroup) {
+        return false;
+      }
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return true;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate membership',
+      );
+    }
+  }
+
   // Kirim pesan ke Supabase
   async sendMessageService(
     dto: SendMessageDto,
@@ -67,8 +96,13 @@ export class ChatService {
   ) {
     const { message_text } = dto;
 
-    this.stillInChat(chatRoomId, userId);
-
+    // Cek apakah user masih anggota room
+    const isMember = await this.stillInChat(chatRoomId, userId);
+    if (!isMember) {
+      throw new InternalServerErrorException(
+        'You have left the chat room and cannot send messages.',
+      );
+    }
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -93,28 +127,6 @@ export class ChatService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to send message',
-      );
-    }
-  }
-
-  async stillInChat(roomId: string, userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('chat_room_member')
-        .select('crm_id')
-        .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', userId)
-        .is('leave_at', null); // hanya ambil yang belum leave
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return data && data.length > 0;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate membership',
       );
     }
   }
@@ -296,7 +308,7 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
 
-      return { success: true, message: 'Left the room successfully' };
+      return { success: true, message: 'Left the room successfully at ', now };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to leave room',
