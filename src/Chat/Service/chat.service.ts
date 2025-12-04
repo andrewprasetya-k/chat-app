@@ -38,7 +38,7 @@ export class ChatService {
       const { error: readError } = await client
         .from('chat_message')
         .update({ is_read: true })
-        .eq('crm_cr_id', roomId)
+        .eq('cm_cr_id', roomId)
         .neq('cm_usr_id', userId);
 
       if (readError) {
@@ -51,6 +51,7 @@ export class ChatService {
           `
             message_text,
             created_at,
+            is_read,
             user:cm_usr_id (
               usr_nama_lengkap
             )
@@ -82,21 +83,19 @@ export class ChatService {
         .from('chat_room_member')
         .select('leave_at')
         .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', userId);
+        .eq('crm_usr_id', userId)
+        .single();
 
       //cara baca/mapping key tertentu dari fetch data supabase
-      const leftGroup = data
-        ?.map((row) => row.leave_at)
-        .filter((leave_at) => leave_at !== null);
 
-      if (leftGroup) {
-        return false;
+      if (data !== null && data.leave_at === null) {
+        return true;
       }
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
-      return true;
+      return false; // sudah leave
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to validate membership',
@@ -113,8 +112,8 @@ export class ChatService {
     const { message_text } = dto;
 
     // Cek apakah user masih anggota room
-    const isMember = await this.stillInChat(chatRoomId, userId);
-    if (!isMember) {
+    const inChat = await this.stillInChat(chatRoomId, userId);
+    if (!inChat) {
       throw new InternalServerErrorException(
         'You have left the chat room and cannot send messages.',
       );
