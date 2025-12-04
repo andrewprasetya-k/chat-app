@@ -67,6 +67,8 @@ export class ChatService {
   ) {
     const { message_text } = dto;
 
+    this.stillInChat(chatRoomId, userId);
+
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -91,6 +93,28 @@ export class ChatService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to send message',
+      );
+    }
+  }
+
+  async stillInChat(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('crm_id')
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', userId)
+        .is('leave_at', null); // hanya ambil yang belum leave
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return data && data.length > 0;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate membership',
       );
     }
   }
@@ -133,8 +157,7 @@ export class ChatService {
       // Query semua rooms dimana kedua users adalah member
       const { data, error } = await client
         .from('chat_room_member')
-        .select('crm_cr_id, crm_usr_id')
-        .in('crm_usr_id', memberIds);
+        .select('crm_cr_id, crm_usr_id');
 
       if (error) {
         throw new InternalServerErrorException(
@@ -146,33 +169,32 @@ export class ChatService {
         return null; // Tidak ada room bersama
       }
 
-      // Hitung jumlah member per room
-      const roomMemberCount: { [roomId: string]: number } = {};
+      // Buat map dari roomId -> Set(userIds) untuk menghitung member unik per room
+      const membersByRoom = new Map<string, Set<string>>();
 
-      data.forEach((record) => {
-        const roomId = record.crm_cr_id;
-        roomMemberCount[roomId] = (roomMemberCount[roomId] || 0) + 1;
-      });
+      for (const row of data) {
+        const roomId = row.crm_cr_id;
+        const userId = row.crm_usr_id;
 
-      // Cari room yang memiliki EXACTLY 2 members (kedua users)
-      for (const roomId of Object.keys(roomMemberCount)) {
-        if (roomMemberCount[roomId] <= 2) {
-          // Verifikasi bahwa room ini memiliki kedua users yang tepat
-          const roomMembers = data
-            .filter((record) => record.crm_cr_id === roomId)
-            .map((record) => record.crm_usr_id);
+        if (!membersByRoom.has(roomId)) {
+          membersByRoom.set(roomId, new Set());
+        }
+        membersByRoom.get(roomId)!.add(userId);
+      }
+      console.log(membersByRoom);
+      // Cari room yang persis memiliki 2 member dan keduanya cocok dengan memberIds
+      for (const [roomId, userSet] of membersByRoom.entries()) {
+        // Hanya pertimbangkan room dengan tepat 2 member (personal chat)
+        if (userSet.size >= 3) continue;
 
-          const hasBothUsers = memberIds.every((userId) =>
-            roomMembers.includes(userId),
-          );
-
-          if (hasBothUsers) {
-            return roomId; // Found personal chat room
-          }
+        // Cek apakah kedua user yang dicari ada di room ini
+        const bothUsersPresent = memberIds.every((id) => userSet.has(id));
+        if (bothUsersPresent) {
+          return roomId; // ketemu personal chat
         }
       }
 
-      return null; // Tidak ada personal chat yang cocok
+      return null; // tidak ada personal chat yang cocok
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to validate room',
@@ -191,7 +213,7 @@ export class ChatService {
     console.log('Members in createRoom:', dto.members);
 
     //cek kalau mau buat chat personal
-    if (members.length === 2 && !cr_is_group) {
+    if (dto.members.length === 2 && !cr_is_group) {
       //validasi apakah personal chat sudah ada
       const existingRoomId = await this.isPersonalChat([
         members[0],
@@ -206,10 +228,23 @@ export class ChatService {
           message: 'Personal chat room already exists',
         };
       }
+    } else if (dto.members.length < 2) {
+      throw new InternalServerErrorException(
+        'A chat must have at least 2 members',
+      );
     }
 
     //validasi members
     await this.validateUser(dto.members);
+
+    if (dto.members.length >= 3) {
+      dto.cr_is_group = true; //paksa jadi group kalau anggotanya lebih dari 2
+    }
+    if (dto.cr_is_group && dto.cr_name?.trim() === '') {
+      throw new InternalServerErrorException(
+        'Group chat must have a valid name',
+      );
+    }
 
     try {
       // Buat room baru
