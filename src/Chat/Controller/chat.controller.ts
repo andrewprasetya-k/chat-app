@@ -26,8 +26,11 @@ export class ChatController {
   // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
   @UseGuards(AuthGuard)
   @Get('get-room-chat/:room_id')
-  getDetailedRoomChatController(@Param('room_id') cm_cr_id: string) {
-    return this.chatService.getDetailedRoomChatService(cm_cr_id);
+  getDetailedRoomChatController(
+    @Param('room_id') cm_cr_id: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatService.getDetailedRoomChatService(cm_cr_id, userId);
   }
 
   // Buat chat room baru
