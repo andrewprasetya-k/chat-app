@@ -38,7 +38,7 @@ export class UserService {
       const client = this.supabase.getClient();
       const { data, error } = await client
         .from('user')
-        .select('usr_nama_lengkap, usr_email')
+        .select('*')
         .eq('usr_email', email)
         .limit(1)
         .maybeSingle();
