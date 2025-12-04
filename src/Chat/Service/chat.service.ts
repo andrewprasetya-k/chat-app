@@ -53,7 +53,7 @@ export class ChatService {
       }
 
       const result = {
-        status: isMember,
+        stillInchat: isMember,
         messages: data,
       };
       return result;
