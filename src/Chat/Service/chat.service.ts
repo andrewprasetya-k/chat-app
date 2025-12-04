@@ -51,7 +51,12 @@ export class ChatService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-      return data;
+
+      const result = {
+        status: isMember,
+        messages: data,
+      };
+      return result;
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch messages',
