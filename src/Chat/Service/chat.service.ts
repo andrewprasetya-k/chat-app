@@ -34,6 +34,17 @@ export class ChatService {
     const isMember = await this.stillInChat(roomId, userId);
     try {
       const client = this.supabase.getClient();
+
+      const { error: readError } = await client
+        .from('chat_message')
+        .update({ is_read: true })
+        .eq('crm_cr_id', roomId)
+        .neq('cm_usr_id', userId);
+
+      if (readError) {
+        throw new InternalServerErrorException(readError.message);
+      }
+
       const { data, error } = await client
         .from('chat_message')
         .select(
