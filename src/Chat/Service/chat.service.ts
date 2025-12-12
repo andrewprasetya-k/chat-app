@@ -35,25 +35,23 @@ export class ChatService {
     try {
       const client = this.supabase.getClient();
 
-      const { error: readError } = await client
-        .from('chat_message')
-        .update({ is_read: true })
-        .eq('cm_cr_id', roomId)
-        .neq('cm_usr_id', userId);
-
-      if (readError) {
-        throw new InternalServerErrorException(readError.message);
-      }
-
       const { data, error } = await client
         .from('chat_message')
         .select(
           `
+            cm_id,
             message_text,
             created_at,
-            is_read,
             user:cm_usr_id (
+              usr_id,
               usr_nama_lengkap
+            ),
+            read_receipts (
+              read_at,
+              reader:rr_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              )
             )
           `,
         )
@@ -327,6 +325,30 @@ export class ChatService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to leave room',
+      );
+    }
+  }
+
+  async markMessageAsReadService(messageId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      // Menggunakan 'upsert' untuk menghindari error jika data sudah ada
+      // (jika user secara tidak sengaja menandai pesan yang sama 2x)
+      const { error } = await client.from('read_receipts').upsert(
+        {
+          rr_cm_id: messageId,
+          rr_usr_id: userId,
+          read_at: new Date().toISOString(),
+        },
+        { onConflict: 'rr_cm_id,rr_usr_id' }, // Kunci unik yang sudah kita buat
+      );
+
+      if (error) throw error;
+
+      return { success: true, message: 'Message marked as read.' };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error.message || 'Failed to mark message as read',
       );
     }
   }
