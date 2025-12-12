@@ -82,12 +82,13 @@ export class ChatController {
     return this.chatService.countUnreadMessagesServices(roomId, user.sub);
   }
 
-  @Patch('unsend/:messageId')
+  @Patch('unsend/:roomId/:messageId')
   @UseGuards(AuthGuard)
   async unsendMessageController(
     @Param('messageId') messageId: string,
+    @Param('roomId') roomId: string,
     @User() user: any,
   ) {
-    return this.chatService.unsendMessageService(messageId, user.sub);
+    return this.chatService.unsendMessageService(roomId, messageId, user.sub);
   }
 }

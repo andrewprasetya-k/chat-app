@@ -374,7 +374,11 @@ export class ChatService {
     }
   }
 
-  async unsendMessageService(messageId: string, userId: string) {
+  async unsendMessageService(
+    roomId: string,
+    messageId: string,
+    userId: string,
+  ) {
     const client = this.supabase.getClient();
     try {
       const { data, error } = await client
@@ -382,6 +386,13 @@ export class ChatService {
         .select('cm_usr_id')
         .eq('cm_id', messageId)
         .single();
+
+      const inChat = await this.stillInChat(roomId, userId);
+      if (!inChat) {
+        throw new InternalServerErrorException(
+          'You have left the chat room and cannot unsend messages.',
+        );
+      }
 
       if (error) throw error;
 
