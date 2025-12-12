@@ -356,9 +356,9 @@ export class ChatService {
   async countUnreadMessagesServices(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      const { data, error } = await client
+      const { count, error } = await client
         .from('chat_message')
-        .select('cm_id')
+        .select('cm_id', { count: 'exact' })
         .eq('cm_cr_id', roomId)
         .not(`cm_id`, 'in', function () {
           this.from('read_receipts').select('rr_cm_id').eq('rr_usr_id', userId);
@@ -366,7 +366,7 @@ export class ChatService {
 
       if (error) throw error;
 
-      return { success: true, unreadCount: data.length };
+      return { success: true, unreadCount: count };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to count unread messages',
