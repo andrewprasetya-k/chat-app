@@ -6,6 +6,7 @@ import {
   Query,
   UseGuards,
   Param,
+  Patch,
 } from '@nestjs/common';
 import { ChatService } from '../Service/chat.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
@@ -63,12 +64,30 @@ export class ChatController {
     return this.chatService.leaveRoomService(roomId, userId);
   }
 
-  @Post('messages/read/:messageId')
+  @Post('read/:messageId')
   @UseGuards(AuthGuard)
   async markAsReadController(
     @Param('messageId') messageId: string,
     @User() user: any,
   ) {
     return this.chatService.markMessageAsReadService(messageId, user.sub);
+  }
+
+  @Post('unread-count/:roomId')
+  @UseGuards(AuthGuard)
+  async getUnreadCountController(
+    @User() user: any,
+    @Param('roomId') roomId: string,
+  ) {
+    return this.chatService.countUnreadMessagesServices(roomId, user.sub);
+  }
+
+  @Patch('unsend/:messageId')
+  @UseGuards(AuthGuard)
+  async unsendMessageController(
+    @Param('messageId') messageId: string,
+    @User() user: any,
+  ) {
+    return this.chatService.unsendMessageService(messageId, user.sub);
   }
 }
