@@ -73,7 +73,7 @@ export class ChatController {
     return this.chatService.markMessageAsReadService(messageId, user.sub);
   }
 
-  @Post('unread-count/:roomId')
+  @Get('unread-count/:roomId')
   @UseGuards(AuthGuard)
   async getUnreadCountController(
     @User() user: any,
