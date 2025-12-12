@@ -42,11 +42,11 @@ export class ChatService {
             cm_id,
             message_text,
             created_at,
-            user:cm_usr_id (
+            sender:cm_usr_id (
               usr_id,
               usr_nama_lengkap
             ),
-            read_receipts (
+            read_by (
               read_at,
               reader:rr_usr_id (
                 usr_id,
