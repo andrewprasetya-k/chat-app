@@ -244,7 +244,7 @@ export class ChatService {
         members[0],
         members[1],
       ]);
-      dto.cr_name = ' '; //kosongkan nama kalau personal chat sudah ada
+      dto.cr_name = ''; //kosongkan nama kalau personal chat sudah ada
       dto.cr_is_group = false;
       if (existingRoomId) {
         return {
@@ -332,7 +332,7 @@ export class ChatService {
   async markMessageAsReadService(messageId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      // Menggunakan 'upsert' untuk menghindari error jika data sudah ada
+      //  upsert untuk menghindari error jika data sudah ada
       // (jika user secara tidak sengaja menandai pesan yang sama 2x)
       const { error } = await client.from('read_receipts').upsert(
         {
@@ -387,7 +387,7 @@ export class ChatService {
       // Langkah 2: Hitung pesan di room ini yang ID-nya TIDAK ADA di dalam daftar pesan yang sudah dibaca.
       const { count, error: countError } = await client
         .from('chat_message')
-        .select('*', { count: 'exact', head: true })
+        .select('cm_id, cm_cr_id', { count: 'exact', head: true })
         .eq('cm_cr_id', roomId)
         .not('cm_id', 'in', `(${readMessageIds.join(',')})`); // Formatnya harus '(id1,id2,id3)'
 
