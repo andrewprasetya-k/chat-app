@@ -377,7 +377,7 @@ export class ChatService {
       if (readMessageIds.length === 0) {
         const { count, error: totalError } = await client
           .from('chat_message')
-          .select('*', { count: 'exact', head: true })
+          .select('cm_id, cm_cr_id', { count: 'exact', head: true })
           .eq('cm_cr_id', roomId);
 
         if (totalError) throw totalError;
