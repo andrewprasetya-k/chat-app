@@ -128,15 +128,27 @@ export class UserService {
     try {
       const { data, error } = await client
         .from('user')
-        .select('usr_id, usr_nama_lengkap, usr_email, usr_last_seen')
-        .eq('usr_id', userId);
+        .select('usr_id, usr_nama_lengkap, usr_role, last_seen')
+        .eq('usr_id', userId)
+        .maybeSingle();
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
+      if (!data) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
       return { success: true, data };
     } catch (error: any) {
+      // Re-throw known exceptions
+      if (
+        error instanceof NotFoundException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException(
         error?.message || 'Failed to get user',
       );
