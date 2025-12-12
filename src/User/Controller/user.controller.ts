@@ -9,7 +9,7 @@ import { Controller, Get, UseGuards, Request } from '@nestjs/common';
 import { AuthGuard } from '../../Auth/auth.guard';
 import { UserService } from 'src/User/Service/user.service';
 
-@Controller('users')
+@Controller('user')
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
