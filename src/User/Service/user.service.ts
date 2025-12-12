@@ -123,4 +123,23 @@ export class UserService {
       throw new InternalServerErrorException('Failed to create user');
     }
   }
+  async getUserByIdService(userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap, usr_email, usr_last_seen')
+        .eq('usr_id', userId);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return { success: true, data };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to get user',
+      );
+    }
+  }
 }
