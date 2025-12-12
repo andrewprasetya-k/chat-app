@@ -356,20 +356,53 @@ export class ChatService {
   async countUnreadMessagesServices(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      const { count, error } = await client
-        .from('chat_message')
-        .select('cm_id', { count: 'exact' })
-        .eq('cm_cr_id', roomId)
-        .not(`cm_id`, 'in', function () {
-          this.from('read_receipts').select('rr_cm_id').eq('rr_usr_id', userId);
-        });
+      // Langkah 1: Ambil semua ID pesan yang sudah pernah dibaca oleh pengguna ini di seluruh aplikasi.
+      const { data: readReceipts, error: readError } = await client
+        .from('read_receipts')
+        .select('rr_cm_id')
+        .eq('rr_usr_id', userId);
 
-      if (error) throw error;
+      if (readError) {
+        throw new InternalServerErrorException(
+          readError.message,
+          'Failed fetching read receipts',
+        );
+      }
+
+      // Ubah hasil query menjadi array of strings, contoh: ['id1', 'id2', ...]
+      const readMessageIds = readReceipts.map((item) => item.rr_cm_id);
+
+      // Jika pengguna belum pernah membaca pesan apa pun, kita bisa langsung hitung semua pesan di room.
+      // Ini juga untuk mencegah error jika kita memberikan array kosong ke filter .not('in', ...).
+      if (readMessageIds.length === 0) {
+        const { count, error: totalError } = await client
+          .from('chat_message')
+          .select('*', { count: 'exact', head: true })
+          .eq('cm_cr_id', roomId);
+
+        if (totalError) throw totalError;
+        return { success: true, unreadCount: count };
+      }
+
+      // Langkah 2: Hitung pesan di room ini yang ID-nya TIDAK ADA di dalam daftar pesan yang sudah dibaca.
+      const { count, error: countError } = await client
+        .from('chat_message')
+        .select('*', { count: 'exact', head: true })
+        .eq('cm_cr_id', roomId)
+        .not('cm_id', 'in', `(${readMessageIds.join(',')})`); // Formatnya harus '(id1,id2,id3)'
+
+      if (countError) {
+        throw new InternalServerErrorException(
+          countError.message,
+          'Failed counting unread messages',
+        );
+      }
 
       return { success: true, unreadCount: count };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error.message || 'Failed to count unread messages',
+        error?.message || 'Failed to count unread messages',
+        error?.details,
       );
     }
   }
