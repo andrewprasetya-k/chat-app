@@ -46,7 +46,7 @@ export class ChatService {
               usr_id,
               usr_nama_lengkap
             ),
-            read_by (
+            read_receipts (
               read_at,
               reader:rr_usr_id (
                 usr_id,
