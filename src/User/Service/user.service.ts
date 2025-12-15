@@ -6,7 +6,8 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { SupabaseService } from 'src/Supabase/supabase.service';
-import { EditUserDto } from '../Dto/edit.user.dto';
+import { EditUserDto } from '../Dto/edit-user.dto';
+import { GetUserDto } from '../Dto/get-user.dto';
 
 @Injectable()
 export class UserService {
@@ -34,7 +35,7 @@ export class UserService {
     }
   }
 
-  async findByEmail(email: string) {
+  async findByEmail(email: string): Promise<GetUserDto[] | null> {
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -45,7 +46,10 @@ export class UserService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-      return data;
+      return data.map((user) => ({
+        fullName: user.usr_nama_lengkap,
+        email: user.usr_email,
+      }));
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -56,7 +60,7 @@ export class UserService {
     }
   }
 
-  async findByFullName(fullName: string) {
+  async findByFullName(fullName: string): Promise<GetUserDto[] | null> {
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -67,7 +71,10 @@ export class UserService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-      return data;
+      return data.map((user) => ({
+        fullName: user.usr_nama_lengkap,
+        email: user.usr_email,
+      }));
     } catch (err) {
       if (
         err instanceof BadRequestException ||

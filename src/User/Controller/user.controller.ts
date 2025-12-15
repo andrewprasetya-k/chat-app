@@ -18,7 +18,7 @@ import {
 } from '@nestjs/common';
 import { AuthGuard } from '../../Auth/auth.guard';
 import { UserService } from 'src/User/Service/user.service';
-import { EditUserDto } from '../Dto/edit.user.dto';
+import { EditUserDto } from '../Dto/edit-user.dto';
 
 @Controller('user')
 export class UserController {

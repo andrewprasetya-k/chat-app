@@ -107,7 +107,7 @@ export class ChatService {
     chatRoomId: string,
     userId: string,
   ) {
-    const { message_text } = dto;
+    const { text } = dto;
 
     // Cek apakah user masih anggota room
     const inChat = await this.stillInChat(chatRoomId, userId);
@@ -124,7 +124,7 @@ export class ChatService {
           {
             cm_cr_id: chatRoomId,
             cm_usr_id: userId,
-            message_text,
+            message_text: text,
           },
         ])
         .select(
@@ -244,7 +244,7 @@ export class ChatService {
 
   async createRoomService(dto: CreateRoomDto, creatorId: string) {
     const client = this.supabase.getClient();
-    const { cr_name, cr_is_group, members } = dto;
+    const { chatRoomName, isGroup, members } = dto;
     //memasukkan creatorId ke members
     if (!dto.members.includes(creatorId)) {
       dto.members.push(creatorId);
@@ -253,14 +253,14 @@ export class ChatService {
     console.log('Members in createRoom:', dto.members);
 
     //cek kalau mau buat chat personal
-    if (dto.members.length === 2 && !cr_is_group) {
+    if (dto.members.length === 2 && !isGroup) {
       //validasi apakah personal chat sudah ada
       const existingRoomId = await this.isPersonalChat([
         members[0],
         members[1],
       ]);
-      dto.cr_name = ''; //kosongkan nama kalau personal chat sudah ada
-      dto.cr_is_group = false;
+      dto.chatRoomName = ''; //kosongkan nama kalau personal chat sudah ada
+      dto.isGroup = false;
       if (existingRoomId) {
         return {
           success: true,
@@ -278,9 +278,9 @@ export class ChatService {
     await this.validateUser(dto.members);
 
     if (dto.members.length >= 3) {
-      dto.cr_is_group = true; //paksa jadi group kalau anggotanya lebih dari 2
+      dto.isGroup = true; //paksa jadi group kalau anggotanya lebih dari 2
     }
-    if (dto.cr_is_group && dto.cr_name?.trim() === '') {
+    if (dto.isGroup && dto.chatRoomName?.trim() === '') {
       throw new InternalServerErrorException(
         'Group chat must have a valid name',
       );
@@ -292,8 +292,9 @@ export class ChatService {
         .from('chat_room')
         .insert([
           {
-            cr_name: dto.cr_name,
-            cr_is_group: dto.cr_is_group,
+            cr_name: dto.chatRoomName,
+            cr_is_group: dto.isGroup,
+            cr_private: dto.isPrivate,
             created_by: creatorId,
           },
         ])

@@ -11,11 +11,11 @@ import {
 export class CreateRoomDto {
   @IsOptional()
   @IsString()
-  cr_name?: string; // boleh kosong kalau bukan grup
+  chatRoomName?: string; // boleh kosong kalau bukan grup
 
   @IsBoolean()
   @IsOptional()
-  cr_is_group?: boolean = false; // menandai apakah room ini grup atau personal
+  isGroup?: boolean = false; // menandai apakah room ini grup atau personal
 
   @IsArray()
   @ArrayMinSize(1, { message: 'Minimal harus ada 2 anggota dalam room.' })
@@ -27,5 +27,5 @@ export class CreateRoomDto {
 
   @IsBoolean()
   @IsOptional()
-  cr_private?: boolean = false; // menandai apakah room ini room chat privat atau tidak
+  isPrivate?: boolean = false; // menandai apakah room ini room chat privat atau tidak
 }
