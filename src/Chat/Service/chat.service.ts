@@ -118,7 +118,7 @@ export class ChatService {
     }
     try {
       const client = this.supabase.getClient();
-      const { data, error } = await client
+      const { data: newMessage, error } = await client
         .from('chat_message') // pastikan tabel di Supabase bernama "messages"
         .insert([
           {
@@ -127,15 +127,30 @@ export class ChatService {
             message_text,
           },
         ])
-        .select();
+        .select(
+          `cm_id, message_text, created_at, sender:cm_usr_id (usr_id, usr_nama_lengkap)`,
+        )
+        .single();
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
+      if (newMessage) {
+        const channelName = `chat_room_${chatRoomId}`;
+        const channel = client.channel(channelName);
+
+        // Kirim pesan ke channel Supabase Realtime
+        await channel.send({
+          type: 'broadcast',
+          event: 'new_message',
+          payload: newMessage,
+        });
+      }
+
       return {
         success: true,
-        // message: data[0], buka komen ini untuk melihat data yang dikirim
+        message: newMessage,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
