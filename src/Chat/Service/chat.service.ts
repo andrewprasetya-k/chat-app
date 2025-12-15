@@ -7,6 +7,7 @@ import { CreateRoomDto } from '../Dto/create-room.dto';
 export class ChatService {
   constructor(private readonly supabase: SupabaseService) {}
 
+  //todo: dto
   async getAllRoomChatService(userId: string) {
     try {
       const client = this.supabase.getClient();
@@ -30,6 +31,8 @@ export class ChatService {
       );
     }
   }
+
+  //todo: dto, paginantion
   async getDetailedRoomChatService(roomId: string, userId: string) {
     const isMember = await this.stillInChat(roomId, userId);
     try {
