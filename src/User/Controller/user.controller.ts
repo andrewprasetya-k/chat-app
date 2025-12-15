@@ -37,13 +37,13 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
-  @Patch('profile/:email')
+  @Get('profile/:email')
   findProfileByEmail(@Param('email') email: string, @Request() req) {
     return this.userService.findByEmail(email);
   }
 
   @UseGuards(AuthGuard)
-  @Patch('profile/:fullName')
+  @Get('profile/:fullName')
   findProfileByFullName(@Param('fullName') fullName: string, @Request() req) {
     return this.userService.findByFullName(fullName);
   }
