@@ -123,12 +123,13 @@ export class UserService {
       throw new InternalServerErrorException('Failed to create user');
     }
   }
+
   async getUserByIdService(userId: string) {
     const client = this.supabase.getClient();
     try {
       const { data, error } = await client
         .from('user')
-        .select('usr_id, usr_nama_lengkap, usr_role, last_seen')
+        .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
         .eq('usr_id', userId)
         .maybeSingle();
 
@@ -151,6 +152,38 @@ export class UserService {
       }
       throw new InternalServerErrorException(
         error?.message || 'Failed to get user',
+      );
+    }
+  }
+
+  async editUserService(body: any) {
+    const client = this.supabase.getClient();
+    try {
+      const now = new Date().toISOString();
+      const updatePayload: any = {
+        usr_nama_lengkap: body.usr_nama_lengkap,
+        updated_at: now,
+      };
+
+      const { data, error } = await client
+        .from('user')
+        .update(updatePayload)
+        .eq('usr_id', body.usr_id)
+        .select()
+        .single();
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      if (data && typeof data === 'object') {
+        delete (data as any).usr_password;
+      }
+
+      return { success: true, data };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to edit user',
       );
     }
   }

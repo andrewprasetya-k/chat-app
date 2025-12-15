@@ -1,4 +1,11 @@
-import { IsEmail, IsNotEmpty, IsString, IsOptional, IsISO8601, IsIn } from 'class-validator';
+import {
+  IsEmail,
+  IsNotEmpty,
+  IsString,
+  IsOptional,
+  IsISO8601,
+  IsIn,
+} from 'class-validator';
 
 export class UserModel {
   @IsString()

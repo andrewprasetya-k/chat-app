@@ -5,9 +5,17 @@
  * `/users/public` endpoint and a protected `/users/profile` endpoint
  * that relies on `AuthGuard` to ensure the request carries a valid JWT.
  */
-import { Controller, Get, UseGuards, Request, Param } from '@nestjs/common';
+import {
+  Controller,
+  Get,
+  UseGuards,
+  Request,
+  Param,
+  Body,
+} from '@nestjs/common';
 import { AuthGuard } from '../../Auth/auth.guard';
 import { UserService } from 'src/User/Service/user.service';
+import { EditUserDto } from '../Dto/edit.user.dto';
 
 @Controller('user')
 export class UserController {
@@ -21,6 +29,12 @@ export class UserController {
       email: req.user.email,
       username: req.user.name,
     };
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('profile')
+  editProfile(@Body() body: EditUserDto) {
+    return this.userService.editUserService(body);
   }
 
   @UseGuards(AuthGuard)
