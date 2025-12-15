@@ -103,6 +103,17 @@ export class UserService {
           );
         }
 
+        if (error.code === '23505') {
+          // '23505' is the code for unique_violation
+          if (error.message.includes('user_usr_email_key')) {
+            throw new BadRequestException('Email address already registered');
+          }
+          // Fallback for other unique constraints
+          throw new BadRequestException(
+            'A record with this value already exists.',
+          );
+        }
+
         if (error.code && String(error.code).startsWith('235')) {
           throw new BadRequestException(error.message);
         }
@@ -178,6 +189,14 @@ export class UserService {
         .single();
 
       if (error) {
+        if (
+          error.code === '23505' &&
+          error.message.includes('user_usr_email_key')
+        ) {
+          throw new BadRequestException(
+            'This email address is already in use by another account.',
+          );
+        }
         throw new InternalServerErrorException(error.message);
       }
 
@@ -187,6 +206,12 @@ export class UserService {
 
       return { success: true, data };
     } catch (error: any) {
+      if (
+        error instanceof BadRequestException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
       throw new InternalServerErrorException(
         error?.message || 'Failed to edit user',
       );
