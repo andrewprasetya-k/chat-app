@@ -39,7 +39,7 @@ export class UserService {
       const client = this.supabase.getClient();
       const { data, error } = await client
         .from('user')
-        .select('*')
+        .select('usr_nama_lengkap, usr_email')
         .eq('usr_email', email)
         .limit(1)
         .maybeSingle();
@@ -55,6 +55,30 @@ export class UserService {
       )
         throw err;
       throw new InternalServerErrorException('Failed to query user by email');
+    }
+  }
+
+  async findByFullName(fullName: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('user')
+        .select('usr_nama_lengkap, usr_email')
+        .eq('usr_nama_lengkap', fullName)
+        .limit(1)
+        .maybeSingle();
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return data;
+    } catch (err) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof InternalServerErrorException
+      )
+        throw err;
+      throw new InternalServerErrorException('Failed to query user by full name');
     }
   }
 
