@@ -40,9 +40,7 @@ export class UserService {
       const { data, error } = await client
         .from('user')
         .select('usr_nama_lengkap, usr_email')
-        .eq('usr_email', email)
-        .limit(1)
-        .maybeSingle();
+        .ilike('usr_email', `${email}%`);
 
       if (error) {
         throw new InternalServerErrorException(error.message);
@@ -64,9 +62,7 @@ export class UserService {
       const { data, error } = await client
         .from('user')
         .select('usr_nama_lengkap, usr_email')
-        .eq('usr_nama_lengkap', fullName)
-        .limit(1)
-        .maybeSingle();
+        .ilike('usr_nama_lengkap', `${fullName}%`);
 
       if (error) {
         throw new InternalServerErrorException(error.message);
@@ -78,7 +74,9 @@ export class UserService {
         err instanceof InternalServerErrorException
       )
         throw err;
-      throw new InternalServerErrorException('Failed to query user by full name');
+      throw new InternalServerErrorException(
+        'Failed to query user by full name',
+      );
     }
   }
 

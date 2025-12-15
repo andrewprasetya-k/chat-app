@@ -91,4 +91,13 @@ export class ChatController {
   ) {
     return this.chatService.unsendMessageService(roomId, messageId, user.sub);
   }
+
+  @Get('search/:chatRoomId/:message')
+  @UseGuards(AuthGuard)
+  async searchMessagesController(
+    @Param('chatRoomId') chatRoomId: string,
+    @Param('message') message: string,
+  ) {
+    return this.chatService.findMessageService(chatRoomId, message);
+  }
 }

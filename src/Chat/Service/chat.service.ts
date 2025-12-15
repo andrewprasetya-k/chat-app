@@ -449,4 +449,43 @@ export class ChatService {
       );
     }
   }
+
+  async findMessageService(chatRoomId: string, message: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('chat_message')
+        .select(
+          `
+            cm_id,
+            message_text,
+            created_at,
+            sender:cm_usr_id (
+              usr_id,
+              usr_nama_lengkap
+            ),
+            read_receipts (
+              read_at,
+              reader:rr_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              )
+            )
+          `,
+        )
+        .eq('cm_cr_id', chatRoomId)
+        .ilike('message_text', `%${message}%`)
+        .order('created_at', { ascending: true });
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return data;
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to search messages',
+      );
+    }
+  }
 }
