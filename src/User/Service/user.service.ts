@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import * as bcrypt from 'bcrypt';
 import { SupabaseService } from 'src/Supabase/supabase.service';
+import { EditUserDto } from '../Dto/edit.user.dto';
 
 @Injectable()
 export class UserService {
@@ -131,17 +132,17 @@ export class UserService {
         .from('user')
         .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
         .eq('usr_id', userId)
-        .maybeSingle();
+        .limit(1);
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
-      if (!data) {
+      if (!data || data.length === 0) {
         throw new NotFoundException(`User with ID ${userId} not found`);
       }
 
-      return { success: true, data };
+      return { success: true, data: data[0] };
     } catch (error: any) {
       // Re-throw known exceptions
       if (
@@ -156,19 +157,23 @@ export class UserService {
     }
   }
 
-  async editUserService(body: any) {
+  async editUserService(body: EditUserDto, userId: string) {
     const client = this.supabase.getClient();
     try {
-      const now = new Date().toISOString();
-      const updatePayload: any = {
-        usr_nama_lengkap: body.usr_nama_lengkap,
-        updated_at: now,
-      };
+      const updatePayload: any = {};
+
+      if (body.fullName !== undefined) {
+        updatePayload.usr_nama_lengkap = body.fullName;
+      }
+
+      if (body.email !== undefined) {
+        updatePayload.usr_email = body.email;
+      }
 
       const { data, error } = await client
         .from('user')
         .update(updatePayload)
-        .eq('usr_id', body.usr_id)
+        .eq('usr_id', userId)
         .select()
         .single();
 

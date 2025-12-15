@@ -12,6 +12,9 @@ import {
   Request,
   Param,
   Body,
+  Put,
+  Patch,
+  Req,
 } from '@nestjs/common';
 import { AuthGuard } from '../../Auth/auth.guard';
 import { UserService } from 'src/User/Service/user.service';
@@ -24,17 +27,13 @@ export class UserController {
   @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
-    return {
-      userId: req.user.sub,
-      email: req.user.email,
-      username: req.user.name,
-    };
+    return this.userService.getUserByIdService(req.user.sub);
   }
 
   @UseGuards(AuthGuard)
-  @Get('profile')
-  editProfile(@Body() body: EditUserDto) {
-    return this.userService.editUserService(body);
+  @Patch('profile')
+  editProfile(@Body() body: EditUserDto, @Request() req) {
+    return this.userService.editUserService(body, req.user.sub);
   }
 
   @UseGuards(AuthGuard)
