@@ -88,11 +88,13 @@ export class ChatService {
     try {
       const { data, error } = await client
         .from('chat_room_member')
-        .select('crm_usr_id')
+        .select('crm_usr_id, joined_at, leave_at')
         .eq('crm_cr_id', roomId)
         .eq('crm_usr_id', userId)
         .is('leave_at', null)
-        .single();
+        .order('joined_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       if (error) {
         throw new InternalServerErrorException(error.message);
@@ -113,10 +115,12 @@ export class ChatService {
     try {
       const { data, error } = await client
         .from('chat_room_member')
-        .select('leave_at')
+        .select('leave_at, joined_at')
         .eq('crm_cr_id', roomId)
         .eq('crm_usr_id', userId)
-        .single();
+        .order('joined_at', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
       //cara baca/mapping key tertentu dari fetch data supabase
 
@@ -500,8 +504,18 @@ export class ChatService {
     }
   }
 
-  async findMessageService(chatRoomId: string, message: string) {
+  async findMessageService(
+    chatRoomId: string,
+    message: string,
+    userId: string,
+  ) {
     try {
+      const isMember = await this.isMemberOfRoom(chatRoomId, userId);
+      if (!isMember) {
+        throw new InternalServerErrorException(
+          'You are not a member of this chat room.',
+        );
+      }
       const client = this.supabase.getClient();
       const { data, error } = await client
         .from('chat_message')

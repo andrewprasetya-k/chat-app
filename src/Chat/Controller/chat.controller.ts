@@ -97,7 +97,8 @@ export class ChatController {
   async searchMessagesController(
     @Param('chatRoomId') chatRoomId: string,
     @Param('message') message: string,
+    @User() user: any,
   ) {
-    return this.chatService.findMessageService(chatRoomId, message);
+    return this.chatService.findMessageService(chatRoomId, message, user.sub);
   }
 }
