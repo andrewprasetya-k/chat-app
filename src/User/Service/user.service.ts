@@ -60,6 +60,50 @@ export class UserService {
     }
   }
 
+  async findByEmailForRegister(email: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('user')
+        .select('usr_email')
+        .eq('usr_email', email);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return data;
+    } catch (err) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof InternalServerErrorException
+      )
+        throw err;
+      throw new InternalServerErrorException('Failed to query user by email');
+    }
+  }
+
+  async findByEmailForAuth(email: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('user')
+        .select('*')
+        .eq('usr_email', email);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return data && data.length > 0 ? data[0] : null;
+    } catch (err) {
+      if (
+        err instanceof BadRequestException ||
+        err instanceof InternalServerErrorException
+      )
+        throw err;
+      throw new InternalServerErrorException('Failed to query user by email');
+    }
+  }
+
   async findByFullName(fullName: string): Promise<GetUserDto[] | null> {
     try {
       const client = this.supabase.getClient();
@@ -95,9 +139,8 @@ export class UserService {
   }) {
     try {
       const client = this.supabase.getClient();
-
-      const existing = await this.findByEmail(payload.email);
-      if (existing) {
+      const existing = await this.findByEmailForRegister(payload.email);
+      if (existing && existing.length > 0) {
         throw new BadRequestException('Email already registered');
       }
 

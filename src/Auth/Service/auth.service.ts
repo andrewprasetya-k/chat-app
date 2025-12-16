@@ -40,7 +40,7 @@ export class AuthService {
         password,
         role,
       });
-
+      console.log('AuthService.register created user:', created);
       return {
         message: 'User registered successfully',
         userId: created?.usr_id,
@@ -61,10 +61,11 @@ export class AuthService {
     try {
       const { email, password } = loginDto as any;
 
-      const user = await this.userService.findByEmail(email);
+      const user = await this.userService.findByEmailForAuth(email);
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
+      console.log('AuthService.login found user:', user);
 
       const isPasswordValid = await bcrypt.compare(
         password,
