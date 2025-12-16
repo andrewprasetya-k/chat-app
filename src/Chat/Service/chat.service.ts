@@ -34,7 +34,13 @@ export class ChatService {
 
   //todo: dto, paginantion
   async getDetailedRoomChatService(roomId: string, userId: string) {
-    const isMember = await this.stillInChat(roomId, userId);
+    const isInChat = await this.stillInChat(roomId, userId);
+    const isMember = await this.isMemberOfRoom(roomId, userId);
+    if (!isMember) {
+      throw new InternalServerErrorException(
+        'You are not a member of this chat room.',
+      );
+    }
     try {
       const client = this.supabase.getClient();
 
@@ -66,13 +72,38 @@ export class ChatService {
       }
 
       const result = {
-        stillInchat: isMember,
+        stillInchat: isInChat,
         messages: data,
       };
       return result;
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch messages',
+      );
+    }
+  }
+
+  async isMemberOfRoom(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('crm_usr_id')
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', userId)
+        .is('leave_at', null)
+        .single();
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      if (data) {
+        return true;
+      }
+      return false;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate membership',
       );
     }
   }
