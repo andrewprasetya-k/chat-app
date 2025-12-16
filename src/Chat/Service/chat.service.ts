@@ -7,7 +7,6 @@ import {
   GetDetailedRoomChatDto,
   ReadByDto,
 } from '../Dto/get-detailed-room-chat.dto';
-import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
 
 @Injectable()
 export class ChatService {
@@ -236,9 +235,7 @@ export class ChatService {
     dto: SendMessageDto,
     chatRoomId: string,
     userId: string,
-  ) {
-    const { text } = dto;
-
+  ): Promise<SendMessageDto> {
     // Cek apakah user masih anggota room
     const inChat = await this.stillInChat(chatRoomId, userId);
     const isMember = await this.isMemberOfRoom(chatRoomId, userId);
@@ -251,6 +248,10 @@ export class ChatService {
       throw new InternalServerErrorException(
         'You have left the chat room and cannot send messages.',
       );
+    }
+    const { text } = dto;
+    if (!text || text.trim() === '') {
+      throw new InternalServerErrorException('Message text cannot be empty.');
     }
     try {
       const client = this.supabase.getClient();
@@ -286,7 +287,7 @@ export class ChatService {
 
       return {
         success: true,
-        message: newMessage,
+        text: newMessage.message_text,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -401,7 +402,7 @@ export class ChatService {
       if (existingRoomId) {
         return {
           success: true,
-          room: { cr_id: existingRoomId },
+          room: { roomId: existingRoomId },
           message: 'Personal chat room already exists',
         };
       }
@@ -451,7 +452,7 @@ export class ChatService {
 
       if (memberError) throw memberError;
 
-      return { success: true, room };
+      return { success: true, roomId: room.cr_id };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to create room',
