@@ -2,6 +2,12 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { CreateRoomDto } from '../Dto/create-room.dto';
+import {
+  ChatMessageDto,
+  GetDetailedRoomChatDto,
+  ReadByDto,
+} from '../Dto/get-detailed-room-chat.dto';
+import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
 
 @Injectable()
 export class ChatService {
@@ -53,9 +59,11 @@ export class ChatService {
     }
   }
 
-  //todo: dto, paginantion
-  async getDetailedRoomChatService(roomId: string, userId: string) {
-    // Validasi
+  //todo: paginantion
+  async getDetailedRoomChatService(
+    roomId: string,
+    userId: string,
+  ): Promise<GetDetailedRoomChatDto> {
     const isInChat = await this.stillInChat(roomId, userId);
     const isMember = await this.isMemberOfRoom(roomId, userId);
 
@@ -67,27 +75,25 @@ export class ChatService {
 
     try {
       const client = this.supabase.getClient();
-
-      // Ambil messages (RAW)
+      //ambil pesan dari chat room
       const { data: messages, error: messageError } = await client
         .from('chat_message')
         .select(
           `
-          cm_id,
-          message_text,
-          created_at,
-          sender:cm_usr_id (
+        cm_id,
+        message_text,
+        created_at,
+        sender:cm_usr_id (
+          usr_id,
+          usr_nama_lengkap
+        ),
+        read_receipts (
+          reader:rr_usr_id (
             usr_id,
             usr_nama_lengkap
-          ),
-          read_receipts (
-            read_at,
-            reader:rr_usr_id (
-              usr_id,
-              usr_nama_lengkap
-            )
           )
-        `,
+        )
+      `,
         )
         .eq('cm_cr_id', roomId)
         .order('created_at', { ascending: true });
@@ -96,21 +102,20 @@ export class ChatService {
         throw new InternalServerErrorException(messageError.message);
       }
 
-      // Ambil room + member
+      //ambil member chat room
       const { data: room, error: roomError } = await client
         .from('chat_room')
         .select(
           `
-          cr_id,
-          cr_name,
-          cr_is_group,
-          members:chat_room_member (
-            user:crm_usr_id (
-              usr_id,
-              usr_nama_lengkap
-            )
+        cr_name,
+        cr_is_group,
+        members:chat_room_member (
+          user:crm_usr_id (
+            usr_id,
+            usr_nama_lengkap
           )
-        `,
+        )
+      `,
         )
         .eq('cr_id', roomId)
         .maybeSingle();
@@ -119,8 +124,8 @@ export class ChatService {
         throw new InternalServerErrorException('Chat room not found');
       }
 
-      // Tentukan roomName (tanpa mapping payload)
-      let roomName = room.cr_name;
+      // Tentukan nama room berdasarkan tipe (grup/personal)
+      let roomName = room.cr_name ?? '';
 
       if (!room.cr_is_group) {
         const otherUser = room.members
@@ -130,11 +135,38 @@ export class ChatService {
         roomName = otherUser?.usr_nama_lengkap ?? '';
       }
 
-      // 5️Return RAW
+      const mappedMessages: ChatMessageDto[] = (messages ?? []).map((msg) => {
+        const sender = msg.sender?.[0] ?? null;
+
+        return {
+          textId: msg.cm_id,
+          text: msg.message_text,
+          createdAt: msg.created_at,
+
+          sender: sender
+            ? {
+                senderId: sender.usr_id,
+                senderName: sender.usr_nama_lengkap,
+              }
+            : null,
+
+          readBy: (msg.read_receipts ?? [])
+            .map((rr) => {
+              const reader = rr.reader?.[0];
+              if (!reader) return null;
+
+              return {
+                userId: reader.usr_id,
+                userName: reader.usr_nama_lengkap,
+              };
+            })
+            .filter(Boolean) as ReadByDto[],
+        };
+      });
       return {
+        roomName: roomName,
         stillInChat: isInChat,
-        roomName,
-        messages,
+        messages: mappedMessages,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
