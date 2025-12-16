@@ -64,13 +64,18 @@ export class ChatController {
     return this.chatService.leaveRoomService(roomId, userId);
   }
 
-  @Post('read/:messageId')
+  @Post('read/:roomId/:messageId')
   @UseGuards(AuthGuard)
   async markAsReadController(
     @Param('messageId') messageId: string,
+    @Param('roomId') roomId: string,
     @User() user: any,
   ) {
-    return this.chatService.markMessageAsReadService(messageId, user.sub);
+    return this.chatService.markMessageAsReadService(
+      roomId,
+      messageId,
+      user.sub,
+    );
   }
 
   @Get('unread-count/:roomId')
