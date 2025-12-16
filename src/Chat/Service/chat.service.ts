@@ -149,6 +149,12 @@ export class ChatService {
 
     // Cek apakah user masih anggota room
     const inChat = await this.stillInChat(chatRoomId, userId);
+    const isMember = await this.isMemberOfRoom(chatRoomId, userId);
+    if (!isMember) {
+      throw new InternalServerErrorException(
+        'You are not a member of this chat room.',
+      );
+    }
     if (!inChat) {
       throw new InternalServerErrorException(
         'You have left the chat room and cannot send messages.',
@@ -390,8 +396,12 @@ export class ChatService {
     }
   }
 
-  async markMessageAsReadService(messageId: string, userId: string) {
-    const isMember = await this.isMemberOfRoom(messageId, userId);
+  async markMessageAsReadService(
+    roomId: string,
+    messageId: string,
+    userId: string,
+  ) {
+    const isMember = await this.isMemberOfRoom(roomId, userId);
     if (!isMember) {
       throw new InternalServerErrorException(
         'You are not a member of this chat room.',
