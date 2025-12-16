@@ -7,12 +7,14 @@ import {
   GetDetailedRoomChatDto,
   ReadByDto,
 } from '../Dto/get-detailed-room-chat.dto';
+import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
+import { isArray } from 'class-validator';
 
 @Injectable()
 export class ChatService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  //todo: dto
+
   async getAllRoomChatService(userId: string) {
     try {
       const client = this.supabase.getClient();
@@ -21,21 +23,34 @@ export class ChatService {
         .from('chat_room_member')
         .select(
           `
-        chat_room:crm_cr_id (
-          cr_id,
-          cr_name,
-          cr_is_group,
-          last_message:chat_message (
-            cm_id,
-            message_text,
-            created_at,
-            sender:cm_usr_id (
-              usr_id,
-              usr_nama_lengkap
+            chat_room:crm_cr_id (
+              cr_id,
+              cr_name,
+              cr_is_group,
+
+              members:chat_room_member (
+                user:crm_usr_id (
+                  usr_id,
+                  usr_nama_lengkap
+                )
+              ),
+
+              chat_message (
+                cm_id,
+                message_text,
+                created_at,
+
+                sender:cm_usr_id (
+                  usr_id,
+                  usr_nama_lengkap
+                ),
+
+                read_receipts (
+                  rr_usr_id
+                )
+              )
             )
-          )
-        )
-        `,
+          `,
         )
         .eq('crm_usr_id', userId)
         .is('leave_at', null)
@@ -46,11 +61,45 @@ export class ChatService {
         .limit(1, {
           foreignTable: 'chat_room.chat_message',
         });
+
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
-      return data;
+      const mappedData: getAllRoomChatDto[] = (data ?? []).map((item) => {
+        const room = Array.isArray(item.chat_room)
+          ? item.chat_room[0]
+          : item.chat_room;
+
+        const messages = room.chat_message ?? [];
+        const lastMessage = messages.length > 0 ? messages[0] : null;
+        const sender = lastMessage?.sender;
+
+        // Ensure sender is an array and get the first element
+        const senderId = Array.isArray(sender)
+          ? sender[0]?.usr_id
+          : (sender as any)?.usr_id;
+        const senderName = Array.isArray(sender)
+          ? sender[0]?.usr_nama_lengkap
+          : (sender as any)?.usr_nama_lengkap;
+
+        const isLastMessageRead = lastMessage
+          ? lastMessage.read_receipts.some((rr) => rr.rr_usr_id === userId)
+          : false;
+
+        return {
+          roomId: room.cr_id,
+          roomName: room.cr_name,
+          isGroup: room.cr_is_group,
+          lastMessage: lastMessage?.message_text ?? null,
+          lastMessageTime: lastMessage?.created_at ?? null,
+          senderId: senderId,
+          senderName: senderName,
+          isLastMessageRead,
+        };
+      });
+
+      return mappedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch rooms',
@@ -59,10 +108,7 @@ export class ChatService {
   }
 
   //todo: paginantion
-  async getDetailedRoomChatService(
-    roomId: string,
-    userId: string,
-  ): Promise<GetDetailedRoomChatDto> {
+  async getDetailedRoomChatService(roomId: string, userId: string) {
     const isInChat = await this.stillInChat(roomId, userId);
     const isMember = await this.isMemberOfRoom(roomId, userId);
 
@@ -135,8 +181,8 @@ export class ChatService {
       }
 
       const mappedMessages: ChatMessageDto[] = (messages ?? []).map((msg) => {
-        const sender = msg.sender?.[0] ?? null;
-
+        const senderRaw = msg.sender;
+        const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
         return {
           textId: msg.cm_id,
           text: msg.message_text,
