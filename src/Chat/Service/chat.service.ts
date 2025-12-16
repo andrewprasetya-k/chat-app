@@ -297,6 +297,7 @@ export class ChatService {
         members[0],
         members[1],
       ]);
+      dto.isPrivate = true;
       dto.chatRoomName = ''; //kosongkan nama kalau personal chat sudah ada
       dto.isGroup = false;
       if (existingRoomId) {
@@ -361,6 +362,12 @@ export class ChatService {
   }
 
   async leaveRoomService(roomId: string, userId: string) {
+    const isMember = await this.isMemberOfRoom(roomId, userId);
+    if (!isMember) {
+      throw new InternalServerErrorException(
+        'You are not a member of this chat room.',
+      );
+    }
     const client = this.supabase.getClient();
     try {
       const now = new Date().toISOString();
@@ -384,6 +391,12 @@ export class ChatService {
   }
 
   async markMessageAsReadService(messageId: string, userId: string) {
+    const isMember = await this.isMemberOfRoom(messageId, userId);
+    if (!isMember) {
+      throw new InternalServerErrorException(
+        'You are not a member of this chat room.',
+      );
+    }
     const client = this.supabase.getClient();
     try {
       //  upsert untuk menghindari error jika data sudah ada
