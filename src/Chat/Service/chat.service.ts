@@ -11,21 +11,42 @@ export class ChatService {
   async getAllRoomChatService(userId: string) {
     try {
       const client = this.supabase.getClient();
+
       const { data, error } = await client
         .from('chat_room_member')
         .select(
-          'chat_room (cr_id, cr_name, cr_is_group, members:chat_room_member(user:crm_usr_id (usr_id,usr_nama_lengkap)))',
+          `
+        chat_room:crm_cr_id (
+          cr_id,
+          cr_name,
+          cr_is_group,
+          last_message:chat_message (
+            cm_id,
+            message_text,
+            created_at,
+            sender:cm_usr_id (
+              usr_id,
+              usr_nama_lengkap
+            )
+          )
+        )
+        `,
         )
         .eq('crm_usr_id', userId)
         .is('leave_at', null)
-        .order('joined_at', { ascending: true });
-
+        .order('created_at', {
+          foreignTable: 'chat_room.chat_message',
+          ascending: false,
+        })
+        .limit(1, {
+          foreignTable: 'chat_room.chat_message',
+        });
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
       return data;
-    } catch (error) {
+    } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch rooms',
       );
@@ -34,49 +55,88 @@ export class ChatService {
 
   //todo: dto, paginantion
   async getDetailedRoomChatService(roomId: string, userId: string) {
+    // Validasi
     const isInChat = await this.stillInChat(roomId, userId);
     const isMember = await this.isMemberOfRoom(roomId, userId);
+
     if (!isMember) {
       throw new InternalServerErrorException(
         'You are not a member of this chat room.',
       );
     }
+
     try {
       const client = this.supabase.getClient();
 
-      const { data, error } = await client
+      // Ambil messages (RAW)
+      const { data: messages, error: messageError } = await client
         .from('chat_message')
         .select(
           `
-            cm_id,
-            message_text,
-            created_at,
-            sender:cm_usr_id (
+          cm_id,
+          message_text,
+          created_at,
+          sender:cm_usr_id (
+            usr_id,
+            usr_nama_lengkap
+          ),
+          read_receipts (
+            read_at,
+            reader:rr_usr_id (
               usr_id,
               usr_nama_lengkap
-            ),
-            read_receipts (
-              read_at,
-              reader:rr_usr_id (
-                usr_id,
-                usr_nama_lengkap
-              )
             )
-          `,
+          )
+        `,
         )
         .eq('cm_cr_id', roomId)
         .order('created_at', { ascending: true });
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
+      if (messageError) {
+        throw new InternalServerErrorException(messageError.message);
       }
 
-      const result = {
-        stillInchat: isInChat,
-        messages: data,
+      // Ambil room + member
+      const { data: room, error: roomError } = await client
+        .from('chat_room')
+        .select(
+          `
+          cr_id,
+          cr_name,
+          cr_is_group,
+          members:chat_room_member (
+            user:crm_usr_id (
+              usr_id,
+              usr_nama_lengkap
+            )
+          )
+        `,
+        )
+        .eq('cr_id', roomId)
+        .maybeSingle();
+
+      if (roomError || !room) {
+        throw new InternalServerErrorException('Chat room not found');
+      }
+
+      // Tentukan roomName (tanpa mapping payload)
+      let roomName = room.cr_name;
+
+      if (!room.cr_is_group) {
+        const otherUser = room.members
+          .flatMap((m) => m.user)
+          .find((u) => u.usr_id !== userId);
+
+        roomName = otherUser?.usr_nama_lengkap ?? '';
+      }
+
+      // 5️Return RAW
+      return {
+        stillInChat: isInChat,
+        roomName,
+        messages,
       };
-      return result;
-    } catch (error) {
+    } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch messages',
       );
