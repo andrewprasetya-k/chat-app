@@ -40,13 +40,14 @@ export class UserService {
       const client = this.supabase.getClient();
       const { data, error } = await client
         .from('user')
-        .select('usr_nama_lengkap, usr_email')
+        .select('usr_id,usr_nama_lengkap, usr_email')
         .ilike('usr_email', `${email}%`);
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
       return data.map((user) => ({
+        userId: user.usr_id,
         fullName: user.usr_nama_lengkap,
         email: user.usr_email,
       }));
@@ -109,13 +110,14 @@ export class UserService {
       const client = this.supabase.getClient();
       const { data, error } = await client
         .from('user')
-        .select('usr_nama_lengkap, usr_email')
+        .select('usr_id, usr_nama_lengkap, usr_email')
         .ilike('usr_nama_lengkap', `${fullName}%`);
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
       return data.map((user) => ({
+        userId: user.usr_id,
         fullName: user.usr_nama_lengkap,
         email: user.usr_email,
       }));
