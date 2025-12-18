@@ -107,7 +107,12 @@ export class ChatService {
   }
 
   //todo: paginantion
-  async getDetailedRoomChatService(roomId: string, userId: string) {
+  async getDetailedRoomChatService(
+    roomId: string,
+    userId: string,
+    beforeAt?: string,
+    limit: number = 20,
+  ) {
     const isInChat = await this.stillInChat(roomId, userId);
     const isMember = await this.isMemberOfRoom(roomId, userId);
 
@@ -120,7 +125,7 @@ export class ChatService {
     try {
       const client = this.supabase.getClient();
       //ambil pesan dari chat room
-      const { data: messages, error: messageError } = await client
+      let query = client
         .from('chat_message')
         .select(
           `
@@ -140,7 +145,14 @@ export class ChatService {
       `,
         )
         .eq('cm_cr_id', roomId)
-        .order('created_at', { ascending: true });
+        .order('created_at', { ascending: false }) // Ambil dari yang terbaru (descending)
+        .limit(limit);
+
+      if (beforeAt) {
+        query = query.lt('created_at', beforeAt); // Load pesan sebelum waktu tertentu (history)
+      }
+
+      const { data: messages, error: messageError } = await query;
 
       if (messageError) {
         throw new InternalServerErrorException(messageError.message);
@@ -179,7 +191,10 @@ export class ChatService {
         roomName = otherUser?.usr_nama_lengkap ?? '';
       }
 
-      const mappedMessages: ChatMessageDto[] = (messages ?? []).map((msg) => {
+      // Balik urutan pesan agar kronologis (lama -> baru) saat dikirim ke frontend
+      const sortedMessages = (messages ?? []).reverse();
+
+      const mappedMessages: ChatMessageDto[] = sortedMessages.map((msg) => {
         const senderRaw = msg.sender;
         const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
         return {
@@ -323,7 +338,7 @@ export class ChatService {
         const channel = client.channel(channelName);
 
         // Kirim pesan ke channel Supabase Realtime
-        await channel.send({
+        await (channel as any).httpSend({
           type: 'broadcast',
           event: 'new_message',
           payload: newMessage,

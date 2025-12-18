@@ -24,14 +24,22 @@ export class ChatController {
     return this.chatService.getAllRoomChatService(userId);
   }
 
-  // Ambil semua pesan dari room tertentu (nanti bisa tambahkan query param)
+  // Ambil semua pesan dari room tertentu (pagination supported)
   @UseGuards(AuthGuard)
   @Get('get-room-chat/:room_id')
   getDetailedRoomChatController(
     @Param('room_id') cm_cr_id: string,
+    @Query('beforeAt') beforeAt: string,
+    @Query('limit') limit: string,
     @User('sub') userId: string,
   ) {
-    return this.chatService.getDetailedRoomChatService(cm_cr_id, userId);
+    const limitNum = limit ? parseInt(limit, 10) : 20;
+    return this.chatService.getDetailedRoomChatService(
+      cm_cr_id,
+      userId,
+      beforeAt,
+      limitNum,
+    );
   }
 
   // Buat chat room baru
