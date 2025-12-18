@@ -565,14 +565,38 @@ export class ChatService {
     try {
       //  upsert untuk menghindari error jika data sudah ada
       // (jika user secara tidak sengaja menandai pesan yang sama 2x)
-      const { error } = await client.from('read_receipts').upsert(
+      const { error } = await client
+        .from('read_receipts')
+        .select('rr_cm_id')
+        .eq('rr_cm_id', messageId)
+        .single();
+
+      if (error && error.code !== 'PGRST116') throw error;
+
+      const { data: messageData, error: msgError } = await client
+        .from('chat_message')
+        .select('cm_usr_id')
+        .eq('cm_id', messageId)
+        .single();
+
+      if (msgError) throw msgError;
+
+      if (messageData.cm_usr_id === userId) {
+        throw new InternalServerErrorException(
+          'You cannot mark your own message as read',
+        );
+      }
+
+      const { error: upsertError } = await client.from('read_receipts').upsert(
         {
           rr_cm_id: messageId,
           rr_usr_id: userId,
           read_at: new Date().toISOString(),
         },
-        { onConflict: 'rr_cm_id,rr_usr_id' }, // Kunci unik yang sudah kita buat
+        { onConflict: 'rr_cm_id,rr_usr_id' },
       );
+
+      if (upsertError) throw upsertError;
 
       if (error) throw error;
 
