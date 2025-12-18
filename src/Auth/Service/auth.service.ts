@@ -40,7 +40,6 @@ export class AuthService {
         password,
         role,
       });
-      console.log('AuthService.register created user:', created);
       return {
         message: 'User registered successfully',
         userId: created?.usr_id,
@@ -65,7 +64,6 @@ export class AuthService {
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
-      console.log('AuthService.login found user:', user);
 
       const isPasswordValid = await bcrypt.compare(
         password,

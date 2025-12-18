@@ -14,7 +14,6 @@ import { isArray } from 'class-validator';
 export class ChatService {
   constructor(private readonly supabase: SupabaseService) {}
 
-
   async getAllRoomChatService(userId: string) {
     try {
       const client = this.supabase.getClient();
@@ -404,7 +403,6 @@ export class ChatService {
         }
         membersByRoom.get(roomId)!.add(userId);
       }
-      console.log(membersByRoom);
       // Cari room yang persis memiliki 2 member dan keduanya cocok dengan memberIds
       for (const [roomId, userSet] of membersByRoom.entries()) {
         // Hanya pertimbangkan room dengan tepat 2 member (personal chat)
@@ -432,8 +430,6 @@ export class ChatService {
     if (!dto.members.includes(creatorId)) {
       dto.members.push(creatorId);
     }
-
-    console.log('Members in createRoom:', dto.members);
 
     //cek kalau mau buat chat personal
     if (dto.members.length === 2 && !isGroup) {
