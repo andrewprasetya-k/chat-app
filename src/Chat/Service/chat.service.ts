@@ -764,4 +764,57 @@ export class ChatService {
       );
     }
   }
+
+  //todo: dto and only admins can add members
+  async addMemberService(roomId: string, userIds: string[], addedBy: string) {
+    const client = this.supabase.getClient();
+    try {
+      //validasi members
+      await this.validateUser(userIds);
+
+      const membersToInsert = userIds.map((usr_id) => ({
+        crm_cr_id: roomId,
+        crm_usr_id: usr_id,
+        crm_role: 'member',
+        crm_join_approved: true,
+      }));
+
+      const { error: memberError } = await client
+        .from('chat_room_member')
+        .insert(membersToInsert);
+
+      if (memberError) throw memberError;
+
+      return { success: true, message: 'Members added successfully.' };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error.message || 'Failed to add members',
+      );
+    }
+  }
+
+  //todo: dto and only admins can remove members
+  async removeMemberService(
+    roomId: string,
+    userIds: string[],
+    removedBy: string,
+  ) {
+    const client = this.supabase.getClient();
+    try {
+      const { error: memberError } = await client
+        .from('chat_room_member')
+        .update({ leave_at: new Date().toISOString() })
+        .eq('crm_cr_id', roomId)
+        .in('crm_usr_id', userIds)
+        .is('leave_at', null); // hanya update jika belum pernah leave
+
+      if (memberError) throw memberError;
+
+      return { success: true, message: 'Members removed successfully.' };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error.message || 'Failed to remove members',
+      );
+    }
+  }
 }
