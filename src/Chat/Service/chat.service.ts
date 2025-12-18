@@ -444,20 +444,19 @@ export class ChatService {
 
   async createRoomService(dto: CreateRoomDto, creatorId: string) {
     const client = this.supabase.getClient();
-    const { chatRoomName, isGroup, members } = dto;
+    const { chatRoomName, isGroup, groupMembers } = dto;
     //memasukkan creatorId ke members
-    if (!dto.members.includes(creatorId)) {
-      dto.members.push(creatorId);
+    if (!dto.groupMembers.includes(creatorId)) {
+      dto.groupMembers.push(creatorId);
     }
 
     //cek kalau mau buat chat personal
-    if (dto.members.length === 2 && !isGroup) {
+    if (dto.groupMembers.length === 2 && !isGroup) {
       //validasi apakah personal chat sudah ada
       const existingRoomId = await this.isPersonalChat([
-        members[0],
-        members[1],
+        groupMembers[0],
+        groupMembers[1],
       ]);
-      dto.isPrivate = true;
       dto.chatRoomName = ''; //kosongkan nama kalau personal chat sudah ada
       dto.isGroup = false;
       if (existingRoomId) {
@@ -467,16 +466,16 @@ export class ChatService {
           message: 'Personal chat room already exists',
         };
       }
-    } else if (dto.members.length < 2) {
+    } else if (dto.groupMembers.length < 2) {
       throw new InternalServerErrorException(
         'A chat must have at least 2 members',
       );
     }
 
     //validasi members
-    await this.validateUser(dto.members);
+    await this.validateUser(dto.groupMembers);
 
-    if (dto.members.length >= 3) {
+    if (dto.groupMembers.length >= 3) {
       dto.isGroup = true; //paksa jadi group kalau anggotanya lebih dari 2
     }
     if (dto.isGroup && dto.chatRoomName?.trim() === '') {
@@ -484,8 +483,8 @@ export class ChatService {
         'Group chat must have a valid name',
       );
     }
-
     try {
+      const isPrivate = !dto.isGroup && dto.groupMembers.length === 2;
       // Buat room baru
       const { data: room, error: roomError } = await client
         .from('chat_room')
@@ -493,7 +492,7 @@ export class ChatService {
           {
             cr_name: dto.chatRoomName,
             cr_is_group: dto.isGroup,
-            cr_private: dto.isPrivate,
+            cr_private: isPrivate,
             created_by: creatorId,
           },
         ])
@@ -502,10 +501,22 @@ export class ChatService {
 
       if (roomError) throw roomError;
       // Tambahkan anggota ke chat_room_members
-      const membersToInsert = members.map((usr_id) => ({
-        crm_cr_id: room.cr_id,
-        crm_usr_id: usr_id,
-      }));
+      const membersToInsert = groupMembers.map((usr_id) => {
+        let userRole = 'member';
+
+        if (isPrivate) {
+          userRole = 'personal';
+        } else if (usr_id === creatorId) {
+          userRole = 'admin';
+        }
+
+        return {
+          crm_cr_id: room.cr_id,
+          crm_usr_id: usr_id,
+          crm_role: userRole,
+          crm_join_approved: true,
+        };
+      });
 
       const { error: memberError } = await client
         .from('chat_room_member')

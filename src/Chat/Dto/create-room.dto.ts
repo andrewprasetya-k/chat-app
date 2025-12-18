@@ -23,9 +23,5 @@ export class CreateRoomDto {
     each: true,
     message: 'Setiap user_id harus berupa UUID valid.',
   })
-  members: string[]; // daftar user_id (termasuk pembuatnya)
-
-  @IsBoolean()
-  @IsOptional()
-  isPrivate?: boolean = false; // menandai apakah room ini room chat privat atau tidak
+  groupMembers: string[]; // daftar user_id (termasuk pembuatnya)
 }
