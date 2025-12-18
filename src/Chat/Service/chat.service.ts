@@ -211,7 +211,11 @@ export class ChatService {
 
           readBy: (msg.read_receipts ?? [])
             .map((rr) => {
-              const reader = rr.reader?.[0];
+              const readerRaw = rr.reader;
+              const reader = Array.isArray(readerRaw)
+                ? readerRaw[0]
+                : readerRaw;
+
               if (!reader) return null;
 
               return {
