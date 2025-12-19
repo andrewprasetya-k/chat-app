@@ -3,6 +3,7 @@ import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { ChatMessageEntity } from '../Entity/chat.entity';
+import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ChatService {
@@ -249,8 +250,15 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Use entity transformation instead of manual mapping
-      return TransformUtil.transform(ChatMessageEntity, messages || []);
+      const transformedData = plainToInstance(
+        ChatMessageEntity,
+        messages || [],
+        {
+          excludeExtraneousValues: true,
+          enableImplicitConversion: true,
+        },
+      );
+      return transformedData;
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to search messages',
