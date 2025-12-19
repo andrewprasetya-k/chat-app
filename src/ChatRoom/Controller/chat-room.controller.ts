@@ -24,7 +24,7 @@ export class ChatRoomController {
     return this.chatRoomService.getAllRooms(userId);
   }
 
-  @Get(':roomId/messages')
+  @Get('messages/:roomId')
   @UseGuards(AuthGuard)
   getRoomMessages(
     @Param('roomId') roomId: string,
@@ -33,7 +33,12 @@ export class ChatRoomController {
     @User('sub') userId: string,
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 20;
-    return this.chatRoomService.getRoomMessages(roomId, userId, beforeAt, limitNum);
+    return this.chatRoomService.getRoomMessages(
+      roomId,
+      userId,
+      beforeAt,
+      limitNum,
+    );
   }
 
   @Post('create')
@@ -42,13 +47,13 @@ export class ChatRoomController {
     return this.chatRoomService.createRoom(body, userId);
   }
 
-  @Post(':roomId/leave')
+  @Post('leave/:roomId')
   @UseGuards(AuthGuard)
   leaveRoom(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.leaveRoom(roomId, userId);
   }
 
-  @Post(':roomId/add-members')
+  @Post('add-members/:roomId')
   @UseGuards(AuthGuard)
   addMembers(
     @Body() body: AddRemoveMemberDto,
@@ -58,7 +63,7 @@ export class ChatRoomController {
     return this.chatRoomService.addMembers(body, userId, roomId);
   }
 
-  @Post(':roomId/remove-members')
+  @Post('remove-members/:roomId')
   @UseGuards(AuthGuard)
   removeMembers(
     @Body() body: AddRemoveMemberDto,
@@ -70,19 +75,13 @@ export class ChatRoomController {
 
   @Delete(':roomId')
   @UseGuards(AuthGuard)
-  deleteRoom(
-    @Param('roomId') roomId: string,
-    @User('sub') userId: string,
-  ) {
+  deleteRoom(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.deleteRoom(roomId, userId);
   }
 
-  @Get(':roomId/info')
+  @Get('info/:roomId')
   @UseGuards(AuthGuard)
-  getRoomInfo(
-    @Param('roomId') roomId: string,
-    @User('sub') userId: string,
-  ) {
+  getRoomInfo(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.getRoomInfo(roomId, userId);
   }
 }
