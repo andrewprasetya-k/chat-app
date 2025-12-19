@@ -9,6 +9,7 @@ import { SupabaseService } from 'src/Supabase/supabase.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
 import { UserEntity } from '../Entity/user.entity';
 import { plainToInstance, TransformPlainToInstance } from 'class-transformer';
+import { CreateUserDto } from '../Dto/create-user.dto';
 
 @Injectable()
 export class UserService {
@@ -177,12 +178,7 @@ export class UserService {
     }
   }
 
-  async createUser(payload: {
-    email: string;
-    fullName?: string;
-    password: string;
-    role?: string;
-  }) {
+  async createUser(payload: CreateUserDto) {
     try {
       const client = this.supabase.getClient();
       const existing = await this.findByEmailForRegister(payload.email);

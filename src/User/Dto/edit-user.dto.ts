@@ -1,18 +1,11 @@
-import {
-  IsEmail,
-  IsNotEmpty,
-  IsString,
-  IsOptional,
-  IsIn,
-  IsISO8601,
-} from 'class-validator';
+import { IsEmail, IsNotEmpty, IsString } from 'class-validator';
 
 export class EditUserDto {
-  @IsOptional()
   @IsString()
+  @IsNotEmpty({ message: 'Full name cannot be empty' })
   fullName: string;
 
-  @IsOptional()
+  @IsNotEmpty({ message: 'Email cannot be empty' })
   @IsEmail({}, { message: 'Invalid email format' })
   email: string;
 }
