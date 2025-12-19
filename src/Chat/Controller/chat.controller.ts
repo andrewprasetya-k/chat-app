@@ -7,6 +7,7 @@ import {
   UseGuards,
   Param,
   Patch,
+  Delete,
 } from '@nestjs/common';
 import { ChatService } from '../Service/chat.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
@@ -119,24 +120,24 @@ export class ChatController {
   @Post('add-member/:roomId')
   @UseGuards(AuthGuard)
   async addMemberController(
-    @Body() dto: AddRemoveMemberDto,
+    @Body() body: AddRemoveMemberDto,
     @Param('roomId') roomId: string,
     @User('sub') userId: string,
   ) {
-    return this.chatService.addMemberService(dto, userId, roomId);
+    return this.chatService.addMemberService(body, userId, roomId);
   }
 
   @Post('remove-member/:roomId')
   @UseGuards(AuthGuard)
   async removeMemberController(
-    @Body() dto: AddRemoveMemberDto,
+    @Body() body: AddRemoveMemberDto,
     @User('sub') userId: string,
     @Param('roomId') roomId: string,
   ) {
-    return this.chatService.removeMemberService(dto, userId, roomId);
+    return this.chatService.removeMemberService(body, userId, roomId);
   }
 
-  @Post('delete-room/:roomId')
+  @Delete('delete-room/:roomId')
   @UseGuards(AuthGuard)
   async deleteGroupRoomController(
     @Param('roomId') roomId: string,

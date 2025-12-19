@@ -11,7 +11,7 @@ import {
 export class CreateRoomDto {
   @IsOptional()
   @IsString()
-  chatRoomName?: string; // boleh kosong kalau bukan grup
+  groupName?: string; // boleh kosong kalau bukan grup
 
   @IsBoolean()
   @IsOptional()
