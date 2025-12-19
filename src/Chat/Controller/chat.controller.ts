@@ -145,4 +145,13 @@ export class ChatController {
   ) {
     return this.chatService.deleteGroupRoomService(roomId, userId);
   }
+
+  @Get(':roomId')
+  @UseGuards(AuthGuard)
+  async getRoomInfoController(
+    @Param('roomId') roomId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatService.getRoomInfoService(roomId, userId);
+  }
 }

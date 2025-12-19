@@ -1105,4 +1105,94 @@ export class ChatService {
       );
     }
   }
+
+  async getRoomInfoService(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      // Pastikan requester adalah member (atau pernah jadi member?)
+      // Jika ingin memperbolehkan ex-member melihat info grup, gunakan cek yang lebih longgar.
+      // Untuk saat ini saya asumsikan harus member aktif.
+      await this.isMemberOfRoom(roomId, userId);
+
+      const { data, error } = await client
+        .from('chat_room')
+        .select(
+          `
+        cr_id,
+        cr_name,
+        cr_is_group,
+        created_at,
+        members:chat_room_member (
+          crm_usr_id,
+          joined_at,
+          leave_at,
+          role:crm_role,
+          user:crm_usr_id (
+            usr_id,
+            usr_nama_lengkap,
+            usr_email
+          )
+        )
+      `,
+        )
+        .eq('cr_id', roomId)
+        .maybeSingle();
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      if (!data) {
+        throw new InternalServerErrorException('Chat room not found');
+      }
+
+      const allMembers = (data.members ?? []).map((m: any) => {
+        const user = Array.isArray(m.user) ? m.user[0] : m.user;
+        return {
+          userId: user.usr_id,
+          name: user.usr_nama_lengkap,
+          email: user.usr_email,
+          role: m.role,
+          joinedAt: m.joined_at,
+          leftAt: m.leave_at,
+          isMe: user.usr_id === userId,
+        };
+      });
+
+      // Filter Active Members
+      const activeMembers = allMembers
+        .filter((m) => m.leftAt === null)
+        .sort((a, b) => {
+          // 1. Admin paling atas
+          if (a.role === 'admin' && b.role !== 'admin') return -1;
+          if (a.role !== 'admin' && b.role === 'admin') return 1;
+          // 2. Member join terlama paling atas
+          return a.name.localeCompare(b.name);
+        });
+
+      // Filter Past Members
+      const pastMembers = allMembers
+        .filter((m) => m.leftAt !== null)
+        .sort((a, b) => {
+          // Sort by leave time (most recent leave first)
+          return (
+            new Date(b.leftAt!).getTime() - new Date(a.leftAt!).getTime()
+          );
+        });
+
+      return {
+        roomId: data.cr_id,
+        roomName: data.cr_name,
+        isGroup: data.cr_is_group,
+        createdAt: data.created_at,
+        totalMembers: activeMembers.length,
+        activeMembers: activeMembers,
+        pastMembers: pastMembers,
+      };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to fetch room details',
+      );
+    }
+  }
 }
