@@ -2,6 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
+import { ChatMessageDto, SenderDto, ReadByDto } from 'src/ChatRoom/Dto/get-detailed-room-chat.dto';
 
 @Injectable()
 export class ChatService {
@@ -11,57 +12,82 @@ export class ChatService {
   ) {}
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
-    const inRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
-    const isMember = await this.sharedService.isUserMemberOfRoom(roomId, userId);
-    
-    if (!isMember) {
-      throw new InternalServerErrorException('You are not a member of this chat room.');
-    }
-    if (!inRoom) {
-      throw new InternalServerErrorException('You have left the chat room and cannot send messages.');
-    }
-
-    const { text } = dto;
-    if (!text || text.trim() === '') {
-      throw new InternalServerErrorException('Message text cannot be empty.');
-    }
-
     try {
+      const inRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
+      const isMember = await this.sharedService.isUserMemberOfRoom(
+        roomId,
+        userId,
+      );
+
+      if (!isMember) {
+        throw new InternalServerErrorException(
+          'You are not a member of this chat room.',
+        );
+      }
+      if (!inRoom) {
+        throw new InternalServerErrorException(
+          'You have left the chat room and cannot send messages.',
+        );
+      }
+
+      const { text } = dto;
+      if (!text || text.trim() === '') {
+        throw new InternalServerErrorException('Message text cannot be empty.');
+      }
+
       const client = this.supabase.getClient();
       const { data: newMessage, error } = await client
         .from('chat_message')
-        .insert([{
-          cm_cr_id: roomId,
-          cm_usr_id: userId,
-          message_text: text,
-        }])
-        .select(`cm_id, message_text, created_at, sender:cm_usr_id (usr_id, usr_nama_lengkap)`)
+        .insert([
+          {
+            cm_cr_id: roomId,
+            cm_usr_id: userId,
+            message_text: text,
+          },
+        ])
+        .select(
+          `cm_id, message_text, created_at, sender:cm_usr_id (usr_id, usr_nama_lengkap)`,
+        )
         .single();
 
       if (error) {
-        throw new InternalServerErrorException(error.message);
+        console.error('Database error:', error);
+        throw new InternalServerErrorException(`Database error: ${error.message}`);
       }
 
       if (newMessage) {
-        const channelName = `chat_room_${roomId}`;
-        const channel = client.channel(channelName);
-        await (channel as any).httpSend({
-          type: 'broadcast',
-          event: 'new_message',
-          payload: newMessage,
-        });
+        try {
+          const channelName = `chat_room_${roomId}`;
+          const channel = client.channel(channelName);
+          await (channel as any).httpSend({
+            type: 'broadcast',
+            event: 'new_message',
+            payload: newMessage,
+          });
+        } catch (broadcastError) {
+          console.error('Broadcast error:', broadcastError);
+          // Don't throw error for broadcast failure, message was saved successfully
+        }
       }
 
       return { success: true, text: newMessage.message_text };
     } catch (error: any) {
-      throw new InternalServerErrorException(error?.message || 'Failed to send message');
+      console.error('SendMessage error:', error);
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to send message',
+      );
     }
   }
 
   async markMessageAsRead(roomId: string, messageId: string, userId: string) {
-    const isMember = await this.sharedService.isUserMemberOfRoom(roomId, userId);
+    const isMember = await this.sharedService.isUserMemberOfRoom(
+      roomId,
+      userId,
+    );
     if (!isMember) {
-      throw new InternalServerErrorException('You are not a member of this chat room.');
+      throw new InternalServerErrorException(
+        'You are not a member of this chat room.',
+      );
     }
 
     const client = this.supabase.getClient();
@@ -75,7 +101,9 @@ export class ChatService {
       if (msgError) throw msgError;
 
       if (messageData.cm_usr_id === userId) {
-        throw new InternalServerErrorException('You cannot mark your own message as read');
+        throw new InternalServerErrorException(
+          'You cannot mark your own message as read',
+        );
       }
 
       const { error: upsertError } = await client.from('read_receipts').upsert(
@@ -91,7 +119,9 @@ export class ChatService {
 
       return { success: true, message: 'Message marked as read.' };
     } catch (error: any) {
-      throw new InternalServerErrorException(error.message || 'Failed to mark message as read');
+      throw new InternalServerErrorException(
+        error.message || 'Failed to mark message as read',
+      );
     }
   }
 
@@ -131,7 +161,9 @@ export class ChatService {
 
       return { success: true, unreadCount: count };
     } catch (error: any) {
-      throw new InternalServerErrorException(error?.message || 'Failed to count unread messages');
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to count unread messages',
+      );
     }
   }
 
@@ -146,13 +178,17 @@ export class ChatService {
 
       const inRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
       if (!inRoom) {
-        throw new InternalServerErrorException('You have left the chat room and cannot unsend messages.');
+        throw new InternalServerErrorException(
+          'You have left the chat room and cannot unsend messages.',
+        );
       }
 
       if (error) throw error;
 
       if (data.cm_usr_id !== userId) {
-        throw new InternalServerErrorException('You can only unsend your own messages.');
+        throw new InternalServerErrorException(
+          'You can only unsend your own messages.',
+        );
       }
 
       const { error: deleteError } = await client
@@ -164,21 +200,29 @@ export class ChatService {
 
       return { success: true, message: 'Message unsent successfully.' };
     } catch (error: any) {
-      throw new InternalServerErrorException(error.message || 'Failed to unsend message');
+      throw new InternalServerErrorException(
+        error.message || 'Failed to unsend message',
+      );
     }
   }
 
   async searchMessages(roomId: string, query: string, userId: string) {
     try {
-      const isMember = await this.sharedService.isUserMemberOfRoom(roomId, userId);
+      const isMember = await this.sharedService.isUserMemberOfRoom(
+        roomId,
+        userId,
+      );
       if (!isMember) {
-        throw new InternalServerErrorException('You are not a member of this chat room.');
+        throw new InternalServerErrorException(
+          'You are not a member of this chat room.',
+        );
       }
 
       const client = this.supabase.getClient();
-      const { data, error } = await client
+      const { data: messages, error } = await client
         .from('chat_message')
-        .select(`
+        .select(
+          `
           cm_id,
           message_text,
           created_at,
@@ -193,7 +237,8 @@ export class ChatService {
               usr_nama_lengkap
             )
           )
-        `)
+        `,
+        )
         .eq('cm_cr_id', roomId)
         .ilike('message_text', `%${query}%`)
         .order('created_at', { ascending: true });
@@ -202,9 +247,40 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
 
-      return data;
+      const mappedMessages: ChatMessageDto[] = (messages ?? []).map((msg) => {
+        const senderRaw = msg.sender;
+        const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
+        return {
+          textId: msg.cm_id,
+          text: msg.message_text,
+          createdAt: msg.created_at,
+          sender: sender
+            ? {
+                senderId: sender.usr_id,
+                senderName: sender.usr_nama_lengkap,
+              }
+            : null,
+          readBy: (msg.read_receipts ?? [])
+            .map((rr) => {
+              const readerRaw = rr.reader;
+              const reader = Array.isArray(readerRaw)
+                ? readerRaw[0]
+                : readerRaw;
+              if (!reader) return null;
+              return {
+                userId: reader.usr_id,
+                userName: reader.usr_nama_lengkap,
+              };
+            })
+            .filter(Boolean) as ReadByDto[],
+        };
+      });
+
+      return mappedMessages;
     } catch (error) {
-      throw new InternalServerErrorException(error?.message || 'Failed to search messages');
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to search messages',
+      );
     }
   }
 }
