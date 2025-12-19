@@ -25,6 +25,12 @@ export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard)
+  @Get('get-all')
+  getAllUsers() {
+    return this.userService.getAllUsers();
+  }
+
+  @UseGuards(AuthGuard)
   @Get('profile')
   getProfile(@Request() req) {
     return this.userService.getUserByIdService(req.user.sub);
@@ -37,13 +43,13 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('profile/email/:email')
+  @Get('search/email/:email')
   findProfileByEmail(@Param('email') email: string, @Request() req) {
     return this.userService.findByEmail(email);
   }
 
   @UseGuards(AuthGuard)
-  @Get('profile/name/:fullName')
+  @Get('search/name/:fullName')
   findProfileByFullName(@Param('fullName') fullName: string, @Request() req) {
     return this.userService.findByFullName(fullName);
   }
