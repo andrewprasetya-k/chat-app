@@ -1,6 +1,6 @@
 import { Expose, Type } from 'class-transformer';
-import { BaseEntity } from './base.entity';
-import { UserEntity } from './user.entity';
+import { BaseEntity } from '../../shared/entities/base.entity';
+import { UserEntity } from '../../User/Entity/user.entity';
 
 export class ChatMessageEntity extends BaseEntity {
   @Expose({ name: 'cm_id' })

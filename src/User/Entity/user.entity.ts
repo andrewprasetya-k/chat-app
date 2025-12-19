@@ -1,5 +1,5 @@
 import { Expose, Transform, Exclude } from 'class-transformer';
-import { BaseEntity } from './base.entity';
+import { BaseEntity } from '../../shared/entities/base.entity';
 
 export class UserEntity extends BaseEntity {
   @Expose()
