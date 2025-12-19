@@ -2,7 +2,8 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
-import { TransformUtil, ChatMessageEntity } from 'src/shared';
+import { TransformUtil } from 'src/shared';
+import { ChatMessageEntity } from '../Entity/chat.entity';
 
 @Injectable()
 export class ChatService {
@@ -52,7 +53,9 @@ export class ChatService {
 
       if (error) {
         console.error('Database error:', error);
-        throw new InternalServerErrorException(`Database error: ${error.message}`);
+        throw new InternalServerErrorException(
+          `Database error: ${error.message}`,
+        );
       }
 
       if (newMessage) {

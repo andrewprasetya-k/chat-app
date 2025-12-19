@@ -7,7 +7,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
-import { UserEntity } from 'src/shared';
+import { UserEntity } from '../Entity/user.entity';
 import { plainToInstance, TransformPlainToInstance } from 'class-transformer';
 
 @Injectable()
