@@ -1,9 +1,11 @@
-import { Expose } from 'class-transformer';
+import { Expose, Transform } from 'class-transformer';
 
 export class BaseEntity {
-  @Expose({ name: 'created_at' })
-  createdAt: string;
+  @Expose()
+  @Transform(({ obj }) => obj.created_at)
+  createdAt?: string;
 
-  @Expose({ name: 'updated_at' })
-  updatedAt: string;
+  @Expose()
+  @Transform(({ obj }) => obj.updated_at)
+  updatedAt?: string;
 }

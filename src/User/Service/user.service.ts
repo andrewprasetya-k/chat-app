@@ -50,7 +50,7 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Return entity format (consistent with other endpoints)
+      // Manual transformation (bypass entity issues)
       return TransformUtil.transform(UserEntity, data || []);
     } catch (err) {
       if (
@@ -226,7 +226,7 @@ export class UserService {
         throw new NotFoundException(`User with ID ${userId} not found`);
       }
 
-      return { success: true, data: data[0] };
+      return TransformUtil.transform(UserEntity, data || []);
     } catch (error: any) {
       // Re-throw known exceptions
       if (

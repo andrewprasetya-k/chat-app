@@ -3,18 +3,19 @@ import { BaseEntity } from './base.entity';
 
 export class UserEntity extends BaseEntity {
   @Expose()
-  @Transform(({ obj }) => obj.usr_id)
+  @Transform(({ obj }) => obj.usr_id, { toClassOnly: true })
   id: string;
 
-  @Expose({ name: 'usr_nama_lengkap' })
+  @Expose()
+  @Transform(({ obj }) => obj.usr_nama_lengkap, { toClassOnly: true })
   fullName: string;
 
   @Expose()
-  @Transform(({ obj }) => obj.usr_email)
+  @Transform(({ obj }) => obj.usr_email, { toClassOnly: true })
   email: string;
 
   @Expose()
-  @Transform(({ obj }) => obj.usr_role || null) // Default value
+  @Transform(({ obj }) => obj.usr_role || null, { toClassOnly: true }) // Default value
   role?: string; // Optional with default
 
   @Exclude()
