@@ -1,5 +1,9 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import { plainToInstance } from 'class-transformer';
+import { User } from 'src/Auth/user.decorator';
+import { ChatMessageEntity } from 'src/Chat/Entity/chat.entity';
 import { SupabaseService } from 'src/Supabase/supabase.service';
+import { UserEntity } from 'src/User/Entity/user.entity';
 
 @Injectable()
 export class ChatSharedService {
@@ -27,12 +31,15 @@ export class ChatSharedService {
       );
     }
 
-    return data;
+    const transformedData = plainToInstance(UserEntity, data, {
+      excludeExtraneousValues: true,
+    });
+    return transformedData;
   }
 
   async isUserMemberOfRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
-    const { data, error } = await client
+    const { error } = await client
       .from('chat_room_member')
       .select('crm_usr_id')
       .eq('crm_cr_id', roomId)
@@ -43,7 +50,7 @@ export class ChatSharedService {
     if (error) {
       throw new InternalServerErrorException(error.message);
     }
-    return !!data;
+    return true;
   }
 
   async isUserStillInRoom(roomId: string, userId: string) {
