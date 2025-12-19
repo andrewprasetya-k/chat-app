@@ -8,6 +8,7 @@ import * as bcrypt from 'bcrypt';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
 import { GetUserDto } from '../Dto/get-user.dto';
+import { TransformUtil, UserEntity } from 'src/shared';
 
 @Injectable()
 export class UserService {
@@ -24,7 +25,16 @@ export class UserService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-      return data;
+
+      // Manual transformation for testing
+      return (data || []).map(user => ({
+        id: user.usr_id,
+        fullName: user.usr_nama_lengkap,
+        email: user.usr_email,
+        role: user.usr_role,
+        createdAt: user.created_at,
+        updatedAt: user.updated_at,
+      }));
     } catch (err) {
       if (
         err instanceof BadRequestException ||

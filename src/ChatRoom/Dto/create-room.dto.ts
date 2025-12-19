@@ -7,6 +7,7 @@ import {
   IsUUID,
   ArrayMinSize,
 } from 'class-validator';
+import { Type } from 'class-transformer';
 
 export class CreateRoomDto {
   @IsOptional()
@@ -23,5 +24,6 @@ export class CreateRoomDto {
     each: true,
     message: 'Setiap user_id harus berupa UUID valid.',
   })
+  @Type(() => String)
   groupMembers: string[]; // daftar user_id (termasuk pembuatnya)
 }

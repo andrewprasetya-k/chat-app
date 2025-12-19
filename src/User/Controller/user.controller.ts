@@ -15,48 +15,70 @@ import {
   Put,
   Patch,
   Req,
+  UseInterceptors,
+  ClassSerializerInterceptor,
 } from '@nestjs/common';
 import { AuthGuard } from '../../Auth/auth.guard';
 import { UserService } from 'src/User/Service/user.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
+import { TransformUtil, UserEntity } from 'src/shared';
 
 @Controller('user')
+@UseInterceptors(ClassSerializerInterceptor) // Auto-transform entities
 export class UserController {
   constructor(private readonly userService: UserService) {}
 
   @UseGuards(AuthGuard)
   @Get('get-all')
-  getAllUsers() {
-    return this.userService.getAllUsers();
+  async getAllUsers() {
+    return await this.userService.getAllUsers();
   }
 
   @UseGuards(AuthGuard)
   @Get('profile')
-  getProfile(@Request() req) {
-    return this.userService.getUserByIdService(req.user.sub);
+  async getProfile(@Request() req) {
+    return await this.userService.getUserByIdService(req.user.sub);
   }
 
   @UseGuards(AuthGuard)
   @Patch('profile')
-  editProfile(@Body() body: EditUserDto, @Request() req) {
-    return this.userService.editUserService(body, req.user.sub);
+  async editProfile(@Body() body: EditUserDto, @Request() req) {
+    return await this.userService.editUserService(body, req.user.sub);
   }
 
   @UseGuards(AuthGuard)
   @Get('search/email/:email')
-  findProfileByEmail(@Param('email') email: string, @Request() req) {
-    return this.userService.findByEmail(email);
+  async findProfileByEmail(@Param('email') email: string, @Request() req) {
+    return await this.userService.findByEmail(email);
   }
 
   @UseGuards(AuthGuard)
   @Get('search/name/:fullName')
-  findProfileByFullName(@Param('fullName') fullName: string, @Request() req) {
-    return this.userService.findByFullName(fullName);
+  async findProfileByFullName(
+    @Param('fullName') fullName: string,
+    @Request() req,
+  ) {
+    return await this.userService.findByFullName(fullName);
+  }
+
+  @UseGuards(AuthGuard)
+  @Get('test-entity')
+  async testEntity() {
+    // Test entity transformation
+    const testData = {
+      usr_id: '123',
+      usr_nama_lengkap: 'Test User',
+      usr_email: 'test@example.com',
+      usr_role: 'user',
+      created_at: new Date().toISOString(),
+    };
+    
+    return TransformUtil.transform(UserEntity, testData);
   }
 
   @UseGuards(AuthGuard)
   @Get(':userId')
-  getUserByIdControler(@Param('userId') userId: string) {
-    return this.userService.getUserByIdService(userId);
+  async getUserByIdControler(@Param('userId') userId: string) {
+    return await this.userService.getUserByIdService(userId);
   }
 }

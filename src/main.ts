@@ -1,5 +1,5 @@
-import { NestFactory } from '@nestjs/core';
-import { ValidationPipe } from '@nestjs/common';
+import { NestFactory, Reflector } from '@nestjs/core';
+import { ValidationPipe, ClassSerializerInterceptor } from '@nestjs/common';
 import { AppModule } from './app.module';
 
 async function bootstrap() {
@@ -11,6 +11,9 @@ async function bootstrap() {
     forbidNonWhitelisted: true,
     transform: true,
   }));
+  
+  // Add global interceptor for automatic entity transformation
+  app.useGlobalInterceptors(new ClassSerializerInterceptor(app.get(Reflector)));
   
   await app.listen(process.env.PORT ?? 3000);
 }

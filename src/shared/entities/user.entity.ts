@@ -1,21 +1,17 @@
-import { Expose, Transform, Exclude } from 'class-transformer';
+import { Expose, Exclude } from 'class-transformer';
 import { BaseEntity } from './base.entity';
 
 export class UserEntity extends BaseEntity {
-  @Expose()
-  @Transform(({ obj }) => obj.usr_id)
+  @Expose({ name: 'usr_id' })
   id: string;
 
-  @Expose()
-  @Transform(({ obj }) => obj.usr_nama_lengkap)
+  @Expose({ name: 'usr_nama_lengkap' })
   fullName: string;
 
-  @Expose()
-  @Transform(({ obj }) => obj.usr_email)
+  @Expose({ name: 'usr_email' })
   email: string;
 
-  @Expose()
-  @Transform(({ obj }) => obj.usr_role)
+  @Expose({ name: 'usr_role' })
   role: string;
 
   @Exclude()

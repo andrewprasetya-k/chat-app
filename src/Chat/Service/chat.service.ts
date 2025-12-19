@@ -2,7 +2,7 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
-import { ChatMessageDto, SenderDto, ReadByDto } from 'src/ChatRoom/Dto/get-detailed-room-chat.dto';
+import { TransformUtil, ChatMessageEntity } from 'src/shared';
 
 @Injectable()
 export class ChatService {
@@ -247,36 +247,8 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
 
-      const mappedMessages: ChatMessageDto[] = (messages ?? []).map((msg) => {
-        const senderRaw = msg.sender;
-        const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
-        return {
-          textId: msg.cm_id,
-          text: msg.message_text,
-          createdAt: msg.created_at,
-          sender: sender
-            ? {
-                senderId: sender.usr_id,
-                senderName: sender.usr_nama_lengkap,
-              }
-            : null,
-          readBy: (msg.read_receipts ?? [])
-            .map((rr) => {
-              const readerRaw = rr.reader;
-              const reader = Array.isArray(readerRaw)
-                ? readerRaw[0]
-                : readerRaw;
-              if (!reader) return null;
-              return {
-                userId: reader.usr_id,
-                userName: reader.usr_nama_lengkap,
-              };
-            })
-            .filter(Boolean) as ReadByDto[],
-        };
-      });
-
-      return mappedMessages;
+      // Use entity transformation instead of manual mapping
+      return TransformUtil.transform(ChatMessageEntity, messages || []);
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to search messages',
