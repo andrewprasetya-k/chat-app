@@ -9,6 +9,7 @@ import { SupabaseService } from 'src/Supabase/supabase.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
 import { GetUserDto } from '../Dto/get-user.dto';
 import { TransformUtil, UserEntity } from 'src/shared';
+import { plainToInstance, TransformPlainToInstance } from 'class-transformer';
 
 @Injectable()
 export class UserService {
@@ -132,6 +133,42 @@ export class UserService {
     }
   }
 
+  async getUserByIdService(userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
+        .eq('usr_id', userId)
+        .limit(1);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      if (!data || data.length === 0) {
+        throw new NotFoundException(`User with ID ${userId} not found`);
+      }
+
+      const entities = plainToInstance(UserEntity, data, {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
+      return { success: true, data: entities };
+    } catch (error: any) {
+      // Re-throw known exceptions
+      if (
+        error instanceof NotFoundException ||
+        error instanceof InternalServerErrorException
+      ) {
+        throw error;
+      }
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to get user',
+      );
+    }
+  }
+
   async createUser(payload: {
     email: string;
     fullName?: string;
@@ -206,38 +243,6 @@ export class UserService {
       )
         throw err;
       throw new InternalServerErrorException('Failed to create user');
-    }
-  }
-
-  async getUserByIdService(userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('user')
-        .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
-        .eq('usr_id', userId)
-        .limit(1);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      if (!data || data.length === 0) {
-        throw new NotFoundException(`User with ID ${userId} not found`);
-      }
-
-      return TransformUtil.transform(UserEntity, data || []);
-    } catch (error: any) {
-      // Re-throw known exceptions
-      if (
-        error instanceof NotFoundException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to get user',
-      );
     }
   }
 
