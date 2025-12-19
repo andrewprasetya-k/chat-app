@@ -14,6 +14,8 @@ import { AuthGuard } from 'src/Auth/auth.guard';
 import { User } from 'src/Auth/user.decorator';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 
+import { GetRoomMessagesQueryDto } from '../Dto/get-room-messages.query.dto';
+
 @Controller('room')
 export class ChatRoomController {
   constructor(private readonly chatRoomService: ChatRoomService) {}
@@ -21,23 +23,21 @@ export class ChatRoomController {
   @Get('list')
   @UseGuards(AuthGuard)
   getAllRooms(@User('sub') userId: string) {
-    return this.chatRoomService.getAllRooms(userId);
+    return this.chatRoomService.getAllRoomsService(userId);
   }
 
   @Get('messages/:roomId')
   @UseGuards(AuthGuard)
   getRoomMessages(
     @Param('roomId') roomId: string,
-    @Query('beforeAt') beforeAt: string,
-    @Query('limit') limit: string,
+    @Query() query: GetRoomMessagesQueryDto,
     @User('sub') userId: string,
   ) {
-    const limitNum = limit ? parseInt(limit, 10) : 20;
     return this.chatRoomService.getRoomMessages(
       roomId,
       userId,
-      beforeAt,
-      limitNum,
+      query.beforeAt,
+      query.limit,
     );
   }
 

@@ -1,11 +1,17 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { CreateRoomDto } from '../Dto/create-room.dto';
-import { ChatMessageDto, ReadByDto } from '../Dto/get-detailed-room-chat.dto';
-import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
+import { plainToInstance } from 'class-transformer';
+import {
+  ChatRoomListEntity,
+  ChatRoomMessagesEntity,
+  ChatRoomInfoEntity,
+  CreateRoomResponseEntity,
+  MemberActionResponseEntity,
+  BasicActionResponseEntity,
+} from '../Entity/chat-room.entity';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
-import { ChatSharedService } from 'src/shared/chat-shared.service';
-import { GetRoomInfoDto, RoomMemberDto } from '../Dto/get-room-info.dto';
+import { ChatSharedService } from 'src/shared';
 
 @Injectable()
 export class ChatRoomService {
@@ -14,7 +20,7 @@ export class ChatRoomService {
     private readonly sharedService: ChatSharedService,
   ) {}
 
-  async getAllRooms(userId: string) {
+  async getAllRoomsService(userId: string) {
     try {
       const client = this.supabase.getClient();
 
@@ -61,11 +67,11 @@ export class ChatRoomService {
         throw new InternalServerErrorException(error.message);
       }
 
-      const mappedData: getAllRoomChatDto[] = (data ?? []).map((item) => {
+      const transformedData = (data ?? []).map((item) => {
         const room = Array.isArray(item.chat_room)
           ? item.chat_room[0]
           : item.chat_room;
-        const messages = room.chat_message ?? [];
+        const messages = room?.chat_message ?? [];
         const lastMessage = messages.length > 0 ? messages[0] : null;
         const sender = lastMessage?.sender;
 
@@ -77,22 +83,31 @@ export class ChatRoomService {
           : (sender as any)?.usr_nama_lengkap;
 
         const isLastMessageRead = lastMessage
-          ? lastMessage.read_receipts.some((rr) => rr.rr_usr_id === userId)
+          ? (lastMessage.read_receipts ?? []).some(
+              (rr) => rr.rr_usr_id === userId,
+            )
           : false;
 
-        return {
-          roomId: room.cr_id,
-          roomName: room.cr_name,
-          isGroup: room.cr_is_group,
-          lastMessage: lastMessage?.message_text ?? null,
-          lastMessageTime: lastMessage?.created_at ?? null,
-          senderId: senderId,
-          senderName: senderName,
-          isLastMessageRead,
-        };
+        return plainToInstance(
+          ChatRoomListEntity,
+          {
+            roomId: room?.cr_id,
+            roomName: room?.cr_name,
+            isGroup: room?.cr_is_group,
+            lastMessage: lastMessage?.message_text ?? null,
+            lastMessageTime: lastMessage?.created_at ?? null,
+            senderId: senderId ?? null,
+            senderName: senderName ?? null,
+            isLastMessageRead,
+          },
+          {
+            excludeExtraneousValues: true,
+            enableImplicitConversion: true,
+          },
+        );
       });
 
-      return mappedData;
+      return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch rooms',
@@ -186,7 +201,7 @@ export class ChatRoomService {
 
       const sortedMessages = (messages ?? []).reverse();
 
-      const mappedMessages: ChatMessageDto[] = sortedMessages.map((msg) => {
+      const mappedMessages = sortedMessages.map((msg) => {
         const senderRaw = msg.sender;
         const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
         return {
@@ -211,15 +226,19 @@ export class ChatRoomService {
                 userName: reader.usr_nama_lengkap,
               };
             })
-            .filter(Boolean) as ReadByDto[],
+            .filter(Boolean),
         };
       });
 
-      return {
-        roomName: roomName,
-        stillInRoom: isInRoom,
-        messages: mappedMessages,
-      };
+      return plainToInstance(
+        ChatRoomMessagesEntity,
+        {
+          roomName: roomName,
+          stillInRoom: isInRoom,
+          messages: mappedMessages,
+        },
+        { excludeExtraneousValues: true, enableImplicitConversion: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch messages',
@@ -244,11 +263,15 @@ export class ChatRoomService {
       dto.groupName = '';
       dto.isGroup = false;
       if (existingRoomId) {
-        return {
-          success: true,
-          room: { roomId: existingRoomId },
-          message: 'Personal chat room already exists',
-        };
+        return plainToInstance(
+          CreateRoomResponseEntity,
+          {
+            success: true,
+            roomId: existingRoomId,
+            message: 'Personal chat room already exists',
+          },
+          { excludeExtraneousValues: true },
+        );
       }
     } else if (dto.groupMembers.length < 2) {
       throw new InternalServerErrorException(
@@ -307,7 +330,11 @@ export class ChatRoomService {
 
       if (memberError) throw memberError;
 
-      return { success: true, roomId: room.cr_id };
+      return plainToInstance(
+        CreateRoomResponseEntity,
+        { success: true, roomId: room.cr_id },
+        { excludeExtraneousValues: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to create room',
@@ -339,7 +366,15 @@ export class ChatRoomService {
         throw new InternalServerErrorException(error.message);
       }
 
-      return { success: true, message: 'Left the room successfully at ', now };
+      return plainToInstance(
+        BasicActionResponseEntity,
+        {
+          success: true,
+          message: 'Left the room successfully',
+          now,
+        },
+        { excludeExtraneousValues: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to leave room',
@@ -389,11 +424,15 @@ export class ChatRoomService {
         memberName: user.usr_nama_lengkap,
       }));
 
-      return {
-        success: true,
-        message: 'Members added successfully.',
-        members: mappedMembers,
-      };
+      return plainToInstance(
+        MemberActionResponseEntity,
+        {
+          success: true,
+          message: 'Members added successfully.',
+          members: mappedMembers,
+        },
+        { excludeExtraneousValues: true, enableImplicitConversion: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to add members',
@@ -440,11 +479,15 @@ export class ChatRoomService {
         memberName: user.usr_nama_lengkap,
       }));
 
-      return {
-        success: true,
-        message: 'Members removed successfully.',
-        members: mappedMembers,
-      };
+      return plainToInstance(
+        MemberActionResponseEntity,
+        {
+          success: true,
+          message: 'Members removed successfully.',
+          members: mappedMembers,
+        },
+        { excludeExtraneousValues: true, enableImplicitConversion: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to remove members',
@@ -474,10 +517,14 @@ export class ChatRoomService {
 
       if (error) throw error;
 
-      return {
-        success: true,
-        message: 'Chat room deleted successfully.',
-      };
+      return plainToInstance(
+        BasicActionResponseEntity,
+        {
+          success: true,
+          message: 'Chat room deleted successfully.',
+        },
+        { excludeExtraneousValues: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to delete chat room',
@@ -485,7 +532,7 @@ export class ChatRoomService {
     }
   }
 
-  async getRoomInfo(roomId: string, userId: string): Promise<GetRoomInfoDto> {
+  async getRoomInfo(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
       await this.sharedService.isUserMemberOfRoom(roomId, userId);
@@ -549,15 +596,19 @@ export class ChatRoomService {
           return new Date(b.leftAt!).getTime() - new Date(a.leftAt!).getTime();
         });
 
-      return {
-        roomId: data.cr_id,
-        roomName: data.cr_name,
-        isGroup: data.cr_is_group,
-        createdAt: data.created_at,
-        totalMembers: activeMembers.length,
-        activeMembers: activeMembers,
-        pastMembers: pastMembers,
-      };
+      return plainToInstance(
+        ChatRoomInfoEntity,
+        {
+          roomId: data.cr_id,
+          roomName: data.cr_name,
+          isGroup: data.cr_is_group,
+          createdAt: data.created_at,
+          totalMembers: activeMembers.length,
+          activeMembers: activeMembers,
+          pastMembers: pastMembers,
+        },
+        { excludeExtraneousValues: true, enableImplicitConversion: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch room details',
