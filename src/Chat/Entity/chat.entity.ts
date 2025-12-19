@@ -1,28 +1,33 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose, Type, Transform } from 'class-transformer';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { UserEntity } from '../../User/Entity/user.entity';
 
 export class ChatMessageEntity extends BaseEntity {
-  @Expose({ name: 'cm_id' })
+  @Expose()
+  @Transform(({ obj }) => obj.cm_id, { toClassOnly: true })
   id: string;
 
-  @Expose({ name: 'message_text' })
+  @Expose()
+  @Transform(({ obj }) => obj.message_text, { toClassOnly: true })
   text: string;
 
-  @Expose({ name: 'cm_cr_id' })
+  @Expose()
+  @Transform(({ obj }) => obj.cm_cr_id, { toClassOnly: true })
   roomId: string;
 
   @Expose()
   @Type(() => UserEntity)
   sender: UserEntity;
 
-  @Expose({ name: 'read_receipts' })
+  @Expose()
+  @Transform(({ obj }) => obj.read_receipts, { toClassOnly: true })
   @Type(() => ReadReceiptEntity)
   readReceipts: ReadReceiptEntity[];
 }
 
 export class ReadReceiptEntity {
-  @Expose({ name: 'read_at' })
+  @Expose()
+  @Transform(({ obj }) => obj.read_at, { toClassOnly: true })
   readAt: string;
 
   @Expose()
