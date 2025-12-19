@@ -236,10 +236,10 @@ export class UserService {
       }
 
       if (data && typeof data === 'object') {
-        delete (data as any).usr_password;
+        // delete (data as any).usr_password;
       }
 
-      return data;
+      return { success: true, id: data.usr_id };
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -263,12 +263,10 @@ export class UserService {
         updatePayload.usr_email = body.email;
       }
 
-      const { data, error } = await client
+      const { error } = await client
         .from('user')
         .update(updatePayload)
-        .eq('usr_id', userId)
-        .select()
-        .single();
+        .eq('usr_id', userId);
 
       if (error) {
         if (
@@ -282,11 +280,7 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      if (data && typeof data === 'object') {
-        delete (data as any).usr_password;
-      }
-
-      return { success: true, data };
+      return { success: true, message: 'User updated successfully' };
     } catch (error: any) {
       if (
         error instanceof BadRequestException ||

@@ -42,7 +42,7 @@ export class AuthService {
       });
       return {
         message: 'User registered successfully',
-        userId: created?.usr_id,
+        userId: created?.id,
       };
     } catch (err) {
       if (err instanceof BadRequestException) throw err;
