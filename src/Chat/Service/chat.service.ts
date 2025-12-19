@@ -816,12 +816,12 @@ export class ChatService {
     }
   }
 
-  async isMemberValidInRoom(roomId: string, userIds: string[]) {
+  async isMemberInRoom(roomId: string, userIds: string[]) {
     const client = this.supabase.getClient();
     try {
       const { data, error } = await client
         .from('chat_room_member')
-        .select('crm_usr_id')
+        .select(`crm_usr_id, user:crm_usr_id (usr_nama_lengkap)`)
         .eq('crm_cr_id', roomId)
         .in('crm_usr_id', userIds)
         .is('leave_at', null);
@@ -830,12 +830,73 @@ export class ChatService {
         throw new InternalServerErrorException(error.message);
       }
 
-      const foundIds = (data || []).map((member) => member.crm_usr_id);
-      const missingIds = userIds.filter((id) => !foundIds.includes(id));
+      const existingMembers = (data || []).map((member) => ({
+        id: member.crm_usr_id,
+        name: Array.isArray(member.user)
+          ? member.user[0]?.usr_nama_lengkap
+          : (member.user as any)?.usr_nama_lengkap,
+      }));
 
-      if (missingIds.length > 0) {
+      const alreadyMemberIds = existingMembers.map((m) => m.id);
+      const alreadyMembers = userIds.filter((id) =>
+        alreadyMemberIds.includes(id),
+      );
+
+      if (alreadyMembers.length > 0) {
+        const memberNames = existingMembers
+          .filter((m) => alreadyMembers.includes(m.id))
+          .map((m) => m.name)
+          .join(', ');
+
         throw new InternalServerErrorException(
-          `Users not in room: ${missingIds.join(', ')}`,
+          `One or more users are already members of the chat room. Member: ${memberNames}`,
+        );
+      }
+
+      return true;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate room members',
+      );
+    }
+  }
+
+  async isNotMembersOfRoom(roomId: string, userIds: string[]) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select(`crm_usr_id, user:crm_usr_id (usr_nama_lengkap)`)
+        .eq('crm_cr_id', roomId)
+        .in('crm_usr_id', userIds)
+        .is('leave_at', null);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      const existingMemberIds = (data || []).map((member) => member.crm_usr_id);
+      const notMembers = userIds.filter(
+        (id) => !existingMemberIds.includes(id),
+      );
+
+      if (notMembers.length > 0) {
+        // Fetch names of users who are not members
+        const { data: userNotMembers, error: userError } = await client
+          .from('user')
+          .select('usr_id, usr_nama_lengkap')
+          .in('usr_id', notMembers);
+
+        if (userError) {
+          throw new InternalServerErrorException(userError.message);
+        }
+
+        const memberNames = (userNotMembers || [])
+          .map((u) => u.usr_nama_lengkap)
+          .join(', ');
+
+        throw new InternalServerErrorException(
+          `One or more users are not members of the chat room. User: ${memberNames}`,
         );
       }
 
@@ -868,11 +929,9 @@ export class ChatService {
           'Cannot add members to a personal chat room.',
         );
       }
-      if (await this.isMemberValidInRoom(roomId, members)) {
-        throw new InternalServerErrorException(
-          'One or more users are already members of the chat room.',
-        );
-      }
+      //cek apakah members sudah ada di room
+      await this.isMemberInRoom(roomId, members);
+
       //validasi members
       await this.validateUser(members);
 
@@ -881,7 +940,7 @@ export class ChatService {
         crm_usr_id: usr_id,
         crm_role: 'member',
         crm_join_approved: true,
-        crm_added_by_who: userId,
+        crm_added_by: userId,
         joined_at: new Date().toISOString(),
       }));
 
@@ -925,11 +984,8 @@ export class ChatService {
         );
       }
 
-      if (await this.isMemberValidInRoom(roomId, members)) {
-        throw new InternalServerErrorException(
-          'One or more users are not members of the chat room.',
-        );
-      }
+      //cek apakah members yang mau dihapus ada di room
+      await this.isNotMembersOfRoom(roomId, members);
 
       //cek apakah admin menghapus dirinya sendiri
       if (members.includes(userId)) {
@@ -945,11 +1001,17 @@ export class ChatService {
         .is('leave_at', null); // hanya update jika belum pernah leave
 
       if (memberError) throw memberError;
+      const { data: removedMembers, error: fetchError } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .in('usr_id', members);
+
+      if (fetchError) throw fetchError;
 
       return {
         success: true,
         message: 'Members removed successfully.',
-        members: members,
+        members: removedMembers,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
