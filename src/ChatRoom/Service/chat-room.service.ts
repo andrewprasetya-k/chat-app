@@ -5,6 +5,7 @@ import { ChatMessageDto, ReadByDto } from '../Dto/get-detailed-room-chat.dto';
 import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
+import { GetRoomInfoDto, RoomMemberDto } from '../Dto/get-room-info.dto';
 
 @Injectable()
 export class ChatRoomService {
@@ -350,26 +351,11 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        userId,
-      );
-
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'Only admins can add members to the chat room.',
-        );
-      }
+      await this.sharedService.isUserAdminOfRoom(roomId, userId);
 
       await this.sharedService.validateRoomExists(roomId);
 
-      const isGroup = await this.sharedService.isGroupRoom(roomId);
-
-      if (!isGroup) {
-        throw new InternalServerErrorException(
-          'Cannot add members to a personal chat room.',
-        );
-      }
+      await this.sharedService.isGroupRoom(roomId);
 
       await this.sharedService.validateUsers(members);
 
@@ -419,17 +405,9 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      if (!(await this.sharedService.isUserAdminOfRoom(roomId, userId))) {
-        throw new InternalServerErrorException(
-          'Only admins can remove members from the chat room.',
-        );
-      }
+      await this.sharedService.isUserAdminOfRoom(roomId, userId);
 
-      if (!(await this.sharedService.isGroupRoom(roomId))) {
-        throw new InternalServerErrorException(
-          'Cannot remove members from a personal chat room.',
-        );
-      }
+      await this.sharedService.isGroupRoom(roomId);
 
       await this.sharedService.validateRoomExists(roomId);
 
@@ -507,7 +485,7 @@ export class ChatRoomService {
     }
   }
 
-  async getRoomInfo(roomId: string, userId: string) {
+  async getRoomInfo(roomId: string, userId: string): Promise<GetRoomInfoDto> {
     const client = this.supabase.getClient();
     try {
       await this.sharedService.isUserMemberOfRoom(roomId, userId);
