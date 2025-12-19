@@ -1,4 +1,5 @@
 1. soft delete group chat
-2. pindah entity ke masing-masing module
-3. baru user yang sudah menggunakan instance
-4. refactor untuk hapus /shared/
+2. perlu entity untuk request?
+3. refactor untuk hapus /shared/
+4. pindah entity ke masing-masing module
+5. baru user yang sudah menggunakan instance
