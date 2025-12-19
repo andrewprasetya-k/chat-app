@@ -13,14 +13,18 @@ export class ChatSharedService {
       .in('usr_id', userIds);
 
     if (error) {
-      throw new InternalServerErrorException('Database error during user validation');
+      throw new InternalServerErrorException(
+        'Database error during user validation',
+      );
     }
 
     const foundIds = (data || []).map((user) => user.usr_id);
     const missingIds = userIds.filter((id) => !foundIds.includes(id));
 
     if (missingIds.length > 0) {
-      throw new InternalServerErrorException(`Missing user IDs: ${missingIds.join(', ')}`);
+      throw new InternalServerErrorException(
+        `Missing user IDs: ${missingIds.join(', ')}`,
+      );
     }
 
     return data;
