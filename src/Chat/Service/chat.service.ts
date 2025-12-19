@@ -2,7 +2,6 @@ import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
-import { TransformUtil } from 'src/shared';
 import { ChatMessageEntity } from '../Entity/chat.entity';
 
 @Injectable()
