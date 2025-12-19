@@ -13,6 +13,7 @@ import { SendMessageDto } from '../Dto/send-message.dto';
 import { CreateRoomDto } from '../Dto/create-room.dto';
 import { AuthGuard } from 'src/Auth/auth.guard';
 import { User } from 'src/Auth/user.decorator';
+import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 
 @Controller('chat')
 export class ChatController {
@@ -113,5 +114,29 @@ export class ChatController {
     @User() user: any,
   ) {
     return this.chatService.findMessageService(chatRoomId, message, user.sub);
+  }
+
+  @Post('add-member')
+  @UseGuards(AuthGuard)
+  async addMemberController(
+    @Body() dto: AddRemoveMemberDto,
+    @User('sub') userId: string,
+  ) {
+    return this.chatService.addMemberService(dto, userId);
+  }
+
+  @Post('remove-member')
+  @UseGuards(AuthGuard)
+  async removeMemberController(@Body() body: any, @User('sub') userId: string) {
+    return this.chatService.removeMemberService(body, userId);
+  }
+
+  @Post('delete-room/:roomId')
+  @UseGuards(AuthGuard)
+  async deleteGroupRoomController(
+    @Param('roomId') roomId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatService.deleteGroupRoomService(roomId, userId);
   }
 }

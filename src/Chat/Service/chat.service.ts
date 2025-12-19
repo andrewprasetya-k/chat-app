@@ -816,12 +816,12 @@ export class ChatService {
     }
   }
 
-  async addMemberService(dto: AddRemoveMemberDto) {
-    const { byWho, chatRoomId, groupMembers } = dto;
+  async addMemberService(dto: AddRemoveMemberDto, userId: string) {
+    const { chatRoomId, groupMembers } = dto;
     const client = this.supabase.getClient();
     try {
       //cek apakah yang mengambah itu admin
-      if (!(await this.isAdminOfRoom(chatRoomId, byWho))) {
+      if (!(await this.isAdminOfRoom(chatRoomId, userId))) {
         throw new InternalServerErrorException(
           'Only admins can add members to the chat room.',
         );
@@ -842,7 +842,7 @@ export class ChatService {
         crm_usr_id: usr_id,
         crm_role: 'member',
         crm_join_approved: true,
-        crm_added_by_who: byWho,
+        crm_added_by_who: userId,
         joined_at: new Date().toISOString(),
       }));
 
@@ -864,12 +864,12 @@ export class ChatService {
     }
   }
 
-  async removeMemberService(dto: AddRemoveMemberDto) {
-    const { byWho, chatRoomId, groupMembers } = dto;
+  async removeMemberService(dto: AddRemoveMemberDto, userId: string) {
+    const { chatRoomId, groupMembers } = dto;
     const client = this.supabase.getClient();
     try {
       //cek apakah yang mengambah itu admin
-      if (!(await this.isAdminOfRoom(chatRoomId, byWho))) {
+      if (!(await this.isAdminOfRoom(chatRoomId, userId))) {
         throw new InternalServerErrorException(
           'Only admins can add members to the chat room.',
         );
