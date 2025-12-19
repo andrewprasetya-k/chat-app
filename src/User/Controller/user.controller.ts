@@ -62,7 +62,7 @@ export class UserController {
 
   @UseGuards(AuthGuard)
   @Get(':userId')
-  async getUserByIdControler(@Param('userId') userId: string) {
+  async getUserByIdController(@Param('userId') userId: string) {
     return await this.userService.getUserByIdService(userId);
   }
 }
