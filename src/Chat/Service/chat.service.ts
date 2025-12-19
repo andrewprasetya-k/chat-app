@@ -822,16 +822,14 @@ export class ChatService {
     try {
       const { data, error } = await client
         .from('chat_room_member')
-        .select(`crm_usr_id, leave_at, user:crm_usr_id (usr_nama_lengkap)`)
+        .select(`crm_usr_id, user:crm_usr_id (usr_nama_lengkap)`)
         .eq('crm_cr_id', roomId)
-        .in('crm_usr_id', userIds);
+        .in('crm_usr_id', userIds)
+        .is('leave_at', null);
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-
-      //kalau user sudah pernah join tapi leave_at tidak null, berarti bukan member aktif
-
       const existingMembers = (data || []).map((member) => ({
         id: member.crm_usr_id,
         name: Array.isArray(member.user)
@@ -974,11 +972,13 @@ export class ChatService {
         crm_join_approved: true,
         crm_added_by: userId,
         joined_at: new Date().toISOString(),
+        leave_at: null,
+        crm_removed_by: null,
       }));
 
       const { error: memberError } = await client
         .from('chat_room_member')
-        .insert(membersToInsert);
+        .upsert(membersToInsert);
 
       if (memberError) throw memberError;
 
@@ -1043,10 +1043,7 @@ export class ChatService {
       }
       const { error: memberError } = await client
         .from('chat_room_member')
-        .upsert(
-          { leave_at: new Date().toISOString(), crm_removed_by: userId },
-          { onConflict: 'crm_cr_id,crm_usr_id' },
-        )
+        .update({ leave_at: new Date().toISOString(), crm_removed_by: userId })
         .eq('crm_cr_id', roomId)
         .in('crm_usr_id', members);
 
