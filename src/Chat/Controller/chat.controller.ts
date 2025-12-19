@@ -116,19 +116,24 @@ export class ChatController {
     return this.chatService.findMessageService(chatRoomId, message, user.sub);
   }
 
-  @Post('add-member')
+  @Post('add-member/:roomId')
   @UseGuards(AuthGuard)
   async addMemberController(
     @Body() dto: AddRemoveMemberDto,
+    @Param('roomId') roomId: string,
     @User('sub') userId: string,
   ) {
-    return this.chatService.addMemberService(dto, userId);
+    return this.chatService.addMemberService(dto, userId, roomId);
   }
 
-  @Post('remove-member')
+  @Post('remove-member/:roomId')
   @UseGuards(AuthGuard)
-  async removeMemberController(@Body() body: any, @User('sub') userId: string) {
-    return this.chatService.removeMemberService(body, userId);
+  async removeMemberController(
+    @Body() dto: AddRemoveMemberDto,
+    @User('sub') userId: string,
+    @Param('roomId') roomId: string,
+  ) {
+    return this.chatService.removeMemberService(dto, userId, roomId);
   }
 
   @Post('delete-room/:roomId')

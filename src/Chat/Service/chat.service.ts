@@ -816,29 +816,68 @@ export class ChatService {
     }
   }
 
-  async addMemberService(dto: AddRemoveMemberDto, userId: string) {
-    const { chatRoomId, groupMembers } = dto;
+  async isMemberValidInRoom(roomId: string, userIds: string[]) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('crm_usr_id')
+        .eq('crm_cr_id', roomId)
+        .in('crm_usr_id', userIds)
+        .is('leave_at', null);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      const foundIds = (data || []).map((member) => member.crm_usr_id);
+      const missingIds = userIds.filter((id) => !foundIds.includes(id));
+
+      if (missingIds.length > 0) {
+        throw new InternalServerErrorException(
+          `Users not in room: ${missingIds.join(', ')}`,
+        );
+      }
+
+      return true;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate room members',
+      );
+    }
+  }
+
+  async addMemberService(
+    dto: AddRemoveMemberDto,
+    userId: string,
+    roomId: string,
+  ) {
+    const { members } = dto;
     const client = this.supabase.getClient();
     try {
       //cek apakah yang mengambah itu admin
-      if (!(await this.isAdminOfRoom(chatRoomId, userId))) {
+      if (!(await this.isAdminOfRoom(roomId, userId))) {
         throw new InternalServerErrorException(
           'Only admins can add members to the chat room.',
         );
       }
 
       //cek apakah room itu group
-      if (!(await this.isGroup(chatRoomId))) {
+      if (!(await this.isGroup(roomId))) {
         throw new InternalServerErrorException(
           'Cannot add members to a personal chat room.',
         );
       }
-
+      if (await this.isMemberValidInRoom(roomId, members)) {
+        throw new InternalServerErrorException(
+          'One or more users are already members of the chat room.',
+        );
+      }
       //validasi members
-      await this.validateUser(groupMembers);
+      await this.validateUser(members);
 
-      const membersToInsert = groupMembers.map((usr_id) => ({
-        crm_cr_id: chatRoomId,
+      const membersToInsert = members.map((usr_id) => ({
+        crm_cr_id: roomId,
         crm_usr_id: usr_id,
         crm_role: 'member',
         crm_join_approved: true,
@@ -855,7 +894,7 @@ export class ChatService {
       return {
         success: true,
         message: 'Members added successfully.',
-        members: groupMembers,
+        members: members,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -864,28 +903,45 @@ export class ChatService {
     }
   }
 
-  async removeMemberService(dto: AddRemoveMemberDto, userId: string) {
-    const { chatRoomId, groupMembers } = dto;
+  async removeMemberService(
+    dto: AddRemoveMemberDto,
+    userId: string,
+    roomId: string,
+  ) {
+    const { members } = dto;
     const client = this.supabase.getClient();
     try {
       //cek apakah yang mengambah itu admin
-      if (!(await this.isAdminOfRoom(chatRoomId, userId))) {
+      if (!(await this.isAdminOfRoom(roomId, userId))) {
         throw new InternalServerErrorException(
           'Only admins can add members to the chat room.',
         );
       }
 
       //cek apakah room itu group
-      if (!(await this.isGroup(chatRoomId))) {
+      if (!(await this.isGroup(roomId))) {
         throw new InternalServerErrorException(
           'Cannot add members to a personal chat room.',
+        );
+      }
+
+      if (await this.isMemberValidInRoom(roomId, members)) {
+        throw new InternalServerErrorException(
+          'One or more users are not members of the chat room.',
+        );
+      }
+
+      //cek apakah admin menghapus dirinya sendiri
+      if (members.includes(userId)) {
+        throw new InternalServerErrorException(
+          'Admins cannot remove themselves from the chat room.',
         );
       }
       const { error: memberError } = await client
         .from('chat_room_member')
         .update({ leave_at: new Date().toISOString() })
-        .eq('crm_cr_id', chatRoomId)
-        .in('crm_usr_id', groupMembers)
+        .eq('crm_cr_id', roomId)
+        .in('crm_usr_id', members)
         .is('leave_at', null); // hanya update jika belum pernah leave
 
       if (memberError) throw memberError;
@@ -893,7 +949,7 @@ export class ChatService {
       return {
         success: true,
         message: 'Members removed successfully.',
-        members: groupMembers,
+        members: members,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
