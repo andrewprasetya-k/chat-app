@@ -929,11 +929,12 @@ export class ChatService {
           'Cannot add members to a personal chat room.',
         );
       }
-      //cek apakah members sudah ada di room
-      await this.isMemberInRoom(roomId, members);
 
       //validasi members
       await this.validateUser(members);
+
+      //cek apakah members sudah ada di room
+      await this.isMemberInRoom(roomId, members);
 
       const membersToInsert = members.map((usr_id) => ({
         crm_cr_id: roomId,
