@@ -1,4 +1,4 @@
 1. soft delete group chat
 2. refactor untuk hapus /shared/
-3. hanya user yang sudah menggunakan instance
-4. cek apa saja function yang perlu dibroadcast, terutama chat yang sudah diunsend dan notifikasi
+3. cek apa saja function yang perlu dibroadcast, terutama chat yang sudah diunsend dan notifikasi
+4. cek delete room chat selalu gagal di validasi admin grup
