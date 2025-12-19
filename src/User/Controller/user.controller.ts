@@ -21,7 +21,6 @@ import {
 import { AuthGuard } from '../../Auth/auth.guard';
 import { UserService } from 'src/User/Service/user.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
-import { TransformUtil, UserEntity } from 'src/shared';
 
 @Controller('user')
 @UseInterceptors(ClassSerializerInterceptor) // Auto-transform entities
