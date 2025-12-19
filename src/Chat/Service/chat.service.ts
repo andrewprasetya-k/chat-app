@@ -171,7 +171,7 @@ export class ChatService {
         throw new InternalServerErrorException(countError.message);
       }
 
-      return { success: true, unreadCount: count };
+      return { unreadCount: count };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to count unread messages',
@@ -210,7 +210,7 @@ export class ChatService {
 
       if (deleteError) throw deleteError;
 
-      return { success: true, message: 'Message unsent successfully.' };
+      return { message: 'Message unsent successfully.' };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to unsend message',
