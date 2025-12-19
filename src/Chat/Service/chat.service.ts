@@ -950,10 +950,17 @@ export class ChatService {
 
       if (memberError) throw memberError;
 
+      const { data: addedMembers, error: fetchError } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .in('usr_id', members);
+
+      if (fetchError) throw fetchError;
+
       return {
         success: true,
         message: 'Members added successfully.',
-        members: members,
+        members: addedMembers,
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
