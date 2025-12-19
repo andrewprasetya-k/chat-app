@@ -1,4 +1,3 @@
 1. soft delete group chat
 2. refactor untuk hapus /shared/
-3. pindah entity ke masing-masing module
-4. baru user yang sudah menggunakan instance
+3. hanya user yang sudah menggunakan instance
