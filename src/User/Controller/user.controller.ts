@@ -77,6 +77,19 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
+  @Get('test-partial')
+  async testPartialQuery() {
+    // Test partial query without role
+    const client = this.userService['supabase'].getClient();
+    const { data } = await client
+      .from('user')
+      .select('usr_id, usr_nama_lengkap, usr_email') // No usr_role
+      .limit(1);
+    
+    return TransformUtil.transform(UserEntity, data || []);
+  }
+
+  @UseGuards(AuthGuard)
   @Get(':userId')
   async getUserByIdControler(@Param('userId') userId: string) {
     return await this.userService.getUserByIdService(userId);

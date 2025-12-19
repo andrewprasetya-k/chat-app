@@ -26,15 +26,8 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Manual transformation for testing
-      return (data || []).map(user => ({
-        id: user.usr_id,
-        fullName: user.usr_nama_lengkap,
-        email: user.usr_email,
-        role: user.usr_role,
-        createdAt: user.created_at,
-        updatedAt: user.updated_at,
-      }));
+      // Use entity transformation (now with @Transform)
+      return TransformUtil.transform(UserEntity, data || []);
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -45,7 +38,7 @@ export class UserService {
     }
   }
 
-  async findByEmail(email: string): Promise<GetUserDto[] | null> {
+  async findByEmail(email: string) {
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -56,11 +49,9 @@ export class UserService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-      return data.map((user) => ({
-        userId: user.usr_id,
-        fullName: user.usr_nama_lengkap,
-        email: user.usr_email,
-      }));
+
+      // Return entity format (consistent with other endpoints)
+      return TransformUtil.transform(UserEntity, data || []);
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -115,7 +106,7 @@ export class UserService {
     }
   }
 
-  async findByFullName(fullName: string): Promise<GetUserDto[] | null> {
+  async findByFullName(fullName: string) {
     try {
       const client = this.supabase.getClient();
       const { data, error } = await client
@@ -126,11 +117,9 @@ export class UserService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-      return data.map((user) => ({
-        userId: user.usr_id,
-        fullName: user.usr_nama_lengkap,
-        email: user.usr_email,
-      }));
+
+      // Return entity format
+      return TransformUtil.transform(UserEntity, data || []);
     } catch (err) {
       if (
         err instanceof BadRequestException ||
