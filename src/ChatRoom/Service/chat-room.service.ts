@@ -6,6 +6,7 @@ import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { GetRoomInfoDto, RoomMemberDto } from '../Dto/get-room-info.dto';
+import { TransformUtil, ChatMessageEntity, UserEntity } from 'src/shared';
 
 @Injectable()
 export class ChatRoomService {
