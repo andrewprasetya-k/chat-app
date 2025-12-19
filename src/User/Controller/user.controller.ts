@@ -72,21 +72,8 @@ export class UserController {
       usr_role: 'user',
       created_at: new Date().toISOString(),
     };
-    
-    return TransformUtil.transform(UserEntity, testData);
-  }
 
-  @UseGuards(AuthGuard)
-  @Get('test-partial')
-  async testPartialQuery() {
-    // Test partial query without role
-    const client = this.userService['supabase'].getClient();
-    const { data } = await client
-      .from('user')
-      .select('usr_id, usr_nama_lengkap, usr_email') // No usr_role
-      .limit(1);
-    
-    return TransformUtil.transform(UserEntity, data || []);
+    return TransformUtil.transform(UserEntity, testData);
   }
 
   @UseGuards(AuthGuard)
