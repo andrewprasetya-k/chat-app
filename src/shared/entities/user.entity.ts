@@ -15,7 +15,7 @@ export class UserEntity extends BaseEntity {
   email: string;
 
   @Expose()
-  @Transform(({ obj }) => obj.usr_role || null, { toClassOnly: true }) // Default value
+  @Transform(({ obj }) => obj.usr_role, { toClassOnly: true }) // Default value
   role?: string; // Optional with default
 
   @Exclude()
