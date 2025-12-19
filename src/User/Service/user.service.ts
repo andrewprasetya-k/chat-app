@@ -7,8 +7,7 @@ import {
 import * as bcrypt from 'bcrypt';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
-import { GetUserDto } from '../Dto/get-user.dto';
-import { TransformUtil, UserEntity } from 'src/shared';
+import { UserEntity } from 'src/shared';
 import { plainToInstance, TransformPlainToInstance } from 'class-transformer';
 
 @Injectable()
@@ -27,8 +26,11 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Use entity transformation (now with @Transform)
-      return TransformUtil.transform(UserEntity, data || []);
+      const transformedData = plainToInstance(UserEntity, data || [], {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
+      return transformedData;
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -51,8 +53,11 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Manual transformation (bypass entity issues)
-      return TransformUtil.transform(UserEntity, data || []);
+      const transformedData = plainToInstance(UserEntity, data || [], {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
+      return transformedData;
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -119,8 +124,11 @@ export class UserService {
         throw new InternalServerErrorException(error.message);
       }
 
-      // Return entity format
-      return TransformUtil.transform(UserEntity, data || []);
+      const transformedData = plainToInstance(UserEntity, data || [], {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
+      return transformedData;
     } catch (err) {
       if (
         err instanceof BadRequestException ||
@@ -150,11 +158,11 @@ export class UserService {
         throw new NotFoundException(`User with ID ${userId} not found`);
       }
 
-      const entities = plainToInstance(UserEntity, data, {
+      const transformedData = plainToInstance(UserEntity, data, {
         excludeExtraneousValues: true,
         enableImplicitConversion: true,
       });
-      return { success: true, data: entities };
+      return transformedData;
     } catch (error: any) {
       // Re-throw known exceptions
       if (
