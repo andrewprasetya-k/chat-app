@@ -816,7 +816,6 @@ export class ChatService {
     }
   }
 
-  //todo: dto and only admins can add members
   async addMemberService(dto: AddRemoveMemberDto) {
     const { byWho, chatRoomId, groupMembers } = dto;
     const client = this.supabase.getClient();
@@ -865,7 +864,6 @@ export class ChatService {
     }
   }
 
-  //todo: dto and only admins can remove members
   async removeMemberService(dto: AddRemoveMemberDto) {
     const { byWho, chatRoomId, groupMembers } = dto;
     const client = this.supabase.getClient();
@@ -900,6 +898,41 @@ export class ChatService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error.message || 'Failed to remove members',
+      );
+    }
+  }
+
+  async deleteGroupRoomService(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      //cek apakah yang menghapus itu admin
+      if (!(await this.isAdminOfRoom(roomId, userId))) {
+        throw new InternalServerErrorException(
+          'Only admins can delete the chat room.',
+        );
+      }
+
+      //cek apakah room itu group
+      if (!(await this.isGroup(roomId))) {
+        throw new InternalServerErrorException(
+          'Cannot delete a personal chat room.',
+        );
+      }
+
+      const { error } = await client
+        .from('chat_room')
+        .delete()
+        .eq('cr_id', roomId);
+
+      if (error) throw error;
+
+      return {
+        success: true,
+        message: 'Chat room deleted successfully.',
+      };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error.message || 'Failed to delete chat room',
       );
     }
   }
