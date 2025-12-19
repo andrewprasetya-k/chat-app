@@ -3,9 +3,10 @@ import { ChatRoomController } from './Controller/chat-room.controller';
 import { ChatRoomService } from './Service/chat-room.service';
 import { SupabaseModule } from 'src/Supabase/supabase.module';
 import { AuthModule } from 'src/Auth/auth.module';
+import { SharedModule } from 'src/shared/shared.module';
 
 @Module({
-  imports: [SupabaseModule, AuthModule],
+  imports: [SupabaseModule, AuthModule, SharedModule],
   controllers: [ChatRoomController],
   providers: [ChatRoomService],
   exports: [ChatRoomService],

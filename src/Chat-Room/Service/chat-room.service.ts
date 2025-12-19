@@ -4,10 +4,14 @@ import { CreateRoomDto } from '../Dto/create-room.dto';
 import { ChatMessageDto, ReadByDto } from '../Dto/get-detailed-room-chat.dto';
 import { getAllRoomChatDto } from '../Dto/get-all-room-chat.dto';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
+import { ChatSharedService } from 'src/shared/chat-shared.service';
 
 @Injectable()
 export class ChatRoomService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly sharedService: ChatSharedService,
+  ) {}
 
   async getAllRooms(userId: string) {
     try {
@@ -17,34 +21,30 @@ export class ChatRoomService {
         .from('chat_room_member')
         .select(
           `
-            chat_room:crm_cr_id (
-              cr_id,
-              cr_name,
-              cr_is_group,
-
-              members:chat_room_member (
-                user:crm_usr_id (
-                  usr_id,
-                  usr_nama_lengkap
-                )
+          chat_room:crm_cr_id (
+            cr_id,
+            cr_name,
+            cr_is_group,
+            members:chat_room_member (
+              user:crm_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              )
+            ),
+            chat_message (
+              cm_id,
+              message_text,
+              created_at,
+              sender:cm_usr_id (
+                usr_id,
+                usr_nama_lengkap
               ),
-
-              chat_message (
-                cm_id,
-                message_text,
-                created_at,
-
-                sender:cm_usr_id (
-                  usr_id,
-                  usr_nama_lengkap
-                ),
-
-                read_receipts (
-                  rr_usr_id
-                )
+              read_receipts (
+                rr_usr_id
               )
             )
-          `,
+          )
+        `,
         )
         .eq('crm_usr_id', userId)
         .is('leave_at', null)
@@ -64,7 +64,6 @@ export class ChatRoomService {
         const room = Array.isArray(item.chat_room)
           ? item.chat_room[0]
           : item.chat_room;
-
         const messages = room.chat_message ?? [];
         const lastMessage = messages.length > 0 ? messages[0] : null;
         const sender = lastMessage?.sender;
@@ -106,8 +105,11 @@ export class ChatRoomService {
     beforeAt?: string,
     limit: number = 20,
   ) {
-    const isInRoom = await this.isUserStillInRoom(roomId, userId);
-    const isMember = await this.isUserMemberOfRoom(roomId, userId);
+    const isInRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
+    const isMember = await this.sharedService.isUserMemberOfRoom(
+      roomId,
+      userId,
+    );
 
     if (!isMember) {
       throw new InternalServerErrorException(
@@ -121,20 +123,20 @@ export class ChatRoomService {
         .from('chat_message')
         .select(
           `
-        cm_id,
-        message_text,
-        created_at,
-        sender:cm_usr_id (
-          usr_id,
-          usr_nama_lengkap
-        ),
-        read_receipts (
-          reader:rr_usr_id (
+          cm_id,
+          message_text,
+          created_at,
+          sender:cm_usr_id (
             usr_id,
             usr_nama_lengkap
+          ),
+          read_receipts (
+            reader:rr_usr_id (
+              usr_id,
+              usr_nama_lengkap
+            )
           )
-        )
-      `,
+        `,
         )
         .eq('cm_cr_id', roomId)
         .order('created_at', { ascending: false })
@@ -154,15 +156,15 @@ export class ChatRoomService {
         .from('chat_room')
         .select(
           `
-        cr_name,
-        cr_is_group,
-        members:chat_room_member (
-          user:crm_usr_id (
-            usr_id,
-            usr_nama_lengkap
+          cr_name,
+          cr_is_group,
+          members:chat_room_member (
+            user:crm_usr_id (
+              usr_id,
+              usr_nama_lengkap
+            )
           )
-        )
-      `,
+        `,
         )
         .eq('cr_id', roomId)
         .maybeSingle();
@@ -190,23 +192,19 @@ export class ChatRoomService {
           textId: msg.cm_id,
           text: msg.message_text,
           createdAt: msg.created_at,
-
           sender: sender
             ? {
                 senderId: sender.usr_id,
                 senderName: sender.usr_nama_lengkap,
               }
             : null,
-
           readBy: (msg.read_receipts ?? [])
             .map((rr) => {
               const readerRaw = rr.reader;
               const reader = Array.isArray(readerRaw)
                 ? readerRaw[0]
                 : readerRaw;
-
               if (!reader) return null;
-
               return {
                 userId: reader.usr_id,
                 userName: reader.usr_nama_lengkap,
@@ -257,7 +255,7 @@ export class ChatRoomService {
       );
     }
 
-    await this.validateUsers(dto.groupMembers);
+    await this.sharedService.validateUsers(dto.groupMembers);
 
     if (dto.groupMembers.length >= 3) {
       dto.isGroup = true;
@@ -288,7 +286,6 @@ export class ChatRoomService {
 
       const membersToInsert = groupMembers.map((usr_id) => {
         let userRole = 'member';
-
         if (isPrivate) {
           userRole = 'personal';
         } else if (usr_id === creatorId) {
@@ -318,7 +315,10 @@ export class ChatRoomService {
   }
 
   async leaveRoom(roomId: string, userId: string) {
-    const isMember = await this.isUserMemberOfRoom(roomId, userId);
+    const isMember = await this.sharedService.isUserMemberOfRoom(
+      roomId,
+      userId,
+    );
     if (!isMember) {
       throw new InternalServerErrorException(
         'You are not a member of this chat room.',
@@ -350,7 +350,10 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      const isAdmin = await this.isUserAdminOfRoom(roomId, userId);
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
 
       if (!isAdmin) {
         throw new InternalServerErrorException(
@@ -358,9 +361,9 @@ export class ChatRoomService {
         );
       }
 
-      await this.validateRoomExists(roomId);
+      await this.sharedService.validateRoomExists(roomId);
 
-      const isGroup = await this.isGroupRoom(roomId);
+      const isGroup = await this.sharedService.isGroupRoom(roomId);
 
       if (!isGroup) {
         throw new InternalServerErrorException(
@@ -368,7 +371,7 @@ export class ChatRoomService {
         );
       }
 
-      await this.validateUsers(members);
+      await this.sharedService.validateUsers(members);
 
       await this.ensureUsersNotInRoom(roomId, members);
 
@@ -416,21 +419,21 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      if (!(await this.isUserAdminOfRoom(roomId, userId))) {
+      if (!(await this.sharedService.isUserAdminOfRoom(roomId, userId))) {
         throw new InternalServerErrorException(
           'Only admins can remove members from the chat room.',
         );
       }
 
-      if (!(await this.isGroupRoom(roomId))) {
+      if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
           'Cannot remove members from a personal chat room.',
         );
       }
 
-      await this.validateRoomExists(roomId);
+      await this.sharedService.validateRoomExists(roomId);
 
-      await this.validateUsers(members);
+      await this.sharedService.validateUsers(members);
 
       await this.ensureUsersInRoom(roomId, members);
 
@@ -474,13 +477,13 @@ export class ChatRoomService {
   async deleteRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      if (!(await this.isUserAdminOfRoom(roomId, userId))) {
+      if (!(await this.sharedService.isUserAdminOfRoom(roomId, userId))) {
         throw new InternalServerErrorException(
           'Only admins can delete the chat room.',
         );
       }
 
-      if (!(await this.isGroupRoom(roomId))) {
+      if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
           'Cannot delete a personal chat room.',
         );
@@ -507,28 +510,28 @@ export class ChatRoomService {
   async getRoomInfo(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      await this.isUserMemberOfRoom(roomId, userId);
+      await this.sharedService.isUserMemberOfRoom(roomId, userId);
 
       const { data, error } = await client
         .from('chat_room')
         .select(
           `
-        cr_id,
-        cr_name,
-        cr_is_group,
-        created_at,
-        members:chat_room_member (
-          crm_usr_id,
-          joined_at,
-          leave_at,
-          role:crm_role,
-          user:crm_usr_id (
-            usr_id,
-            usr_nama_lengkap,
-            usr_email
+          cr_id,
+          cr_name,
+          cr_is_group,
+          created_at,
+          members:chat_room_member (
+            crm_usr_id,
+            joined_at,
+            leave_at,
+            role:crm_role,
+            user:crm_usr_id (
+              usr_id,
+              usr_nama_lengkap,
+              usr_email
+            )
           )
-        )
-      `,
+        `,
         )
         .eq('cr_id', roomId)
         .maybeSingle();
@@ -584,37 +587,6 @@ export class ChatRoomService {
     }
   }
 
-  private async validateUsers(userIds: string[]) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('user')
-        .select('usr_id, usr_nama_lengkap')
-        .in('usr_id', userIds);
-
-      if (error) {
-        throw new InternalServerErrorException(
-          'Database error during user validation',
-        );
-      }
-
-      const foundIds = (data || []).map((user) => user.usr_id);
-      const missingIds = userIds.filter((id) => !foundIds.includes(id));
-
-      if (missingIds.length > 0) {
-        throw new InternalServerErrorException(
-          `Missing user IDs: ${missingIds.join(', ')}`,
-        );
-      }
-
-      return data;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate users',
-      );
-    }
-  }
-
   private async findExistingPersonalChat(
     memberIds: [string, string],
   ): Promise<string | null> {
@@ -659,101 +631,6 @@ export class ChatRoomService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to validate room',
-      );
-    }
-  }
-
-  private async isUserMemberOfRoom(roomId: string, userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('chat_room_member')
-        .select('crm_usr_id, joined_at, leave_at')
-        .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', userId)
-        .is('leave_at', null)
-        .order('joined_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return !!data;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate membership',
-      );
-    }
-  }
-
-  private async isUserStillInRoom(roomId: string, userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('chat_room_member')
-        .select('leave_at, joined_at')
-        .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', userId)
-        .order('joined_at', { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (data !== null && data.leave_at === null) {
-        return true;
-      }
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return false;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate membership',
-      );
-    }
-  }
-
-  private async isUserAdminOfRoom(roomId: string, userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('chat_room_member')
-        .select('crm_role')
-        .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', userId)
-        .is('leave_at', null)
-        .maybeSingle();
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return data?.crm_role === 'admin';
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate admin role',
-      );
-    }
-  }
-
-  private async isGroupRoom(roomId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('chat_room')
-        .select('cr_is_group')
-        .eq('cr_id', roomId)
-        .maybeSingle();
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return data?.cr_is_group ?? false;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate group room',
       );
     }
   }
@@ -845,29 +722,6 @@ export class ChatRoomService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to validate room members',
-      );
-    }
-  }
-
-  private async validateRoomExists(roomId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('chat_room')
-        .select('cr_id')
-        .eq('cr_id', roomId);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      if (data && data.length === 0) {
-        throw new InternalServerErrorException('Chat room does not exist');
-      }
-      return true;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to validate room existence',
       );
     }
   }

@@ -33,12 +33,7 @@ export class ChatRoomController {
     @User('sub') userId: string,
   ) {
     const limitNum = limit ? parseInt(limit, 10) : 20;
-    return this.chatRoomService.getRoomMessages(
-      roomId,
-      userId,
-      beforeAt,
-      limitNum,
-    );
+    return this.chatRoomService.getRoomMessages(roomId, userId, beforeAt, limitNum);
   }
 
   @Post('create')
@@ -55,7 +50,7 @@ export class ChatRoomController {
 
   @Post(':roomId/add-members')
   @UseGuards(AuthGuard)
-  async addMembers(
+  addMembers(
     @Body() body: AddRemoveMemberDto,
     @Param('roomId') roomId: string,
     @User('sub') userId: string,
@@ -65,7 +60,7 @@ export class ChatRoomController {
 
   @Post(':roomId/remove-members')
   @UseGuards(AuthGuard)
-  async removeMembers(
+  removeMembers(
     @Body() body: AddRemoveMemberDto,
     @User('sub') userId: string,
     @Param('roomId') roomId: string,
@@ -75,7 +70,7 @@ export class ChatRoomController {
 
   @Delete(':roomId')
   @UseGuards(AuthGuard)
-  async deleteRoom(
+  deleteRoom(
     @Param('roomId') roomId: string,
     @User('sub') userId: string,
   ) {
@@ -84,7 +79,7 @@ export class ChatRoomController {
 
   @Get(':roomId/info')
   @UseGuards(AuthGuard)
-  async getRoomInfo(
+  getRoomInfo(
     @Param('roomId') roomId: string,
     @User('sub') userId: string,
   ) {
