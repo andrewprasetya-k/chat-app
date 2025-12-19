@@ -62,21 +62,6 @@ export class UserController {
   }
 
   @UseGuards(AuthGuard)
-  @Get('test-entity')
-  async testEntity() {
-    // Test entity transformation
-    const testData = {
-      usr_id: '123',
-      usr_nama_lengkap: 'Test User',
-      usr_email: 'test@example.com',
-      usr_role: 'user',
-      created_at: new Date().toISOString(),
-    };
-
-    return TransformUtil.transform(UserEntity, testData);
-  }
-
-  @UseGuards(AuthGuard)
   @Get(':userId')
   async getUserByIdControler(@Param('userId') userId: string) {
     return await this.userService.getUserByIdService(userId);
