@@ -73,7 +73,16 @@ export class ChatService {
         }
       }
 
-      return { success: true, text: newMessage.message_text };
+      // Transform the newMessage to ChatMessageEntity before returning
+      const transformedMessage = plainToInstance(
+        ChatMessageEntity,
+        newMessage,
+        {
+          excludeExtraneousValues: true,
+          enableImplicitConversion: true,
+        },
+      );
+      return transformedMessage;
     } catch (error: any) {
       console.error('SendMessage error:', error);
       throw new InternalServerErrorException(
