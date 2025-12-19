@@ -30,15 +30,16 @@ export class AuthService {
   ) {}
 
   // Register user baru (menggunakan UserService -> Supabase)
+  //todo: sebelum prod tambahkan email verification dan tambah kolom role
   async register(registerDto: RegisterDto) {
     try {
-      const { email, password, fullName, role } = registerDto as any;
+      const { email, password, fullName } = registerDto;
 
       const created = await this.userService.createUser({
         email,
         fullName,
         password,
-        role,
+        // role is not exposed in RegisterDto for public registration
       });
       return {
         message: 'User registered successfully',
@@ -58,26 +59,34 @@ export class AuthService {
   // Login user -> cari di DB dan verifikasi password
   async login(loginDto: LoginDto) {
     try {
-      const { email, password } = loginDto as any;
+      const { email, password } = loginDto;
 
-      const user = await this.userService.findByEmailForAuth(email);
+      // Type assertion for the raw DB user object since findByEmailForAuth returns any/unknown
+      const user = (await this.userService.findByEmailForAuth(email)) as {
+        usr_id: string;
+        usr_email: string;
+        usr_nama_lengkap: string;
+        usr_role: string;
+        usr_password: string;
+      } | null;
+
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
       const isPasswordValid = await bcrypt.compare(
         password,
-        (user as any).usr_password || '',
+        user.usr_password || '',
       );
       if (!isPasswordValid) {
         throw new UnauthorizedException('Invalid credentials');
       }
 
       const payload = {
-        sub: (user as any).usr_id,
-        email: (user as any).usr_email,
-        name: (user as any).usr_nama_lengkap,
-        role: (user as any).usr_role,
+        sub: user.usr_id,
+        email: user.usr_email,
+        name: user.usr_nama_lengkap,
+        role: user.usr_role,
       };
 
       const token = this.jwtService.sign(payload);
