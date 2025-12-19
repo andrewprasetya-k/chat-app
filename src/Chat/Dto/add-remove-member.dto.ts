@@ -9,7 +9,7 @@ import {
   isNotEmpty,
 } from 'class-validator';
 
-export class CreateRoomDto {
+export class AddRemoveMemberDto {
   @IsString()
   @IsNotEmpty({ message: 'Chat room ID should not be empty' })
   chatRoomId: string; // tidak boleh kosong
