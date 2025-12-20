@@ -498,11 +498,7 @@ export class ChatRoomService {
   async deleteRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      if (!(await this.sharedService.isUserAdminOfRoom(roomId, userId))) {
-        throw new InternalServerErrorException(
-          'Only admins can delete the chat room.',
-        );
-      }
+      await this.sharedService.isUserAdminOfRoom(roomId, userId);
 
       if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
