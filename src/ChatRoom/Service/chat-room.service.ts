@@ -821,4 +821,44 @@ export class ChatRoomService {
       );
     }
   }
+
+  async approveJoinRequestService(
+    roomId: string,
+    userId: string,
+    approveUserId: string,
+  ) {
+    const client = this.supabase.getClient();
+
+    try {
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
+
+      const { error } = await client
+        .from('chat_room_member')
+        .update({ crm_join_approved: true })
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', approveUserId)
+        .is('crm_join_approved', false);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Join request approved successfully',
+      };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to approve join request',
+      );
+    }
+  }
 }
