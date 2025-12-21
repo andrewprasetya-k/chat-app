@@ -395,7 +395,11 @@ export class ChatRoomService {
         );
       }
 
-      await this.sharedService.isGroupRoom(roomId);
+      if (!(await this.sharedService.isGroupRoom(roomId))) {
+        throw new InternalServerErrorException(
+          'Cannot perform this action on a personal chat room.',
+        );
+      }
 
       await this.sharedService.validateUsers(members);
 
@@ -459,7 +463,11 @@ export class ChatRoomService {
         );
       }
 
-      await this.sharedService.isGroupRoom(roomId);
+      if (!(await this.sharedService.isGroupRoom(roomId))) {
+        throw new InternalServerErrorException(
+          'Cannot perform this action on a personal chat room.',
+        );
+      }
 
       await this.sharedService.validateUsers(members);
 
@@ -550,7 +558,16 @@ export class ChatRoomService {
   async getRoomInfo(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      await this.sharedService.isUserMemberOfRoom(roomId, userId);
+      const isMember = await this.sharedService.isUserMemberOfRoom(
+        roomId,
+        userId,
+      );
+
+      if (!isMember) {
+        throw new InternalServerErrorException(
+          'You are not a member of this chat room.',
+        );
+      }
 
       const { data, error } = await client
         .from('chat_room')
