@@ -119,4 +119,19 @@ export class ChatSharedService {
     }
     return true;
   }
+
+  async isGroupPrivateRoom(roomId: string) {
+    const client = this.supabase.getClient();
+    const { data, error } = await client
+      .from('chat_room')
+      .select('cr_is_group, cr_is_private')
+      .eq('cr_id', roomId)
+      .maybeSingle();
+
+    if (error) {
+      throw new InternalServerErrorException(error.message);
+    }
+
+    return data?.cr_is_group && data?.cr_is_private;
+  }
 }
