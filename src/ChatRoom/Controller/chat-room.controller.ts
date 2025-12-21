@@ -136,4 +136,18 @@ export class ChatRoomController {
       promoteUserId,
     );
   }
+
+  @Post('demote/:roomId/:userId')
+  @UseGuards(AuthGuard)
+  demoteFromAdminController(
+    @Param('roomId') roomId: string,
+    @Param('userId') demoteUserId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatRoomService.demoteFromAdminService(
+      roomId,
+      userId,
+      demoteUserId,
+    );
+  }
 }
