@@ -39,7 +39,7 @@ export class ChatSharedService {
 
   async isUserMemberOfRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
-    const { error } = await client
+    const { data, error } = await client
       .from('chat_room_member')
       .select('crm_usr_id')
       .eq('crm_cr_id', roomId)
@@ -50,7 +50,7 @@ export class ChatSharedService {
     if (error) {
       throw new InternalServerErrorException(error.message);
     }
-    return true;
+    return !!data;
   }
 
 
