@@ -811,7 +811,6 @@ export class ChatRoomService {
       const { error } = await client.from('chat_room_member').insert({
         crm_cr_id: roomId,
         crm_usr_id: userId,
-        crm_role: 'member',
         crm_join_approved: approvedToJoin,
         leave_at: null,
       });
