@@ -14,7 +14,6 @@ export class ChatService {
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
     try {
-      const inRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
       const isMember = await this.sharedService.isUserMemberOfRoom(
         roomId,
         userId,
@@ -22,12 +21,7 @@ export class ChatService {
 
       if (!isMember) {
         throw new InternalServerErrorException(
-          'You are not a member of this chat room.',
-        );
-      }
-      if (!inRoom) {
-        throw new InternalServerErrorException(
-          'You have left the chat room and cannot send messages.',
+          'You are not a member of this chat room or have left.',
         );
       }
 
@@ -188,8 +182,11 @@ export class ChatService {
         .eq('cm_id', messageId)
         .single();
 
-      const inRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
-      if (!inRoom) {
+      const isMember = await this.sharedService.isUserMemberOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isMember) {
         throw new InternalServerErrorException(
           'You have left the chat room and cannot unsend messages.',
         );

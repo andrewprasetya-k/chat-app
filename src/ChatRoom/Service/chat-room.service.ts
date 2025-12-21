@@ -121,7 +121,6 @@ export class ChatRoomService {
     beforeAt?: string,
     limit: number = 20,
   ) {
-    const isInRoom = await this.sharedService.isUserStillInRoom(roomId, userId);
     const isMember = await this.sharedService.isUserMemberOfRoom(
       roomId,
       userId,
@@ -234,7 +233,7 @@ export class ChatRoomService {
         ChatRoomMessagesEntity,
         {
           roomName: roomName,
-          stillInRoom: isInRoom,
+          stillInRoom: isMember,
           messages: mappedMessages,
         },
         { excludeExtraneousValues: true, enableImplicitConversion: true },
@@ -386,9 +385,15 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      await this.sharedService.isUserAdminOfRoom(roomId, userId);
-
-      await this.sharedService.validateRoomExists(roomId);
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
 
       await this.sharedService.isGroupRoom(roomId);
 
@@ -444,11 +449,17 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      await this.sharedService.isUserAdminOfRoom(roomId, userId);
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
 
       await this.sharedService.isGroupRoom(roomId);
-
-      await this.sharedService.validateRoomExists(roomId);
 
       await this.sharedService.validateUsers(members);
 
@@ -498,7 +509,15 @@ export class ChatRoomService {
   async deleteRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      await this.sharedService.isUserAdminOfRoom(roomId, userId);
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
 
       if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
@@ -753,43 +772,49 @@ export class ChatRoomService {
 
   async joinRoomService(roomId: string, userId: string) {
     const client = this.supabase.getClient();
-    try {
-      await this.sharedService.isGroupRoom(roomId);
-      await this.sharedService.validateRoomExists(roomId);
-      await this.sharedService.validateUsers([userId]);
-      await this.ensureUsersNotInRoom(roomId, [userId]);
-      await this.sharedService.isGroupPrivateRoom(roomId);
 
-      if (!roomId || !userId) {
+    try {
+      if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
-          'Room ID and User ID are required',
+          'You can only join group rooms.',
         );
       }
 
-      const approvedToJoin = (await this.sharedService.isGroupPrivateRoom(
-        roomId,
-      ))
-        ? false
-        : true;
+      await this.sharedService.validateRoomExists(roomId);
 
-      const { error } = await client
-        .from('chat_room_member')
-        .insert({
-          crm_cr_id: roomId,
-          crm_usr_id: userId,
-          crm_role: 'member',
-          crm_join_approved: approvedToJoin,
-          joined_at: new Date().toISOString(),
-          leave_at: null,
-        })
-        .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', userId);
+      await this.sharedService.validateUsers([userId]);
+
+      await this.ensureUsersNotInRoom(roomId, [userId]);
+
+      const isPrivate = await this.sharedService.isGroupPrivateRoom(roomId);
+
+      const approvedToJoin = !isPrivate;
+
+      const { error } = await client.from('chat_room_member').insert({
+        crm_cr_id: roomId,
+
+        crm_usr_id: userId,
+
+        crm_role: 'member',
+
+        crm_join_approved: approvedToJoin,
+
+        joined_at: new Date().toISOString(),
+
+        leave_at: null,
+      });
 
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
 
-      return true;
+      return {
+        success: true,
+
+        message: approvedToJoin
+          ? 'Joined room successfully'
+          : 'Join request sent, awaiting approval',
+      };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to join room',

@@ -53,23 +53,7 @@ export class ChatSharedService {
     return true;
   }
 
-  async isUserStillInRoom(roomId: string, userId: string) {
-    const client = this.supabase.getClient();
-    const { data, error } = await client
-      .from('chat_room_member')
-      .select('leave_at')
-      .eq('crm_cr_id', roomId)
-      .eq('crm_usr_id', userId)
-      .order('joined_at', { ascending: false })
-      .limit(1)
-      .maybeSingle();
 
-    if (error) {
-      throw new InternalServerErrorException(error.message);
-    }
-
-    return data !== null && data.leave_at === null;
-  }
 
   async isUserAdminOfRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
