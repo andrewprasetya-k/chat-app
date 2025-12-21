@@ -750,4 +750,50 @@ export class ChatRoomService {
       );
     }
   }
+
+  private async joinRoomService(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      await this.sharedService.isGroupRoom(roomId);
+      await this.sharedService.validateRoomExists(roomId);
+      await this.sharedService.validateUsers([userId]);
+      await this.ensureUsersNotInRoom(roomId, [userId]);
+      await this.sharedService.isGroupPrivateRoom(roomId);
+
+      if (!roomId || !userId) {
+        throw new InternalServerErrorException(
+          'Room ID and User ID are required',
+        );
+      }
+
+      const approvedToJoin = (await this.sharedService.isGroupPrivateRoom(
+        roomId,
+      ))
+        ? false
+        : true;
+
+      const { error } = await client
+        .from('chat_room_member')
+        .insert({
+          crm_cr_id: roomId,
+          crm_usr_id: userId,
+          crm_role: 'member',
+          crm_join_approved: approvedToJoin,
+          joined_at: new Date().toISOString(),
+          leave_at: null,
+        })
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', userId);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return true;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to join room',
+      );
+    }
+  }
 }
