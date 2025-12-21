@@ -84,4 +84,13 @@ export class ChatRoomController {
   getRoomInfo(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.getRoomInfo(roomId, userId);
   }
+
+  @Get(':roomId')
+  @UseGuards(AuthGuard)
+  joinRoomController(
+    @Param('roomId') roomId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatRoomService.joinRoomService(roomId, userId);
+  }
 }

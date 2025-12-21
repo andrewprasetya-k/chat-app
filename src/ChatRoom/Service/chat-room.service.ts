@@ -751,7 +751,7 @@ export class ChatRoomService {
     }
   }
 
-  private async joinRoomService(roomId: string, userId: string) {
+  async joinRoomService(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
       await this.sharedService.isGroupRoom(roomId);
