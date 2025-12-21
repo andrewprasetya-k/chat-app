@@ -122,4 +122,18 @@ export class ChatRoomController {
       joinUserId,
     );
   }
+
+  @Post('promote/:roomId/:userId')
+  @UseGuards(AuthGuard)
+  promoteToAdminController(
+    @Param('roomId') roomId: string,
+    @Param('userId') promoteUserId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatRoomService.promoteToAdminService(
+      roomId,
+      userId,
+      promoteUserId,
+    );
+  }
 }

@@ -901,4 +901,64 @@ export class ChatRoomService {
       );
     }
   }
+
+  async promoteToAdminService(
+    roomId: string,
+    userId: string,
+    promoteUserId: string,
+  ) {
+    const client = this.supabase.getClient();
+
+    try {
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
+
+      const isMember = await this.sharedService.isUserMemberOfRoom(
+        roomId,
+        promoteUserId,
+      );
+      if (!isMember) {
+        throw new InternalServerErrorException(
+          'The user to be promoted is not a member of this chat room.',
+        );
+      }
+
+      const isMemberAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        promoteUserId,
+      );
+      if (isMemberAdmin) {
+        throw new InternalServerErrorException(
+          'The user is already an admin of this chat room.',
+        );
+      }
+
+      const { error } = await client
+        .from('chat_room_member')
+        .update({ crm_role: 'admin' })
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', promoteUserId)
+        .is('leave_at', null);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Member promoted to admin successfully',
+      };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to promote member to admin',
+      );
+    }
+  }
 }
