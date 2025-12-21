@@ -11,7 +11,7 @@ import {
   BasicActionResponseEntity,
 } from '../Entity/chat-room.entity';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
-import { ChatSharedService } from 'src/shared';
+import { ChatSharedService } from 'src/shared/chat-shared.service';
 
 @Injectable()
 export class ChatRoomService {
