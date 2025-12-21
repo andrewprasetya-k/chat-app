@@ -18,6 +18,10 @@ export class CreateRoomDto {
   @IsOptional()
   isGroup?: boolean = false; // menandai apakah room ini grup atau personal
 
+  @IsBoolean()
+  @IsOptional()
+  isPrivate?: boolean = false; // menandai apakah room ini private atau tidak
+
   @IsArray()
   @ArrayMinSize(1, { message: 'Minimal harus ada 2 anggota dalam room.' })
   @IsUUID('4', {
