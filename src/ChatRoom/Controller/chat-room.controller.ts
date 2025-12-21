@@ -104,8 +104,8 @@ export class ChatRoomController {
   ) {
     return this.chatRoomService.approveJoinRequestService(
       roomId,
-      userId,
       joinUserId,
+      userId,
     );
   }
 
@@ -113,13 +113,13 @@ export class ChatRoomController {
   @UseGuards(AuthGuard)
   rejectJoinRequestController(
     @Param('roomId') roomId: string,
-    @Param('userId') joinUserId: string,
+    @Param('userId') requesterId: string,
     @User('sub') userId: string,
   ) {
     return this.chatRoomService.rejectJoinRequestService(
       roomId,
+      requesterId,
       userId,
-      joinUserId,
     );
   }
 
