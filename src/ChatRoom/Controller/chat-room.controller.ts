@@ -94,4 +94,18 @@ export class ChatRoomController {
   ) {
     return this.chatRoomService.joinRoomService(roomId, userId);
   }
+
+  @Post('approve/:roomId/:userId')
+  @UseGuards(AuthGuard)
+  approveJoinRequestController(
+    @Param('roomId') roomId: string,
+    @Param('userId') joinUserId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatRoomService.approveJoinRequestService(
+      roomId,
+      userId,
+      joinUserId,
+    );
+  }
 }
