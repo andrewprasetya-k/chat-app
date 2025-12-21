@@ -1,3 +1,5 @@
 1. soft delete group chat
 2. refactor untuk hapus /shared/
 3. cek apa saja function yang perlu dibroadcast, terutama chat yang sudah diunsend dan notifikasi
+4. validasi personal chat belum jalan
+5. Tambah endpoint untuk join grup public
