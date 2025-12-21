@@ -961,4 +961,64 @@ export class ChatRoomService {
       );
     }
   }
+
+  async demoteFromAdminService(
+    roomId: string,
+    userId: string,
+    demoteUserId: string,
+  ) {
+    const client = this.supabase.getClient();
+
+    try {
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
+
+      const isMember = await this.sharedService.isUserMemberOfRoom(
+        roomId,
+        demoteUserId,
+      );
+      if (!isMember) {
+        throw new InternalServerErrorException(
+          'The user to be demoted is not a member of this chat room.',
+        );
+      }
+
+      const isMemberAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        demoteUserId,
+      );
+      if (!isMemberAdmin) {
+        throw new InternalServerErrorException(
+          'The user is not an admin of this chat room.',
+        );
+      }
+
+      const { error } = await client
+        .from('chat_room_member')
+        .update({ crm_role: 'member' })
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', demoteUserId)
+        .is('leave_at', null);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Admin demoted to member successfully',
+      };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to demote admin to member',
+      );
+    }
+  }
 }
