@@ -861,4 +861,44 @@ export class ChatRoomService {
       );
     }
   }
+
+  async declineJoinRequestService(
+    roomId: string,
+    userId: string,
+    declineUserId: string,
+  ) {
+    const client = this.supabase.getClient();
+
+    try {
+      const isAdmin = await this.sharedService.isUserAdminOfRoom(
+        roomId,
+        userId,
+      );
+      if (!isAdmin) {
+        throw new InternalServerErrorException(
+          'You are not an admin of this chat room.',
+        );
+      }
+
+      const { error } = await client
+        .from('chat_room_member')
+        .delete()
+        .eq('crm_cr_id', roomId)
+        .eq('crm_usr_id', declineUserId)
+        .is('crm_join_approved', false);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return {
+        success: true,
+        message: 'Join request declined successfully',
+      };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to decline join request',
+      );
+    }
+  }
 }
