@@ -108,4 +108,18 @@ export class ChatRoomController {
       joinUserId,
     );
   }
+
+  @Post('reject/:roomId/:userId')
+  @UseGuards(AuthGuard)
+  rejectJoinRequestController(
+    @Param('roomId') roomId: string,
+    @Param('userId') joinUserId: string,
+    @User('sub') userId: string,
+  ) {
+    return this.chatRoomService.rejectJoinRequestService(
+      roomId,
+      userId,
+      joinUserId,
+    );
+  }
 }

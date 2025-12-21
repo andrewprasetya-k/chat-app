@@ -862,7 +862,7 @@ export class ChatRoomService {
     }
   }
 
-  async declineJoinRequestService(
+  async rejectJoinRequestService(
     roomId: string,
     userId: string,
     declineUserId: string,
