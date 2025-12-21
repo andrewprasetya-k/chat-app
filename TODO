@@ -1,6 +1,6 @@
-soft delete group chat
 refactor untuk hapus /shared/
 cek apa saja function yang perlu dibroadcast, terutama chat yang sudah diunsend dan notifikasi
-Tambah endpoint untuk join grup public
+
+soft delete group chat
 buat cek exsiting data menjadi decorator (user valid atau room valid)
 buat kolom baru join_request_at & approved_at lalu perbarui methodnya
