@@ -53,8 +53,6 @@ export class ChatSharedService {
     return !!data;
   }
 
-
-
   async isUserAdminOfRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     const { data, error } = await client
@@ -108,7 +106,7 @@ export class ChatSharedService {
     const client = this.supabase.getClient();
     const { data, error } = await client
       .from('chat_room')
-      .select('cr_is_group, cr_is_private')
+      .select('cr_is_group, cr_private')
       .eq('cr_id', roomId)
       .maybeSingle();
 
@@ -116,6 +114,6 @@ export class ChatSharedService {
       throw new InternalServerErrorException(error.message);
     }
 
-    return data?.cr_is_group && data?.cr_is_private;
+    return data?.cr_is_group && data?.cr_private;
   }
 }
