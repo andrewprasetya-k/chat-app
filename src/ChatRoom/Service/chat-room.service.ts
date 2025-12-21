@@ -290,7 +290,8 @@ export class ChatRoomService {
     }
 
     try {
-      const isPrivate = !dto.isGroup && dto.groupMembers.length === 2;
+      const isPrivate = dto.isGroup && dto.groupMembers.length === 2;
+      const privateGroup = isPrivate ? true : dto.isPrivate;
 
       const { data: room, error: roomError } = await client
         .from('chat_room')
@@ -298,7 +299,7 @@ export class ChatRoomService {
           {
             cr_name: dto.groupName,
             cr_is_group: dto.isGroup,
-            cr_private: isPrivate,
+            cr_private: privateGroup,
             created_by: creatorId,
           },
         ])
@@ -835,15 +836,15 @@ export class ChatRoomService {
 
   async approveJoinRequestService(
     roomId: string,
-    userId: string,
-    approveUserId: string,
+    requesterId: string,
+    adminId: string,
   ) {
     const client = this.supabase.getClient();
 
     try {
       const isAdmin = await this.sharedService.isUserAdminOfRoom(
         roomId,
-        userId,
+        adminId,
       );
       if (!isAdmin) {
         throw new InternalServerErrorException(
@@ -853,9 +854,12 @@ export class ChatRoomService {
 
       const { error } = await client
         .from('chat_room_member')
-        .update({ crm_join_approved: true })
+        .update({
+          crm_join_approved: true,
+          crm_added_approved_by: adminId,
+        })
         .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', approveUserId)
+        .eq('crm_usr_id', requesterId)
         .is('crm_join_approved', false);
 
       if (error) {
@@ -875,15 +879,15 @@ export class ChatRoomService {
 
   async rejectJoinRequestService(
     roomId: string,
-    userId: string,
-    declineUserId: string,
+    requesterId: string,
+    adminId: string,
   ) {
     const client = this.supabase.getClient();
 
     try {
       const isAdmin = await this.sharedService.isUserAdminOfRoom(
         roomId,
-        userId,
+        adminId,
       );
       if (!isAdmin) {
         throw new InternalServerErrorException(
@@ -895,7 +899,7 @@ export class ChatRoomService {
         .from('chat_room_member')
         .delete()
         .eq('crm_cr_id', roomId)
-        .eq('crm_usr_id', declineUserId)
+        .eq('crm_usr_id', requesterId)
         .is('crm_join_approved', false);
 
       if (error) {
