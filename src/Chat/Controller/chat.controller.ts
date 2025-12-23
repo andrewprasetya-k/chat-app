@@ -38,7 +38,7 @@ export class ChatController {
   }
 
   @Get('unread-count/:roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   async getUnreadCount(
     @User('sub') userId: string,
     @Param('roomId') roomId: string,
