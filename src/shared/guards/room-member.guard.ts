@@ -17,22 +17,23 @@ export class RoomMemberGuard implements CanActivate {
     const params = request.params;
     const body = request.body;
 
-    // 1. Get User ID (Assuming AuthGuard has run and populated request.user.sub)
+    // 1. Get User ID
     const userId = user?.sub;
     if (!userId) {
-      // Should technically be handled by AuthGuard, but safety first
       throw new ForbiddenException('User not authenticated');
     }
 
-    // 2. Get Room ID (Try params first, then body)
-    // Matches @Param('roomId') or body { roomId: ... }
+    // 2. Get Room ID
+    // Antisipasi dua metode @Param('roomId') or body { roomId: ... }
     const roomId = params.roomId || body.roomId;
 
     if (!roomId) {
-      throw new BadRequestException('Room ID not found in request params or body');
+      throw new BadRequestException(
+        'Room ID not found in request params or body',
+      );
     }
 
-    // 3. Validate Membership
+    // 3. Cek apakah user adalah member di room tersebut
     const isMember = await this.chatSharedService.isUserMemberOfRoom(
       roomId,
       userId,

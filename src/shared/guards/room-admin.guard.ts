@@ -25,10 +25,12 @@ export class RoomAdminGuard implements CanActivate {
     const roomId = params.roomId || body.roomId;
 
     if (!roomId) {
-      throw new BadRequestException('Room ID not found in request params or body');
+      throw new BadRequestException(
+        'Room ID not found in request params or body',
+      );
     }
 
-    // Check if user is Admin
+    // cek apakah user adalah admin di room tersebut
     const isAdmin = await this.chatSharedService.isUserAdminOfRoom(
       roomId,
       userId,
