@@ -29,6 +29,12 @@ export class ChatRoomController {
     return this.chatRoomService.getAllRoomsService(userId);
   }
 
+  @Get('deactivated')
+  @UseGuards(AuthGuard)
+  getDeactivatedRooms(@User('sub') userId: string) {
+    return this.chatRoomService.getDeactivatedRooms(userId);
+  }
+
   @Get('messages/:roomId')
   @UseGuards(AuthGuard, RoomActiveGuard, RoomMemberGuard)
   getRoomMessages(
