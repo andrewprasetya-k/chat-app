@@ -28,10 +28,11 @@ export class ChatRoomService {
         .from('chat_room_member')
         .select(
           `
-          chat_room:crm_cr_id (
+          chat_room:crm_cr_id(
             cr_id,
             cr_name,
             cr_is_group,
+            deleted_at,
             members:chat_room_member (
               user:crm_usr_id (
                 usr_id,
@@ -55,6 +56,7 @@ export class ChatRoomService {
         )
         .eq('crm_usr_id', userId)
         .is('leave_at', null)
+        .is('chat_room.deleted_at', null)
         .order('created_at', {
           foreignTable: 'chat_room.chat_message',
           ascending: false,
@@ -485,7 +487,7 @@ export class ChatRoomService {
 
       const { error } = await client
         .from('chat_room')
-        .delete()
+        .update({ deleted_at: new Date().toISOString() })
         .eq('cr_id', roomId);
 
       if (error) throw error;
@@ -530,6 +532,7 @@ export class ChatRoomService {
         `,
         )
         .eq('cr_id', roomId)
+        .is('deleted_at', null)
         .maybeSingle();
 
       if (error) {
@@ -537,7 +540,7 @@ export class ChatRoomService {
       }
 
       if (!data) {
-        throw new InternalServerErrorException('Chat room not found');
+        throw new InternalServerErrorException('Chat room not found or deleted');
       }
 
       const allMembers = (data.members ?? []).map((m: any) => {

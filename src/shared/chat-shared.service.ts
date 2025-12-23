@@ -76,6 +76,7 @@ export class ChatSharedService {
       .from('chat_room')
       .select('cr_is_group')
       .eq('cr_id', roomId)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (error) {
@@ -90,7 +91,8 @@ export class ChatSharedService {
     const { data, error } = await client
       .from('chat_room')
       .select('cr_id')
-      .eq('cr_id', roomId);
+      .eq('cr_id', roomId)
+      .is('deleted_at', null);
 
     if (error) {
       throw new InternalServerErrorException(error.message);
@@ -108,6 +110,7 @@ export class ChatSharedService {
       .from('chat_room')
       .select('cr_is_group, cr_private')
       .eq('cr_id', roomId)
+      .is('deleted_at', null)
       .maybeSingle();
 
     if (error) {
