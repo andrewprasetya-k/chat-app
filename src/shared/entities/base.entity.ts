@@ -8,4 +8,8 @@ export class BaseEntity {
   @Expose()
   @Transform(({ obj }) => obj.updated_at)
   updatedAt?: string;
+
+  @Expose()
+  @Transform(({ obj }) => obj.deleted_at)
+  deletedAt?: string | null;
 }
