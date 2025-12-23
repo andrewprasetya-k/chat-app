@@ -41,7 +41,7 @@ export class RoomMemberGuard implements CanActivate {
 
     if (!isMember) {
       throw new ForbiddenException(
-        'You are not a member of this chat room or you have left it.',
+        'You are not a member of this chat room or you have left the chat room.',
       );
     }
 
