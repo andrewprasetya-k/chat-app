@@ -1,11 +1,12 @@
-import { Module, Global } from '@nestjs/common';
+import { Module } from '@nestjs/common';
 import { ChatSharedService } from './chat-shared.service';
 import { SupabaseModule } from 'src/Supabase/supabase.module';
+import { RoomMemberGuard } from './guards/room-member.guard';
+import { RoomAdminGuard } from './guards/room-admin.guard';
 
-@Global()
 @Module({
   imports: [SupabaseModule],
-  providers: [ChatSharedService],
-  exports: [ChatSharedService],
+  providers: [ChatSharedService, RoomMemberGuard, RoomAdminGuard],
+  exports: [ChatSharedService, RoomMemberGuard, RoomAdminGuard],
 })
 export class SharedModule {}

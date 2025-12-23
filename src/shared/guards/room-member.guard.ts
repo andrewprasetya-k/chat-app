@@ -24,7 +24,7 @@ export class RoomMemberGuard implements CanActivate {
     }
 
     // 2. Get Room ID
-    // Antisipasi dua metode @Param('roomId') or body { roomId: ... }
+    // Antisipasi dua metode @Param('roomId') atau body { roomId: ... }
     const roomId = params.roomId || body.roomId;
 
     if (!roomId) {
