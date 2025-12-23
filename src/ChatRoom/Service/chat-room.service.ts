@@ -20,7 +20,7 @@ export class ChatRoomService {
     private readonly sharedService: ChatSharedService,
   ) {}
 
-  async getAllRoomsService(userId: string) {
+  async getActiveRooms(userId: string) {
     try {
       const client = this.supabase.getClient();
 
@@ -211,7 +211,7 @@ export class ChatRoomService {
       return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error?.message || 'Failed to fetch archived rooms',
+        error?.message || 'Failed to fetch deactivated rooms',
       );
     }
   }

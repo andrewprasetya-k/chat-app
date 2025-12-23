@@ -23,10 +23,10 @@ import { GetRoomMessagesQueryDto } from '../Dto/get-room-messages.query.dto';
 export class ChatRoomController {
   constructor(private readonly chatRoomService: ChatRoomService) {}
 
-  @Get('list')
+  @Get('active')
   @UseGuards(AuthGuard)
-  getAllRooms(@User('sub') userId: string) {
-    return this.chatRoomService.getAllRoomsService(userId);
+  getActiveRooms(@User('sub') userId: string) {
+    return this.chatRoomService.getActiveRooms(userId);
   }
 
   @Get('deactivated')
