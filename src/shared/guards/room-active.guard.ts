@@ -37,7 +37,7 @@ export class RoomActiveGuard implements CanActivate {
       }
       // Block Write access (POST, DELETE, PATCH, PUT)
       throw new ForbiddenException(
-        'This chat room has been deleted/archived and cannot be modified.',
+        'This chat room has been deleted and cannot be modified.',
       );
     }
 
