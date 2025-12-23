@@ -121,17 +121,6 @@ export class ChatRoomService {
     beforeAt?: string,
     limit: number = 20,
   ) {
-    const isMember = await this.sharedService.isUserMemberOfRoom(
-      roomId,
-      userId,
-    );
-
-    if (!isMember) {
-      throw new InternalServerErrorException(
-        'You are not a member of this chat room.',
-      );
-    }
-
     try {
       const client = this.supabase.getClient();
       let query = client
@@ -233,7 +222,6 @@ export class ChatRoomService {
         ChatRoomMessagesEntity,
         {
           roomName: roomName,
-          stillInRoom: isMember,
           messages: mappedMessages,
         },
         { excludeExtraneousValues: true, enableImplicitConversion: true },
@@ -343,15 +331,6 @@ export class ChatRoomService {
   }
 
   async leaveRoom(roomId: string, userId: string) {
-    const isMember = await this.sharedService.isUserMemberOfRoom(
-      roomId,
-      userId,
-    );
-    if (!isMember) {
-      throw new InternalServerErrorException(
-        'You are not a member of this chat room.',
-      );
-    }
     const client = this.supabase.getClient();
     try {
       const now = new Date().toISOString();
@@ -386,16 +365,6 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
       if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
           'Cannot perform this action on a personal chat room.',
@@ -454,16 +423,6 @@ export class ChatRoomService {
     const { members } = dto;
     const client = this.supabase.getClient();
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
       if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
           'Cannot perform this action on a personal chat room.',
@@ -518,16 +477,6 @@ export class ChatRoomService {
   async deleteRoom(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
       if (!(await this.sharedService.isGroupRoom(roomId))) {
         throw new InternalServerErrorException(
           'Cannot delete a personal chat room.',
@@ -559,17 +508,6 @@ export class ChatRoomService {
   async getRoomInfo(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      const isMember = await this.sharedService.isUserMemberOfRoom(
-        roomId,
-        userId,
-      );
-
-      if (!isMember) {
-        throw new InternalServerErrorException(
-          'You are not a member of this chat room.',
-        );
-      }
-
       const { data, error } = await client
         .from('chat_room')
         .select(
@@ -841,16 +779,6 @@ export class ChatRoomService {
     const client = this.supabase.getClient();
 
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        adminId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
       const { error } = await client
         .from('chat_room_member')
         .update({
@@ -884,16 +812,6 @@ export class ChatRoomService {
     const client = this.supabase.getClient();
 
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        adminId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
       const { error } = await client
         .from('chat_room_member')
         .delete()
@@ -924,16 +842,6 @@ export class ChatRoomService {
     const client = this.supabase.getClient();
 
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
       const isMember = await this.sharedService.isUserMemberOfRoom(
         roomId,
         promoteUserId,
@@ -984,26 +892,6 @@ export class ChatRoomService {
     const client = this.supabase.getClient();
 
     try {
-      const isAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isAdmin) {
-        throw new InternalServerErrorException(
-          'You are not an admin of this chat room.',
-        );
-      }
-
-      const isMember = await this.sharedService.isUserMemberOfRoom(
-        roomId,
-        demoteUserId,
-      );
-      if (!isMember) {
-        throw new InternalServerErrorException(
-          'The user to be demoted is not a member of this chat room.',
-        );
-      }
-
       const isMemberAdmin = await this.sharedService.isUserAdminOfRoom(
         roomId,
         demoteUserId,
