@@ -532,7 +532,6 @@ export class ChatRoomService {
         `,
         )
         .eq('cr_id', roomId)
-        .is('deleted_at', null)
         .maybeSingle();
 
       if (error) {
