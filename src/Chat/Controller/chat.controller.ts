@@ -11,13 +11,14 @@ import { ChatService } from '../Service/chat.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { AuthGuard } from 'src/Auth/auth.guard';
 import { User } from 'src/Auth/user.decorator';
+import { RoomMemberGuard } from 'src/shared/guards/room-member.guard';
 
 @Controller('chat')
 export class ChatController {
   constructor(private readonly chatService: ChatService) {}
 
   @Post('send/:roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   async sendMessage(
     @Body() body: SendMessageDto,
     @Param('roomId') roomId: string,
@@ -27,7 +28,7 @@ export class ChatController {
   }
 
   @Post('read/:roomId/:messageId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   async markAsRead(
     @Param('messageId') messageId: string,
     @Param('roomId') roomId: string,
@@ -46,7 +47,7 @@ export class ChatController {
   }
 
   @Patch('unsend/:roomId/:messageId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   async unsendMessage(
     @Param('messageId') messageId: string,
     @Param('roomId') roomId: string,
@@ -56,7 +57,7 @@ export class ChatController {
   }
 
   @Get('search/:roomId/:query')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   async searchMessages(
     @Param('roomId') roomId: string,
     @Param('query') query: string,
