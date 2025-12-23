@@ -13,6 +13,8 @@ import { CreateRoomDto } from '../Dto/create-room.dto';
 import { AuthGuard } from 'src/Auth/auth.guard';
 import { User } from 'src/Auth/user.decorator';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
+import { RoomMemberGuard } from 'src/shared/guards/room-member.guard';
+import { RoomAdminGuard } from 'src/shared/guards/room-admin.guard';
 
 import { GetRoomMessagesQueryDto } from '../Dto/get-room-messages.query.dto';
 
@@ -27,7 +29,7 @@ export class ChatRoomController {
   }
 
   @Get('messages/:roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   getRoomMessages(
     @Param('roomId') roomId: string,
     @Query() query: GetRoomMessagesQueryDto,
@@ -48,13 +50,13 @@ export class ChatRoomController {
   }
 
   @Post('leave/:roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   leaveRoom(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.leaveRoom(roomId, userId);
   }
 
   @Post('add-members/:roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   addMembers(
     @Body() body: AddRemoveMemberDto,
     @Param('roomId') roomId: string,
@@ -64,7 +66,7 @@ export class ChatRoomController {
   }
 
   @Post('remove-members/:roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   removeMembers(
     @Body() body: AddRemoveMemberDto,
     @User('sub') userId: string,
@@ -74,13 +76,13 @@ export class ChatRoomController {
   }
 
   @Delete(':roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   deleteRoom(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.deleteRoom(roomId, userId);
   }
 
   @Get(':roomId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomMemberGuard)
   getRoomInfo(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.getRoomInfo(roomId, userId);
   }
@@ -96,7 +98,7 @@ export class ChatRoomController {
   }
 
   @Post('approve/:roomId/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   approveJoinRequestController(
     @Param('roomId') roomId: string,
     @Param('userId') joinUserId: string,
@@ -110,7 +112,7 @@ export class ChatRoomController {
   }
 
   @Post('reject/:roomId/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   rejectJoinRequestController(
     @Param('roomId') roomId: string,
     @Param('userId') requesterId: string,
@@ -124,7 +126,7 @@ export class ChatRoomController {
   }
 
   @Post('promote/:roomId/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   promoteToAdminController(
     @Param('roomId') roomId: string,
     @Param('userId') promoteUserId: string,
@@ -138,7 +140,7 @@ export class ChatRoomController {
   }
 
   @Post('demote/:roomId/:userId')
-  @UseGuards(AuthGuard)
+  @UseGuards(AuthGuard, RoomAdminGuard)
   demoteFromAdminController(
     @Param('roomId') roomId: string,
     @Param('userId') demoteUserId: string,
