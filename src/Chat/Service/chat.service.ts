@@ -14,17 +14,6 @@ export class ChatService {
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
     try {
-      const isMember = await this.sharedService.isUserMemberOfRoom(
-        roomId,
-        userId,
-      );
-
-      if (!isMember) {
-        throw new InternalServerErrorException(
-          'You are not a member of this chat room or have left.',
-        );
-      }
-
       const { text } = dto;
       if (!text || text.trim() === '') {
         throw new InternalServerErrorException('Message text cannot be empty.');
@@ -86,16 +75,6 @@ export class ChatService {
   }
 
   async markMessageAsRead(roomId: string, messageId: string, userId: string) {
-    const isMember = await this.sharedService.isUserMemberOfRoom(
-      roomId,
-      userId,
-    );
-    if (!isMember) {
-      throw new InternalServerErrorException(
-        'You are not a member of this chat room.',
-      );
-    }
-
     const client = this.supabase.getClient();
     try {
       const { data: messageData, error: msgError } = await client
@@ -182,16 +161,6 @@ export class ChatService {
         .eq('cm_id', messageId)
         .single();
 
-      const isMember = await this.sharedService.isUserMemberOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isMember) {
-        throw new InternalServerErrorException(
-          'You have left the chat room and cannot unsend messages.',
-        );
-      }
-
       if (error) throw error;
 
       if (data.cm_usr_id !== userId) {
@@ -217,16 +186,6 @@ export class ChatService {
 
   async searchMessages(roomId: string, query: string, userId: string) {
     try {
-      const isMember = await this.sharedService.isUserMemberOfRoom(
-        roomId,
-        userId,
-      );
-      if (!isMember) {
-        throw new InternalServerErrorException(
-          'You are not a member of this chat room.',
-        );
-      }
-
       const client = this.supabase.getClient();
       const { data: messages, error } = await client
         .from('chat_message')
