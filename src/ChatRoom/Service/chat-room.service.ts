@@ -101,6 +101,7 @@ export class ChatRoomService {
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
+            deletedAt: room?.deleted_at ?? null,
           },
           {
             excludeExtraneousValues: true,
@@ -113,6 +114,104 @@ export class ChatRoomService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch rooms',
+      );
+    }
+  }
+
+  async getDeactivatedRooms(userId: string) {
+    try {
+      const client = this.supabase.getClient();
+
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select(
+          `
+          chat_room:crm_cr_id!inner(
+            cr_id,
+            cr_name,
+            cr_is_group,
+            deleted_at,
+            members:chat_room_member (
+              user:crm_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              )
+            ),
+            chat_message (
+              cm_id,
+              message_text,
+              created_at,
+              sender:cm_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              ),
+              read_receipts (
+                rr_usr_id
+              )
+            )
+          )
+        `,
+        )
+        .eq('crm_usr_id', userId)
+        .is('leave_at', null)
+        .not('chat_room.deleted_at', 'is', null) // Filter ARCHIVED only
+        .order('created_at', {
+          foreignTable: 'chat_room.chat_message',
+          ascending: false,
+        })
+        .limit(1, {
+          foreignTable: 'chat_room.chat_message',
+        });
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      const transformedData = (data ?? []).map((item) => {
+        const room = Array.isArray(item.chat_room)
+          ? item.chat_room[0]
+          : item.chat_room;
+        const messages = room?.chat_message ?? [];
+        const lastMessage = messages.length > 0 ? messages[0] : null;
+        const sender = lastMessage?.sender;
+
+        const senderId = Array.isArray(sender)
+          ? sender[0]?.usr_id
+          : (sender as any)?.usr_id;
+        const senderName = Array.isArray(sender)
+          ? sender[0]?.usr_nama_lengkap
+          : (sender as any)?.usr_nama_lengkap;
+
+        const isLastMessageRead = lastMessage
+          ? (lastMessage.read_receipts ?? []).some(
+              (rr) => rr.rr_usr_id === userId,
+            )
+          : false;
+
+        return plainToInstance(
+          ChatRoomListEntity,
+          {
+            roomId: room?.cr_id,
+            roomName: room?.cr_name,
+            isGroup: room?.cr_is_group,
+            deletedAt: room?.deleted_at ?? null,
+            lastMessage: lastMessage?.message_text ?? null,
+            lastMessageTime: lastMessage?.created_at ?? null,
+            senderId: senderId ?? null,
+            senderName: senderName ?? null,
+            isLastMessageRead,
+          },
+          {
+            excludeExtraneousValues: true,
+            enableImplicitConversion: true,
+          },
+        );
+      });
+
+      return transformedData;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to fetch archived rooms',
       );
     }
   }
@@ -518,6 +617,7 @@ export class ChatRoomService {
           cr_name,
           cr_is_group,
           created_at,
+          deleted_at,
           members:chat_room_member (
             crm_usr_id,
             joined_at,
@@ -539,7 +639,9 @@ export class ChatRoomService {
       }
 
       if (!data) {
-        throw new InternalServerErrorException('Chat room not found or deleted');
+        throw new InternalServerErrorException(
+          'Chat room not found or deleted',
+        );
       }
 
       const allMembers = (data.members ?? []).map((m: any) => {
@@ -576,6 +678,7 @@ export class ChatRoomService {
           roomName: data.cr_name,
           isGroup: data.cr_is_group,
           createdAt: data.created_at,
+          deletedAt: data.deleted_at ?? null,
           totalMembers: activeMembers.length,
           activeMembers: activeMembers,
           pastMembers: pastMembers,
