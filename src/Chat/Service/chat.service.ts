@@ -35,7 +35,6 @@ export class ChatService {
         .single();
 
       if (error) {
-        console.error('Database error:', error);
         throw new InternalServerErrorException(
           `Database error: ${error.message}`,
         );
@@ -51,7 +50,6 @@ export class ChatService {
             payload: newMessage,
           });
         } catch (broadcastError) {
-          console.error('Broadcast error:', broadcastError);
           // Don't throw error for broadcast failure, message was saved successfully
         }
       }
@@ -67,7 +65,6 @@ export class ChatService {
       );
       return transformedMessage;
     } catch (error: any) {
-      console.error('SendMessage error:', error);
       throw new InternalServerErrorException(
         error?.message || 'Failed to send message',
       );

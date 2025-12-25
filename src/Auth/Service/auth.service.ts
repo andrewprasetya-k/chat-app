@@ -102,7 +102,6 @@ export class AuthService {
       )
         throw err;
 
-      console.error('AuthService.login error:', err);
       throw new InternalServerErrorException(err?.message ?? 'Failed to login');
     }
   }
