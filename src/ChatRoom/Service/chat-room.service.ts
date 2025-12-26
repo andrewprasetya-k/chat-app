@@ -309,17 +309,23 @@ export class ChatRoomService {
         // Handle Reply Mapping
         const replyRaw = msg.replied_to;
         const replyData = Array.isArray(replyRaw) ? replyRaw[0] : replyRaw;
-        
-        let replyToObj: { id: string; text: string; senderName: string } | null = null;
+
+        let replyToObj: {
+          id: string;
+          text: string;
+          senderName: string;
+        } | null = null;
         if (replyData) {
-             const replySenderRaw = replyData.sender;
-             const replySender = Array.isArray(replySenderRaw) ? replySenderRaw[0] : replySenderRaw;
-             
-             replyToObj = {
-                 id: replyData.cm_id,
-                 text: replyData.message_text,
-                 senderName: replySender?.usr_nama_lengkap || 'Unknown'
-             };
+          const replySenderRaw = replyData.sender;
+          const replySender = Array.isArray(replySenderRaw)
+            ? replySenderRaw[0]
+            : replySenderRaw;
+
+          replyToObj = {
+            id: replyData.cm_id,
+            text: replyData.message_text,
+            senderName: replySender?.usr_nama_lengkap || 'Unknown',
+          };
         }
 
         return {
