@@ -66,4 +66,13 @@ export class ChatController {
   ) {
     return await this.chatService.searchMessages(roomId, query, userId);
   }
+
+  @Get('global-search/:query')
+  @UseGuards(AuthGuard)
+  async globalSearch(
+    @Param('query') query: string,
+    @User('sub') userId: string,
+  ) {
+    return await this.chatService.searchGlobalMessages(query, userId);
+  }
 }

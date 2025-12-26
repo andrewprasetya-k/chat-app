@@ -264,4 +264,50 @@ export class ChatService {
       );
     }
   }
+
+  async searchGlobalMessages(query: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      // 1. Ambil semua Room ID di mana user menjadi member
+      // gunakan subquery filter di Supabase dengan !inner join
+
+      const { data: messages, error } = await client
+        .from('chat_message')
+        .select(
+          `
+          cm_id,
+          message_text,
+          created_at,
+          cm_cr_id,
+          chat_room:cm_cr_id!inner (
+             cr_name,
+             chat_room_member!inner (
+                crm_usr_id
+             )
+          ),
+          sender:cm_usr_id (
+            usr_id,
+            usr_nama_lengkap
+          )
+        `,
+        )
+        .eq('chat_room.chat_room_member.crm_usr_id', userId) // Filter: Hanya room saya
+        .is('chat_room.deleted_at', null) // Filter: Room aktif
+        .ilike('message_text', `%${query}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return plainToInstance(ChatMessageEntity, messages || [], {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to search global messages',
+      );
+    }
+  }
 }

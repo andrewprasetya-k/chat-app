@@ -16,6 +16,10 @@ export class ChatMessageEntity extends BaseEntity {
   roomId: string;
 
   @Expose()
+  @Transform(({ obj }) => obj.chat_room?.cr_name || null, { toClassOnly: true })
+  roomName: string;
+
+  @Expose()
   @Type(() => UserEntity)
   sender: UserEntity;
 
