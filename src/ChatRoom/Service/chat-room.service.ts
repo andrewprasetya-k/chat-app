@@ -90,11 +90,20 @@ export class ChatRoomService {
             )
           : false;
 
+        let roomName = room?.cr_name;
+        if (!room?.cr_is_group) {
+          const members = room?.members ?? [];
+          const otherUser = members
+            .flatMap((m) => m.user)
+            .find((u) => u?.usr_id !== userId);
+          roomName = otherUser?.usr_nama_lengkap ?? roomName;
+        }
+
         return plainToInstance(
           ChatRoomListEntity,
           {
             roomId: room?.cr_id,
-            roomName: room?.cr_name,
+            roomName: roomName,
             isGroup: room?.cr_is_group,
             lastMessage: lastMessage?.message_text ?? null,
             lastMessageTime: lastMessage?.created_at ?? null,
@@ -190,11 +199,20 @@ export class ChatRoomService {
             )
           : false;
 
+        let roomName = room?.cr_name;
+        if (!room?.cr_is_group) {
+          const members = room?.members ?? [];
+          const otherUser = members
+            .flatMap((m) => m.user)
+            .find((u) => u?.usr_id !== userId);
+          roomName = otherUser?.usr_nama_lengkap ?? roomName;
+        }
+
         return plainToInstance(
           ChatRoomListEntity,
           {
             roomId: room?.cr_id,
-            roomName: room?.cr_name,
+            roomName: roomName,
             isGroup: room?.cr_is_group,
             deletedAt: room?.deleted_at ?? null,
             lastMessage: lastMessage?.message_text ?? null,
