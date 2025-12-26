@@ -144,6 +144,15 @@ export class ChatService {
 
       if (upsertError) throw upsertError;
 
+      // --- REAL-TIME BROADCAST ---
+      // Memberitahu semua orang di room ini bahwa 'userId' telah membaca 'messageId'
+      this.chatGateway.server.to(`room_${roomId}`).emit('message_read', {
+        messageId: messageId,
+        userId: userId,
+        roomId: roomId,
+        readAt: new Date().toISOString(),
+      });
+
       return { success: true, message: 'Message marked as read.' };
     } catch (error: any) {
       throw new InternalServerErrorException(
