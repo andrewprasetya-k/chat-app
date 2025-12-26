@@ -239,6 +239,14 @@ export class ChatRoomService {
             usr_id,
             usr_nama_lengkap
           ),
+          replied_to:cm_reply_to_id (
+            cm_id,
+            message_text,
+            sender:cm_usr_id (
+              usr_id,
+              usr_nama_lengkap
+            )
+          ),
           read_receipts (
             reader:rr_usr_id (
               usr_id,
@@ -292,11 +300,28 @@ export class ChatRoomService {
         roomName = otherUser?.usr_nama_lengkap ?? '';
       }
 
-      const sortedMessages = (messages ?? []).reverse();
+      const sortedMessages = (messages ?? []).reverse() as any[];
 
       const mappedMessages = sortedMessages.map((msg) => {
         const senderRaw = msg.sender;
         const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
+
+        // Handle Reply Mapping
+        const replyRaw = msg.replied_to;
+        const replyData = Array.isArray(replyRaw) ? replyRaw[0] : replyRaw;
+        
+        let replyToObj: { id: string; text: string; senderName: string } | null = null;
+        if (replyData) {
+             const replySenderRaw = replyData.sender;
+             const replySender = Array.isArray(replySenderRaw) ? replySenderRaw[0] : replySenderRaw;
+             
+             replyToObj = {
+                 id: replyData.cm_id,
+                 text: replyData.message_text,
+                 senderName: replySender?.usr_nama_lengkap || 'Unknown'
+             };
+        }
+
         return {
           textId: msg.cm_id,
           text: msg.message_text,
@@ -307,6 +332,7 @@ export class ChatRoomService {
                 senderName: sender.usr_nama_lengkap,
               }
             : null,
+          replyTo: replyToObj,
           readBy: (msg.read_receipts ?? [])
             .map((rr) => {
               const readerRaw = rr.reader;

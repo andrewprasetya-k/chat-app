@@ -61,8 +61,23 @@ export class MessageDetailEntity {
   sender: SenderEntity | null;
 
   @Expose()
+  @Type(() => ReplyInfoEntity)
+  replyTo: ReplyInfoEntity | null;
+
+  @Expose()
   @Type(() => ReadByEntity)
   readBy: ReadByEntity[];
+}
+
+export class ReplyInfoEntity {
+  @Expose()
+  id: string;
+
+  @Expose()
+  text: string;
+
+  @Expose()
+  senderName: string;
 }
 
 export class SenderEntity {
