@@ -49,11 +49,34 @@ Aplikasi ini menggunakan pola **Hybrid**: Simpan via HTTP, Broadcast via WebSock
 
 ### A. `ChatGateway` (`src/Chat/Gateway/chat.gateway.ts`)
 Ini adalah "Traffic Controller" untuk WebSocket.
-*   **`handleConnection`**: Dijalankan saat user pertama kali buka aplikasi.
-    *   Tugas: Ambil Token JWT dari handshake, validasi user, simpan `userId` ke session socket.
-*   **`handleJoinRoom`**: Dijalankan saat user masuk ke halaman chat room tertentu.
-    *   Tugas: Memasukkan socket user ke dalam "ruangan virtual" (`client.join('room_uuid')`).
-*   **`handleTyping...`**: Menerima sinyal typing dan meneruskannya ke user lain (`client.to(roomId).emit(...)`).
+
+1.  **`handleConnection(client: Socket)`**
+    *   *Trigger:* Otomatis saat user connect.
+    *   *Sintaks Penting:*
+        *   `client.handshake.auth.token`: Mengambil token yang dikirim client saat inisialisasi koneksi.
+        *   `client.data.userId = ...`: Menyimpan data sesi custom di memori socket. Data ini akan nempel terus selama user terkoneksi, berguna agar kita tidak perlu decode token berulang-ulang di setiap request.
+    *   *Fungsi:* **Satpam Pintu Masuk**. Memvalidasi JWT Token.
+
+2.  **`handleDisconnect(client: Socket)`**
+    *   *Trigger:* Otomatis saat koneksi terputus.
+    *   *Fungsi:* Cleanup & Logging.
+
+3.  **`handleJoinRoom`**
+    *   *Decorator:* `@SubscribeMessage('join_room')` -> Memberitahu NestJS untuk menjalankan fungsi ini hanya jika ada event bernama 'join_room'.
+    *   *Decorator:* `@MessageBody()` -> Mengambil isi data (payload) yang dikirim client.
+    *   *Decorator:* `@ConnectedSocket()` -> Mengambil object `client` milik pengirim spesifik untuk dimanipulasi.
+    *   *Sintaks:* `client.join('room_xyz')`. Method bawaan Socket.io untuk memasukkan user ke dalam grup broadcast (channel).
+    *   *Fungsi:* Mendaftarkan user ke saluran spesifik.
+
+4.  **`handleLeaveRoom`**
+    *   *Sintaks:* `client.leave('room_xyz')`. Kebalikan dari join, user tidak akan mendengar apa-apa lagi dari room ini.
+    *   *Fungsi:* Stop langganan notifikasi room.
+
+5.  **`handleTypingStart` & `handleTypingStop`**
+    *   *Sintaks:* `client.to(roomId).emit(...)`
+        *   `.to(roomId)`: Targetkan ke room tertentu.
+        *   **PENTING:** Menggunakan `client.to(...)` (bukan `server.to(...)`) artinya pesan dikirim ke **semua orang di room itu KECUALI si pengirim sendiri**. Ini efisien karena pengirim tidak butuh notifikasi "Anda sedang mengetik".
+    *   *Fungsi:* Broadcast sinyal typing ke lawan bicara.
 
 ### B. `ChatService` (`src/Chat/Service/chat.service.ts`)
 Ini adalah "Otak Bisnis".
