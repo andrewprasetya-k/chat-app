@@ -7,10 +7,7 @@ import { plainToInstance } from 'class-transformer';
 
 @Injectable()
 export class ChatService {
-  constructor(
-    private readonly supabase: SupabaseService,
-    private readonly sharedService: ChatSharedService,
-  ) {}
+  constructor(private readonly supabase: SupabaseService) {}
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
     try {
