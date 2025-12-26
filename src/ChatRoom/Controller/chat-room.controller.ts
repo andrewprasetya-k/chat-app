@@ -97,7 +97,7 @@ export class ChatRoomController {
   @Get('search/:query')
   @UseGuards(AuthGuard)
   searchRooms(@Param('query') query: string, @User('sub') userId: string) {
-    return this.chatRoomService.searchRooms(query, userId);
+    return this.chatRoomService.searchRooms(userId, query);
   }
 
   @Post(':roomId')
