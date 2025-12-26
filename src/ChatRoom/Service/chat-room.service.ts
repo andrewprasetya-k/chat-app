@@ -1083,4 +1083,23 @@ export class ChatRoomService {
       );
     }
   }
+
+  async searchRooms(userId: string, query: string) {
+    try {
+      const activeRooms = await this.getActiveRooms(userId);
+      const deactivatedRooms = await this.getDeactivatedRooms(userId);
+      const allRooms = [...activeRooms, ...deactivatedRooms];
+
+      const lowerQuery = query.toLowerCase();
+
+      const filteredRooms = allRooms.filter((room) =>
+        room.roomName?.toLowerCase().includes(lowerQuery),
+      );
+      return filteredRooms;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to search rooms',
+      );
+    }
+  }
 }
