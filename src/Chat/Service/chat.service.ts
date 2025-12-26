@@ -94,7 +94,6 @@ export class ChatService {
         }
       }
 
-      // 4. Transformasi Data
       return plainToInstance(ChatMessageEntity, newMessage, {
         excludeExtraneousValues: true,
         enableImplicitConversion: true,

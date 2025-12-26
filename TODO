@@ -3,3 +3,4 @@ cek apa saja function yang perlu dibroadcast, terutama chat yang sudah diunsend 
 
 tambah endpoint untuk join grup public
 web socket
+tambahkan logic load chat room dengan reply
