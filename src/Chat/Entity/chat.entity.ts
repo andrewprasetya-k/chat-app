@@ -34,3 +34,9 @@ export class ReadReceiptEntity {
   @Type(() => UserEntity)
   reader: UserEntity;
 }
+
+export class RepliedMessageEntity extends ChatMessageEntity {
+  @Expose()
+  @Transform(({ obj }) => obj.cm_reply_to_id, { toClassOnly: true })
+  replyTo: string;
+}
