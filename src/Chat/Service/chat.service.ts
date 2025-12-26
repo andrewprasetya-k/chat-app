@@ -8,10 +8,14 @@ import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { ChatMessageEntity } from '../Entity/chat.entity';
 import { plainToInstance } from 'class-transformer';
+import { ChatGateway } from '../Gateway/chat.gateway'; // Import Gateway
 
 @Injectable()
 export class ChatService {
-  constructor(private readonly supabase: SupabaseService) {}
+  constructor(
+    private readonly supabase: SupabaseService,
+    private readonly chatGateway: ChatGateway, // Inject Gateway
+  ) {}
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
     const client = this.supabase.getClient();
@@ -20,6 +24,8 @@ export class ChatService {
       if (!text || text.trim() === '') {
         throw new BadRequestException('Message text cannot be empty.');
       }
+
+      // ... (Validation logic stays same)
       if (replyTo) {
         const { data: exists, error: checkError } = await client
           .from('chat_message')
@@ -41,8 +47,6 @@ export class ChatService {
         }
       }
 
-      // 3. Insert & Select (Termasuk Parent Message jika FK sudah disetup)
-      // Note: `chat_message!cm_reply_to_id` mengacu pada relasi Self-Join via kolom cm_reply_to_id
       const { data: newMessage, error } = await client
         .from('chat_message')
         .insert([
@@ -80,18 +84,22 @@ export class ChatService {
         );
       }
 
+      // --- BROADCAST LOGIC (WebSocket) ---
       if (newMessage) {
-        try {
-          const channelName = `chat_room_${roomId}`;
-          const channel = client.channel(channelName);
-          await (channel as any).httpSend({
-            type: 'broadcast',
-            event: 'new_message',
-            payload: newMessage,
-          });
-        } catch (broadcastError) {
-          // Don't throw error for broadcast failure
-        }
+        // Transform dulu datanya agar rapi sebelum dikirim
+        const transformedMessage = plainToInstance(
+          ChatMessageEntity,
+          newMessage,
+          {
+            excludeExtraneousValues: true,
+            enableImplicitConversion: true,
+          },
+        );
+
+        // Kirim ke room spesifik: "room_{roomId}"
+        this.chatGateway.server
+          .to(`room_${roomId}`)
+          .emit('new_message', transformedMessage);
       }
 
       return plainToInstance(ChatMessageEntity, newMessage, {
