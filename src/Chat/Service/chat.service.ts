@@ -1,4 +1,8 @@
-import { Injectable, InternalServerErrorException } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+  InternalServerErrorException,
+} from '@nestjs/common';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { SendMessageDto } from '../Dto/send-message.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
@@ -10,35 +14,35 @@ export class ChatService {
   constructor(private readonly supabase: SupabaseService) {}
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
+    const client = this.supabase.getClient();
     try {
       const { text, replyTo } = dto;
       if (!text || text.trim() === '') {
-        throw new InternalServerErrorException('Message text cannot be empty.');
+        throw new BadRequestException('Message text cannot be empty.');
       }
-
       if (replyTo) {
-        const { data: chatToReply, error: replyError } = await this.supabase
-          .getClient()
+        const { data: exists, error: checkError } = await client
           .from('chat_message')
           .select('cm_id')
           .eq('cm_id', replyTo)
           .eq('cm_cr_id', roomId)
           .maybeSingle();
 
-        if (replyError) {
+        if (checkError) {
           throw new InternalServerErrorException(
-            'Failed to find the message to reply to.',
+            `Error checking reply: ${checkError.message}`,
           );
         }
 
-        if (!chatToReply) {
-          throw new InternalServerErrorException(
+        if (!exists) {
+          throw new BadRequestException(
             'The message you are trying to reply to does not exist in this room.',
           );
         }
       }
 
-      const client = this.supabase.getClient();
+      // 3. Insert & Select (Termasuk Parent Message jika FK sudah disetup)
+      // Note: `chat_message!cm_reply_to_id` mengacu pada relasi Self-Join via kolom cm_reply_to_id
       const { data: newMessage, error } = await client
         .from('chat_message')
         .insert([
@@ -50,7 +54,23 @@ export class ChatService {
           },
         ])
         .select(
-          `cm_id, message_text, created_at, cm_reply_to_id, sender:cm_usr_id (usr_id, usr_nama_lengkap)`,
+          `
+          cm_id, 
+          message_text, 
+          created_at, 
+          cm_reply_to_id, 
+          sender:cm_usr_id (
+            usr_id, 
+            usr_nama_lengkap
+          ),
+          parent_message:chat_message!cm_reply_to_id (
+            cm_id,
+            message_text,
+            sender:cm_usr_id (
+               usr_nama_lengkap
+            )
+          )
+          `,
         )
         .single();
 
@@ -70,21 +90,19 @@ export class ChatService {
             payload: newMessage,
           });
         } catch (broadcastError) {
-          // Don't throw error for broadcast failure, message was saved successfully
+          // Don't throw error for broadcast failure
         }
       }
 
-      // Transform the newMessage to ChatMessageEntity before returning
-      const transformedMessage = plainToInstance(
-        ChatMessageEntity,
-        newMessage,
-        {
-          excludeExtraneousValues: true,
-          enableImplicitConversion: true,
-        },
-      );
-      return transformedMessage;
+      // 4. Transformasi Data
+      return plainToInstance(ChatMessageEntity, newMessage, {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      });
     } catch (error: any) {
+      if (error instanceof BadRequestException) {
+        throw error;
+      }
       throw new InternalServerErrorException(
         error?.message || 'Failed to send message',
       );
