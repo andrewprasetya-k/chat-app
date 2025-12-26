@@ -11,7 +11,7 @@ export class ChatService {
 
   async sendMessage(dto: SendMessageDto, roomId: string, userId: string) {
     try {
-      const { text } = dto;
+      const { text, replyTo } = dto;
       if (!text || text.trim() === '') {
         throw new InternalServerErrorException('Message text cannot be empty.');
       }
@@ -24,10 +24,11 @@ export class ChatService {
             cm_cr_id: roomId,
             cm_usr_id: userId,
             message_text: text,
+            cm_reply_to_id: replyTo || null,
           },
         ])
         .select(
-          `cm_id, message_text, created_at, sender:cm_usr_id (usr_id, usr_nama_lengkap)`,
+          `cm_id, message_text, created_at, cm_reply_to_id, sender:cm_usr_id (usr_id, usr_nama_lengkap)`,
         )
         .single();
 
