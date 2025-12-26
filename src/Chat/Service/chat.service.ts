@@ -15,16 +15,15 @@ export class ChatService {
       if (!text || text.trim() === '') {
         throw new InternalServerErrorException('Message text cannot be empty.');
       }
+
       if (replyTo) {
-        const { data: chatToReply, error: replyError } = replyTo
-          ? await this.supabase
-              .getClient()
-              .from('chat_message')
-              .select('cm_id')
-              .eq('cm_id', replyTo)
-              .eq('cm_cr_id', roomId)
-              .maybeSingle()
-          : { data: null, error: null };
+        const { data: chatToReply, error: replyError } = await this.supabase
+          .getClient()
+          .from('chat_message')
+          .select('cm_id')
+          .eq('cm_id', replyTo)
+          .eq('cm_cr_id', roomId)
+          .maybeSingle();
 
         if (replyError) {
           throw new InternalServerErrorException(
