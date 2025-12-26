@@ -28,7 +28,7 @@ export class ChatRoomService {
         .from('chat_room_member')
         .select(
           `
-          chat_room:crm_cr_id(
+          chat_room:crm_cr_id!inner(
             cr_id,
             cr_name,
             cr_is_group,
