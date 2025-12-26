@@ -6,10 +6,11 @@ import {
   OnGatewayDisconnect,
   MessageBody,
   ConnectedSocket,
+  WsException,
 } from '@nestjs/websockets';
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
-import { UseGuards } from '@nestjs/common';
+import { ChatSharedService } from 'src/shared/chat-shared.service';
 
 @WebSocketGateway({
   cors: {
@@ -20,7 +21,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer()
   server: Server;
 
-  constructor(private readonly jwtService: JwtService) {}
+  constructor(
+    private readonly jwtService: JwtService,
+    private readonly chatSharedService: ChatSharedService,
+  ) {}
 
   async handleConnection(client: Socket) {
     try {
@@ -37,7 +41,6 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const cleanToken = token.replace('Bearer ', '');
 
       // Verifikasi Token (Sesuaikan secret dengan Config Anda)
-      // Disini kita asumsi JwtService sudah dikonfigurasi global atau di module
       const payload = this.jwtService.decode(cleanToken);
 
       if (!payload || !payload.sub) {
@@ -59,16 +62,38 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   }
 
   @SubscribeMessage('join_room')
-  handleJoinRoom(
+  async handleJoinRoom(
     @MessageBody() roomId: string,
     @ConnectedSocket() client: Socket,
   ) {
-    // TODO: Validasi apakah user benar-benar member room ini (via Service/DB)
-    // Untuk performa, bisa diskip jika percaya frontend, tapi sebaiknya divalidasi.
+    try {
+      const userId = client.data.userId;
+      if (!userId) {
+        throw new WsException('Unauthorized');
+      }
 
-    client.join(`room_${roomId}`);
-    console.log(`User ${client.data.userId} joined room_${roomId}`);
-    return { event: 'joined_room', data: roomId };
+      // Validasi Security: Cek apakah user benar-benar member room ini
+      const isMember = await this.chatSharedService.isUserMemberOfRoom(
+        roomId,
+        userId,
+      );
+
+      if (!isMember) {
+        console.warn(
+          `Security Alert: User ${userId} tried to join room ${roomId} but is not a member.`,
+        );
+        // Jangan biarkan join, kirim error ke client
+        throw new WsException('You are not a member of this room');
+      }
+
+      // Jika valid, baru boleh join
+      client.join(`room_${roomId}`);
+      console.log(`User ${userId} joined room_${roomId}`);
+      return { event: 'joined_room', data: roomId };
+    } catch (error) {
+      // Return error structure to client
+      return { event: 'error', data: error.message };
+    }
   }
 
   @SubscribeMessage('leave_room')
