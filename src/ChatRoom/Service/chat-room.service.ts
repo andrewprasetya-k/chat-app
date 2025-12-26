@@ -292,6 +292,7 @@ export class ChatRoomService {
 
       let roomName = room.cr_name ?? '';
 
+      //cek kalau personal, nama roomnya itu nama user lainnya
       if (!room.cr_is_group) {
         const otherUser = room.members
           .flatMap((m) => m.user)
