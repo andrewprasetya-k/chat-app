@@ -15,27 +15,28 @@ export class ChatService {
       if (!text || text.trim() === '') {
         throw new InternalServerErrorException('Message text cannot be empty.');
       }
+      if (replyTo) {
+        const { data: chatToReply, error: replyError } = replyTo
+          ? await this.supabase
+              .getClient()
+              .from('chat_message')
+              .select('cm_id')
+              .eq('cm_id', replyTo)
+              .eq('cm_cr_id', roomId)
+              .maybeSingle()
+          : { data: null, error: null };
 
-      const { data: chatToReply, error: replyError } = replyTo
-        ? await this.supabase
-            .getClient()
-            .from('chat_message')
-            .select('cm_id')
-            .eq('cm_id', replyTo)
-            .eq('cm_cr_id', roomId)
-            .single()
-        : { data: null, error: null };
+        if (replyError) {
+          throw new InternalServerErrorException(
+            'Failed to find the message to reply to.',
+          );
+        }
 
-      if (replyError) {
-        throw new InternalServerErrorException(
-          'Failed to find the message to reply to.',
-        );
-      }
-
-      if (replyTo && !chatToReply) {
-        throw new InternalServerErrorException(
-          'The message you are trying to reply to does not exist in this room.',
-        );
+        if (!chatToReply) {
+          throw new InternalServerErrorException(
+            'The message you are trying to reply to does not exist in this room.',
+          );
+        }
       }
 
       const client = this.supabase.getClient();
