@@ -109,7 +109,9 @@ export class ChatRoomService {
           },
         );
       });
-
+      if (transformedData.length === 1 && !transformedData[0].roomId) {
+        return [];
+      }
       return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
