@@ -1,4 +1,4 @@
-import { IsString, IsNotEmpty } from 'class-validator';
+import { IsString, IsNotEmpty, IsOptional } from 'class-validator';
 
 export class SendMessageDto {
   @IsString()
@@ -6,5 +6,6 @@ export class SendMessageDto {
   text: string; // Isi pesan
 
   @IsString()
+  @IsOptional()
   replyTo?: string; // ID pesan yang dibalas (opsional)
 }
