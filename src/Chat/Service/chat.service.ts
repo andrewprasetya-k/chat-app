@@ -210,6 +210,7 @@ export class ChatService {
         .from('chat_message')
         .select('cm_usr_id')
         .eq('cm_id', messageId)
+        .eq('cm_cr_id', roomId)
         .single();
 
       if (error) throw error;
