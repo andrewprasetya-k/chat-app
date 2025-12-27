@@ -75,6 +75,9 @@ export class ChatService {
             sender:cm_usr_id (
                usr_nama_lengkap
             )
+          ),
+          chat_room:cm_cr_id (
+            cr_name
           )
           `,
         )
@@ -140,6 +143,9 @@ export class ChatService {
           sender:cm_usr_id (
             usr_id, 
             usr_nama_lengkap
+          ),
+          chat_room:cm_cr_id (
+            cr_name
           )
           `,
         )
