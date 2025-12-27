@@ -77,7 +77,14 @@ export class ChatService {
             )
           ),
           chat_room:cm_cr_id (
-            cr_name
+            cr_name,
+            cr_is_group,
+            members:chat_room_member (
+              user:crm_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              )
+            )
           )
           `,
         )
@@ -87,6 +94,24 @@ export class ChatService {
         throw new InternalServerErrorException(
           `Database error: ${error.message}`,
         );
+      }
+
+      // Fix Room Name for Personal Chats
+      if (newMessage && newMessage.chat_room) {
+        const room = Array.isArray(newMessage.chat_room)
+          ? newMessage.chat_room[0]
+          : newMessage.chat_room;
+
+        if (!room.cr_name) {
+          const members = room.members || [];
+          const otherMember = members
+            .flatMap((m: any) => (Array.isArray(m.user) ? m.user : [m.user]))
+            .find((u: any) => u?.usr_id !== userId);
+
+          if (otherMember) {
+            room.cr_name = otherMember.usr_nama_lengkap;
+          }
+        }
       }
 
       // --- BROADCAST LOGIC (WebSocket) ---
@@ -145,7 +170,14 @@ export class ChatService {
             usr_nama_lengkap
           ),
           chat_room:cm_cr_id (
-            cr_name
+            cr_name,
+            cr_is_group,
+            members:chat_room_member (
+              user:crm_usr_id (
+                usr_id, 
+                usr_nama_lengkap
+              )
+            )
           )
           `,
         )
@@ -154,6 +186,24 @@ export class ChatService {
       if (error) throw error;
 
       if (newMessage) {
+        // Fix Room Name for Personal Chats
+        if (newMessage.chat_room) {
+          const room = Array.isArray(newMessage.chat_room)
+            ? newMessage.chat_room[0]
+            : newMessage.chat_room;
+
+          if (!room.cr_name) {
+            const members = room.members || [];
+            const otherMember = members
+              .flatMap((m: any) => (Array.isArray(m.user) ? m.user : [m.user]))
+              .find((u: any) => u?.usr_id !== actorId);
+
+            if (otherMember) {
+              room.cr_name = otherMember.usr_nama_lengkap;
+            }
+          }
+        }
+
         const transformedMessage = plainToInstance(
           ChatMessageEntity,
           newMessage,
