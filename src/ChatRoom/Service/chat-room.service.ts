@@ -34,6 +34,7 @@ export class ChatRoomService {
             cr_id,
             cr_name,
             cr_is_group,
+            created_at,
             deleted_at,
             members:chat_room_member (
               user:crm_usr_id (
@@ -108,7 +109,7 @@ export class ChatRoomService {
             roomName: roomName,
             isGroup: room?.cr_is_group,
             lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime: lastMessage?.created_at ?? null,
+            lastMessageTime: lastMessage?.created_at ?? room?.created_at ?? null,
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
@@ -120,9 +121,22 @@ export class ChatRoomService {
           },
         );
       });
+
       if (transformedData.length === 1 && !transformedData[0].roomId) {
         return [];
       }
+
+      // Sort by lastMessageTime descending
+      transformedData.sort((a, b) => {
+        const timeA = a.lastMessageTime
+          ? new Date(a.lastMessageTime).getTime()
+          : 0;
+        const timeB = b.lastMessageTime
+          ? new Date(b.lastMessageTime).getTime()
+          : 0;
+        return timeB - timeA;
+      });
+
       return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -143,6 +157,7 @@ export class ChatRoomService {
             cr_id,
             cr_name,
             cr_is_group,
+            created_at,
             deleted_at,
             members:chat_room_member (
               user:crm_usr_id (
@@ -218,7 +233,7 @@ export class ChatRoomService {
             isGroup: room?.cr_is_group,
             deletedAt: room?.deleted_at ?? null,
             lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime: lastMessage?.created_at ?? null,
+            lastMessageTime: lastMessage?.created_at ?? room?.created_at ?? null,
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
@@ -229,9 +244,22 @@ export class ChatRoomService {
           },
         );
       });
+
       if (transformedData.length === 1 && !transformedData[0].roomId) {
         return [];
       }
+
+      // Sort by lastMessageTime descending
+      transformedData.sort((a, b) => {
+        const timeA = a.lastMessageTime
+          ? new Date(a.lastMessageTime).getTime()
+          : 0;
+        const timeB = b.lastMessageTime
+          ? new Date(b.lastMessageTime).getTime()
+          : 0;
+        return timeB - timeA;
+      });
+
       return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
