@@ -224,3 +224,43 @@ export class ChatRoomMemberEntity {
   @Type(() => UserEntity)
   user: UserEntity;
 }
+
+export class SearchMessageEntity {
+  @Expose()
+  messageId: string;
+
+  @Expose()
+  text: string;
+
+  @Expose()
+  createdAt: string;
+
+  @Expose()
+  roomId: string;
+
+  @Expose()
+  roomName: string;
+
+  @Expose()
+  isGroup: boolean;
+
+  @Expose()
+  senderId: string;
+
+  @Expose()
+  senderName: string;
+}
+
+export class SearchResponseEntity {
+  @Expose()
+  @Type(() => ChatRoomListEntity)
+  rooms: ChatRoomListEntity[];
+
+  @Expose()
+  @Type(() => UserEntity)
+  users: UserEntity[];
+
+  @Expose()
+  @Type(() => SearchMessageEntity)
+  messages: SearchMessageEntity[];
+}

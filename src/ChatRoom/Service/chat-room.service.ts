@@ -9,15 +9,19 @@ import {
   CreateRoomResponseEntity,
   MemberActionResponseEntity,
   BasicActionResponseEntity,
+  SearchResponseEntity,
+  SearchMessageEntity,
 } from '../Entity/chat-room.entity';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
+import { UserService } from 'src/User/Service/user.service';
 
 @Injectable()
 export class ChatRoomService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly sharedService: ChatSharedService,
+    private readonly userService: UserService,
   ) {}
 
   async getActiveRooms(userId: string) {
@@ -1086,8 +1090,18 @@ export class ChatRoomService {
 
   async searchRooms(userId: string, query: string) {
     try {
-      const activeRooms = await this.getActiveRooms(userId);
-      const deactivatedRooms = await this.getDeactivatedRooms(userId);
+      const activeRoomsPromise = this.getActiveRooms(userId);
+      const deactivatedRoomsPromise = this.getDeactivatedRooms(userId);
+      const usersPromise = this.userService.findByFullName(query);
+      const messagesPromise = this.searchMessages(userId, query);
+
+      const [activeRooms, deactivatedRooms, users, messages] = await Promise.all([
+        activeRoomsPromise,
+        deactivatedRoomsPromise,
+        usersPromise,
+        messagesPromise,
+      ]);
+
       const allRooms = [...activeRooms, ...deactivatedRooms];
 
       const lowerQuery = query.toLowerCase();
@@ -1095,11 +1109,111 @@ export class ChatRoomService {
       const filteredRooms = allRooms.filter((room) =>
         room.roomName?.toLowerCase().includes(lowerQuery),
       );
-      return filteredRooms;
+
+      const filteredUsers = users.filter((u) => u.id !== userId);
+
+      return plainToInstance(
+        SearchResponseEntity,
+        {
+          rooms: filteredRooms,
+          users: filteredUsers,
+          messages: messages,
+        },
+        { excludeExtraneousValues: true, enableImplicitConversion: true },
+      );
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to search rooms',
       );
+    }
+  }
+
+  private async searchMessages(userId: string, query: string) {
+    const client = this.supabase.getClient();
+    try {
+      // Step 1: Get Room IDs where the user is currently a member
+      const { data: memberData, error: memberError } = await client
+        .from('chat_room_member')
+        .select('crm_cr_id')
+        .eq('crm_usr_id', userId)
+        .is('leave_at', null);
+
+      if (memberError) throw memberError;
+
+      const roomIds = memberData.map((r) => r.crm_cr_id);
+
+      if (roomIds.length === 0) return [];
+
+      // Step 2: Search messages in those rooms
+      const { data: messagesData, error: messagesError } = await client
+        .from('chat_message')
+        .select(
+          `
+          cm_id,
+          message_text,
+          created_at,
+          sender:cm_usr_id (
+            usr_id,
+            usr_nama_lengkap
+          ),
+          chat_room:cm_cr_id (
+            cr_id,
+            cr_name,
+            cr_is_group,
+            members:chat_room_member (
+              user:crm_usr_id (
+                usr_id,
+                usr_nama_lengkap
+              )
+            )
+          )
+        `,
+        )
+        .in('cm_cr_id', roomIds)
+        .ilike('message_text', `%${query}%`)
+        .order('created_at', { ascending: false })
+        .limit(50);
+
+      if (messagesError) throw messagesError;
+
+      return messagesData.map((msg: any) => {
+        const senderRaw = msg.sender;
+        const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
+
+        const roomRaw = msg.chat_room;
+        const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
+
+        let roomName = room?.cr_name || 'Unknown Room';
+
+        // Fix room name for personal chats
+        if (!room?.cr_is_group && room?.members) {
+          const members = Array.isArray(room.members)
+            ? room.members
+            : [room.members];
+          const otherUser = members
+            .flatMap((m: any) => (Array.isArray(m.user) ? m.user : [m.user]))
+            .find((u: any) => u?.usr_id !== userId);
+
+          if (otherUser) {
+            roomName = otherUser.usr_nama_lengkap;
+          }
+        }
+
+        return {
+          messageId: msg.cm_id,
+          text: msg.message_text,
+          createdAt: msg.created_at,
+          roomId: room?.cr_id,
+          roomName: roomName,
+          isGroup: room?.cr_is_group,
+          senderId: sender?.usr_id,
+          senderName: sender?.usr_nama_lengkap,
+        };
+      });
+    } catch (error: any) {
+      // Log error but return empty array to avoid breaking the whole search
+      console.error('Search messages error:', error);
+      return [];
     }
   }
 }
