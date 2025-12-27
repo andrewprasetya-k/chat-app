@@ -14,12 +14,14 @@ import {
 } from '../Entity/chat-room.entity';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
+import { ChatService } from 'src/Chat/Service/chat.service';
 
 @Injectable()
 export class ChatRoomService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly sharedService: ChatSharedService,
+    private readonly chatService: ChatService,
   ) {}
 
   async getActiveRooms(userId: string) {
@@ -504,6 +506,15 @@ export class ChatRoomService {
 
       if (memberError) throw memberError;
 
+      // System Message: Room Created
+      if (dto.isGroup) {
+        await this.chatService.sendSystemMessage(
+          room.cr_id,
+          `Group "${dto.groupName}" created`,
+          creatorId,
+        );
+      }
+
       return plainToInstance(
         CreateRoomResponseEntity,
         { success: true, roomId: room.cr_id },
@@ -529,6 +540,20 @@ export class ChatRoomService {
 
       if (error) {
         throw new InternalServerErrorException(error.message);
+      }
+
+      // System Message
+      const { data: userData } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .eq('usr_id', userId)
+        .single();
+      if (userData) {
+        await this.chatService.sendSystemMessage(
+          roomId,
+          `${userData.usr_nama_lengkap} left the room`,
+          userId,
+        );
       }
 
       return plainToInstance(
@@ -589,6 +614,19 @@ export class ChatRoomService {
         memberName: user.usr_nama_lengkap,
       }));
 
+      // System Message
+      const { data: adderData } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .eq('usr_id', userId)
+        .single();
+      const addedNames = mappedMembers.map((m) => m.memberName).join(', ');
+      await this.chatService.sendSystemMessage(
+        roomId,
+        `${adderData?.usr_nama_lengkap || 'Someone'} added ${addedNames}`,
+        userId,
+      );
+
       return plainToInstance(
         MemberActionResponseEntity,
         {
@@ -643,6 +681,19 @@ export class ChatRoomService {
       const mappedMembers = (removedMembers || []).map((user) => ({
         memberName: user.usr_nama_lengkap,
       }));
+
+      // System Message
+      const { data: removerData } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .eq('usr_id', userId)
+        .single();
+      const removedNames = mappedMembers.map((m) => m.memberName).join(', ');
+      await this.chatService.sendSystemMessage(
+        roomId,
+        `${removerData?.usr_nama_lengkap || 'Someone'} removed ${removedNames}`,
+        userId,
+      );
 
       return plainToInstance(
         MemberActionResponseEntity,
@@ -936,15 +987,21 @@ export class ChatRoomService {
 
       const approvedToJoin = !isPrivate;
 
-      const { error } = await client.from('chat_room_member').insert({
-        crm_cr_id: roomId,
-        crm_usr_id: userId,
-        crm_join_approved: approvedToJoin,
-        leave_at: null,
-      });
+      // if (error) {
+      //   throw new InternalServerErrorException(error.message);
+      // }
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
+      if (approvedToJoin) {
+        const { data: userData } = await client
+          .from('user')
+          .select('usr_nama_lengkap')
+          .eq('usr_id', userId)
+          .single();
+        await this.chatService.sendSystemMessage(
+          roomId,
+          `${userData?.usr_nama_lengkap || 'Someone'} joined the group`,
+          userId,
+        );
       }
 
       return {
@@ -982,6 +1039,18 @@ export class ChatRoomService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
+
+      // System Message
+      const { data: userData } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .eq('usr_id', requesterId)
+        .single();
+      await this.chatService.sendSystemMessage(
+        roomId,
+        `${userData?.usr_nama_lengkap || 'Someone'} joined the group`,
+        adminId,
+      );
 
       return {
         success: true,
@@ -1063,6 +1132,23 @@ export class ChatRoomService {
         throw new InternalServerErrorException(error.message);
       }
 
+      // System Message
+      const { data: usersData } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap')
+        .in('usr_id', [userId, promoteUserId]);
+
+      const adminName = usersData?.find((u) => u.usr_id === userId)
+        ?.usr_nama_lengkap;
+      const targetName = usersData?.find((u) => u.usr_id === promoteUserId)
+        ?.usr_nama_lengkap;
+
+      await this.chatService.sendSystemMessage(
+        roomId,
+        `${adminName} promoted ${targetName} to admin`,
+        userId,
+      );
+
       return {
         success: true,
         message: 'Member promoted to admin successfully',
@@ -1102,6 +1188,23 @@ export class ChatRoomService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
+
+      // System Message
+      const { data: usersData } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap')
+        .in('usr_id', [userId, demoteUserId]);
+
+      const adminName = usersData?.find((u) => u.usr_id === userId)
+        ?.usr_nama_lengkap;
+      const targetName = usersData?.find((u) => u.usr_id === demoteUserId)
+        ?.usr_nama_lengkap;
+
+      await this.chatService.sendSystemMessage(
+        roomId,
+        `${adminName} demoted ${targetName} to member`,
+        userId,
+      );
 
       return {
         success: true,

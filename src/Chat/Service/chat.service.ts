@@ -55,12 +55,14 @@ export class ChatService {
             cm_usr_id: userId,
             message_text: text,
             cm_reply_to_id: replyTo || null,
+            cm_type: 'user',
           },
         ])
         .select(
           `
           cm_id, 
           message_text, 
+          cm_type,
           created_at, 
           cm_reply_to_id, 
           sender:cm_usr_id (
@@ -113,6 +115,56 @@ export class ChatService {
       throw new InternalServerErrorException(
         error?.message || 'Failed to send message',
       );
+    }
+  }
+
+  async sendSystemMessage(roomId: string, text: string, actorId: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data: newMessage, error } = await client
+        .from('chat_message')
+        .insert([
+          {
+            cm_cr_id: roomId,
+            cm_usr_id: actorId,
+            message_text: text,
+            cm_type: 'system',
+          },
+        ])
+        .select(
+          `
+          cm_id, 
+          message_text, 
+          cm_type,
+          created_at,
+          sender:cm_usr_id (
+            usr_id, 
+            usr_nama_lengkap
+          )
+          `,
+        )
+        .single();
+
+      if (error) throw error;
+
+      if (newMessage) {
+        const transformedMessage = plainToInstance(
+          ChatMessageEntity,
+          newMessage,
+          {
+            excludeExtraneousValues: true,
+            enableImplicitConversion: true,
+          },
+        );
+
+        this.chatGateway.server
+          .to(`room_${roomId}`)
+          .emit('new_message', transformedMessage);
+      }
+      return true;
+    } catch (error: any) {
+      console.error('Failed to send system message:', error.message);
+      return false;
     }
   }
 
