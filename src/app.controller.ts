@@ -9,16 +9,12 @@
  */
 import { Controller, Get, Param, UseGuards } from '@nestjs/common';
 import { AppService } from './app.service';
-import { ChatRoomService } from './ChatRoom/Service/chat-room.service';
 import { AuthGuard } from './Auth/auth.guard';
 import { User } from './Auth/user.decorator';
 
 @Controller()
 export class AppController {
-  constructor(
-    private readonly appService: AppService,
-    private readonly chatRoomService: ChatRoomService,
-  ) {}
+  constructor(private readonly appService: AppService) {}
 
   @Get()
   getHello(): string {
@@ -28,6 +24,6 @@ export class AppController {
   @Get('search/:query')
   @UseGuards(AuthGuard)
   async globalSearch(@Param('query') query: string, @User('sub') userId: string) {
-    return this.chatRoomService.searchRooms(userId, query);
+    return this.appService.globalSearch(userId, query);
   }
 }

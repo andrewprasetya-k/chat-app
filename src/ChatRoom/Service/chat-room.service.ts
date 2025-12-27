@@ -14,14 +14,12 @@ import {
 } from '../Entity/chat-room.entity';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
-import { UserService } from 'src/User/Service/user.service';
 
 @Injectable()
 export class ChatRoomService {
   constructor(
     private readonly supabase: SupabaseService,
     private readonly sharedService: ChatSharedService,
-    private readonly userService: UserService,
   ) {}
 
   async getActiveRooms(userId: string) {
@@ -1088,47 +1086,7 @@ export class ChatRoomService {
     }
   }
 
-  async searchRooms(userId: string, query: string) {
-    try {
-      const activeRoomsPromise = this.getActiveRooms(userId);
-      const deactivatedRoomsPromise = this.getDeactivatedRooms(userId);
-      const usersPromise = this.userService.findByFullName(query);
-      const messagesPromise = this.searchMessages(userId, query);
-
-      const [activeRooms, deactivatedRooms, users, messages] = await Promise.all([
-        activeRoomsPromise,
-        deactivatedRoomsPromise,
-        usersPromise,
-        messagesPromise,
-      ]);
-
-      const allRooms = [...activeRooms, ...deactivatedRooms];
-
-      const lowerQuery = query.toLowerCase();
-
-      const filteredRooms = allRooms.filter((room) =>
-        room.roomName?.toLowerCase().includes(lowerQuery),
-      );
-
-      const filteredUsers = users.filter((u) => u.id !== userId);
-
-      return plainToInstance(
-        SearchResponseEntity,
-        {
-          rooms: filteredRooms,
-          users: filteredUsers,
-          messages: messages,
-        },
-        { excludeExtraneousValues: true, enableImplicitConversion: true },
-      );
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to search rooms',
-      );
-    }
-  }
-
-  private async searchMessages(userId: string, query: string) {
+  async searchMessages(userId: string, query: string) {
     const client = this.supabase.getClient();
     try {
       // Step 1: Get Room IDs where the user is currently a member
