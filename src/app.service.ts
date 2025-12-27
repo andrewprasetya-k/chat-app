@@ -25,18 +25,21 @@ export class AppService {
   async globalSearch(userId: string, query: string) {
     try {
       const activeRoomsPromise = this.chatRoomService.getActiveRooms(userId);
-      const deactivatedRoomsPromise = this.chatRoomService.getDeactivatedRooms(
-        userId,
-      );
+      const deactivatedRoomsPromise =
+        this.chatRoomService.getDeactivatedRooms(userId);
       const usersPromise = this.userService.findByFullName(query);
-      const messagesPromise = this.chatRoomService.searchMessages(userId, query);
+      const messagesPromise = this.chatRoomService.searchMessages(
+        userId,
+        query,
+      );
 
-      const [activeRooms, deactivatedRooms, users, messages] = await Promise.all([
-        activeRoomsPromise,
-        deactivatedRoomsPromise,
-        usersPromise,
-        messagesPromise,
-      ]);
+      const [activeRooms, deactivatedRooms, users, messages] =
+        await Promise.all([
+          activeRoomsPromise,
+          deactivatedRoomsPromise,
+          usersPromise,
+          messagesPromise,
+        ]);
 
       const allRooms = [...activeRooms, ...deactivatedRooms];
 

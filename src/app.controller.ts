@@ -23,7 +23,10 @@ export class AppController {
 
   @Get('search/:query')
   @UseGuards(AuthGuard)
-  async globalSearch(@Param('query') query: string, @User('sub') userId: string) {
+  async globalSearch(
+    @Param('query') query: string,
+    @User('sub') userId: string,
+  ) {
     return this.appService.globalSearch(userId, query);
   }
 }
