@@ -111,7 +111,8 @@ export class ChatRoomService {
             roomName: roomName,
             isGroup: room?.cr_is_group,
             lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime: lastMessage?.created_at ?? room?.created_at ?? null,
+            lastMessageTime:
+              lastMessage?.created_at ?? room?.created_at ?? null,
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
@@ -235,7 +236,8 @@ export class ChatRoomService {
             isGroup: room?.cr_is_group,
             deletedAt: room?.deleted_at ?? null,
             lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime: lastMessage?.created_at ?? room?.created_at ?? null,
+            lastMessageTime:
+              lastMessage?.created_at ?? room?.created_at ?? null,
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
@@ -1138,10 +1140,12 @@ export class ChatRoomService {
         .select('usr_id, usr_nama_lengkap')
         .in('usr_id', [userId, promoteUserId]);
 
-      const adminName = usersData?.find((u) => u.usr_id === userId)
-        ?.usr_nama_lengkap;
-      const targetName = usersData?.find((u) => u.usr_id === promoteUserId)
-        ?.usr_nama_lengkap;
+      const adminName = usersData?.find(
+        (u) => u.usr_id === userId,
+      )?.usr_nama_lengkap;
+      const targetName = usersData?.find(
+        (u) => u.usr_id === promoteUserId,
+      )?.usr_nama_lengkap;
 
       await this.chatService.sendSystemMessage(
         roomId,
@@ -1195,10 +1199,12 @@ export class ChatRoomService {
         .select('usr_id, usr_nama_lengkap')
         .in('usr_id', [userId, demoteUserId]);
 
-      const adminName = usersData?.find((u) => u.usr_id === userId)
-        ?.usr_nama_lengkap;
-      const targetName = usersData?.find((u) => u.usr_id === demoteUserId)
-        ?.usr_nama_lengkap;
+      const adminName = usersData?.find(
+        (u) => u.usr_id === userId,
+      )?.usr_nama_lengkap;
+      const targetName = usersData?.find(
+        (u) => u.usr_id === demoteUserId,
+      )?.usr_nama_lengkap;
 
       await this.chatService.sendSystemMessage(
         roomId,
@@ -1213,6 +1219,26 @@ export class ChatRoomService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to demote admin to member',
+      );
+    }
+  }
+
+  async updateGroupIcon(roomId: string, iconUrl: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { error } = await client
+        .from('chat_room')
+        .update({ cr_avatar: iconUrl })
+        .eq('cr_id', roomId);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+
+      return { success: true };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to update group icon',
       );
     }
   }
