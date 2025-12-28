@@ -64,6 +64,11 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
   handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
+    const userId = client.data.userId;
+    if (userId) {
+      this.userService.updateOnlineStatus(userId, false);
+      this.server.emit('user_offline', { userId: userId });
+    }
   }
 
   @SubscribeMessage('join_room')
