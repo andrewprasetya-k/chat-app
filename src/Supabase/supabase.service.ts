@@ -21,4 +21,30 @@ export class SupabaseService implements OnModuleInit {
   getClient(): SupabaseClient {
     return this.client;
   }
+
+  async uploadFile(
+    file: Express.Multer.File,
+    bucketName: 'avatars' | 'chat-media',
+    folderPath: string,
+  ): Promise<string> {
+    const fileExt = file.originalname.split('.').pop();
+    const fileName = `${folderPath}/${Date.now()}.${fileExt}`;
+
+    // 1. Upload ke Supabase Storage
+    const { data, error } = await this.client.storage
+      .from(bucketName)
+      .upload(fileName, file.buffer, {
+        contentType: file.mimetype,
+        upsert: true,
+      });
+
+    if (error) throw new Error(error.message);
+
+    // 2. Ambil Public URL
+    const { data: publicUrlData } = this.client.storage
+      .from(bucketName)
+      .getPublicUrl(fileName);
+
+    return publicUrlData.publicUrl;
+  }
 }
