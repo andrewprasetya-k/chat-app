@@ -1,4 +1,4 @@
-import { Expose, Type } from 'class-transformer';
+import { Expose, Transform, Type } from 'class-transformer';
 import { BaseEntity } from '../../shared/entities/base.entity';
 import { UserEntity } from '../../User/Entity/user.entity';
 import { ChatMessageEntity } from '../../Chat/Entity/chat.entity';
@@ -200,6 +200,10 @@ export class ChatRoomEntity extends BaseEntity {
 
   @Expose({ name: 'cr_is_group' })
   isGroup: boolean;
+
+  @Expose()
+  @Transform(({ obj }) => obj.cr_avatar, { toClassOnly: true })
+  groupAvatar: string;
 
   @Expose()
   @Type(() => ChatRoomMemberEntity)
