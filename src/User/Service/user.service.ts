@@ -299,7 +299,7 @@ export class UserService {
     try {
       const { error } = await client
         .from('user')
-        .update({ usr_avatar_url: avatarUrl })
+        .update({ usr_avatar: avatarUrl })
         .eq('usr_id', userId);
 
       if (error) {
