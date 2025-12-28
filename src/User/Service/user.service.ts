@@ -313,4 +313,23 @@ export class UserService {
       );
     }
   }
+
+  async updateOnlineStatus(userId: string, isOnline: boolean) {
+    const client = this.supabase.getClient();
+    try {
+      const { error } = await client
+        .from('user')
+        .update({ usr_is_online: isOnline })
+        .eq('usr_id', userId);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return { success: true };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to update online status',
+      );
+    }
+  }
 }
