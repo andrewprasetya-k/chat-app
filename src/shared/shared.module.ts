@@ -13,6 +13,11 @@ import { RoomActiveGuard } from './guards/room-active.guard';
     RoomAdminGuard,
     RoomActiveGuard,
   ],
-  exports: [ChatSharedService, RoomMemberGuard, RoomAdminGuard, RoomActiveGuard],
+  exports: [
+    ChatSharedService,
+    RoomMemberGuard,
+    RoomAdminGuard,
+    RoomActiveGuard,
+  ],
 })
 export class SharedModule {}

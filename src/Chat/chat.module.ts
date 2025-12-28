@@ -5,9 +5,10 @@ import { SupabaseModule } from 'src/Supabase/supabase.module';
 import { AuthModule } from 'src/Auth/auth.module';
 import { SharedModule } from 'src/shared/shared.module';
 import { ChatGateway } from './Gateway/chat.gateway';
+import { UserModule } from 'src/User/user.module';
 
 @Module({
-  imports: [SupabaseModule, AuthModule, SharedModule],
+  imports: [SupabaseModule, AuthModule, SharedModule, UserModule],
   controllers: [ChatController],
   providers: [ChatService, ChatGateway],
   exports: [ChatService, ChatGateway], // Export ChatGateway jika module lain butuh

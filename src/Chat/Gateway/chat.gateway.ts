@@ -62,12 +62,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     }
   }
 
-  handleDisconnect(client: Socket) {
+  async handleDisconnect(client: Socket) {
     console.log(`Client disconnected: ${client.id}`);
     const userId = client.data.userId;
     if (userId) {
-      this.userService.updateOnlineStatus(userId, false);
-      this.server.emit('user_offline', { userId: userId });
+      const lastSeen = new Date().toISOString();
+      // Kita tidak await di sini agar tidak memblokir event loop, tapi idealnya di-handle error-nya
+      this.userService.updateOnlineStatus(userId, false).catch((err) => {
+        console.error(`Failed to update offline status for user ${userId}:`, err);
+      });
+
+      this.server.emit('user_offline', { userId: userId, lastSeenAt: lastSeen });
     }
   }
 
