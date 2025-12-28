@@ -317,9 +317,15 @@ export class UserService {
   async updateOnlineStatus(userId: string, isOnline: boolean) {
     const client = this.supabase.getClient();
     try {
+      const updatePayload: any = { usr_is_online: isOnline };
+
+      if (!isOnline) {
+        updatePayload.usr_last_seen_at = new Date().toISOString();
+      }
+
       const { error } = await client
         .from('user')
-        .update({ usr_is_online: isOnline })
+        .update(updatePayload)
         .eq('usr_id', userId);
 
       if (error) {
