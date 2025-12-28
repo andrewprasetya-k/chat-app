@@ -11,6 +11,7 @@ import {
 import { Server, Socket } from 'socket.io';
 import { JwtService } from '@nestjs/jwt';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
+import { UserService } from 'src/User/Service/user.service';
 
 @WebSocketGateway({
   cors: {
@@ -24,6 +25,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   constructor(
     private readonly jwtService: JwtService,
     private readonly chatSharedService: ChatSharedService,
+    private readonly userService: UserService,
   ) {}
 
   async handleConnection(client: Socket) {
@@ -51,6 +53,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Simpan user ID di socket instance agar mudah diakses
       client.data.userId = payload.sub;
       console.log(`Client connected: ${client.id} (User: ${payload.sub})`);
+
+      await this.userService.updateOnlineStatus(payload.sub, true);
+      this.server.emit('user_online', { userId: payload.sub });
     } catch (e) {
       console.log('Connection rejected:', e.message);
       client.disconnect();
