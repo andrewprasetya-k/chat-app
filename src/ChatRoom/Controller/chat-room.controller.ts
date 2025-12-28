@@ -7,8 +7,15 @@ import {
   UseGuards,
   Param,
   Delete,
+  UseInterceptors,
+  UploadedFile,
+  ParseFilePipe,
+  MaxFileSizeValidator,
+  FileTypeValidator,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import { ChatRoomService } from '../Service/chat-room.service';
+import { SupabaseService } from 'src/Supabase/supabase.service';
 import { CreateRoomDto } from '../Dto/create-room.dto';
 import { AuthGuard } from 'src/Auth/auth.guard';
 import { User } from 'src/Auth/user.decorator';
@@ -21,7 +28,42 @@ import { GetRoomMessagesQueryDto } from '../Dto/get-room-messages.query.dto';
 
 @Controller('room')
 export class ChatRoomController {
-  constructor(private readonly chatRoomService: ChatRoomService) {}
+  constructor(
+    private readonly chatRoomService: ChatRoomService,
+    private readonly supabaseService: SupabaseService,
+  ) {}
+
+  @Post(':roomId/icon')
+  @UseGuards(AuthGuard, RoomActiveGuard, RoomAdminGuard)
+  @UseInterceptors(FileInterceptor('file'))
+  async updateGroupIcon(
+    @Param('roomId') roomId: string,
+    @UploadedFile(
+      new ParseFilePipe({
+        validators: [
+          new MaxFileSizeValidator({ maxSize: 1024 * 1024 * 5 }), // 5MB
+          new FileTypeValidator({ fileType: '.(png|jpeg|jpg|webp)' }),
+        ],
+      }),
+    )
+    file: Express.Multer.File,
+  ) {
+    // 1. Upload ke Supabase (folder: rooms/{roomId})
+    const iconUrl = await this.supabaseService.uploadFile(
+      file,
+      'avatars', // Menggunakan bucket yang sama dengan user avatar
+      `rooms/${roomId}`,
+    );
+
+    // 2. Update URL di Database
+    await this.chatRoomService.updateGroupIcon(roomId, iconUrl);
+
+    return {
+      success: true,
+      message: 'Group icon updated successfully',
+      data: { iconUrl },
+    };
+  }
 
   @Get('active')
   @UseGuards(AuthGuard)
