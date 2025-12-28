@@ -224,47 +224,41 @@ export class ChatService {
     }
   }
 
-  async markMessageAsRead(roomId: string, messageId: string, userId: string) {
+  async markMessagesAsRead(
+    roomId: string,
+    messageIds: string[],
+    userId: string,
+  ) {
     const client = this.supabase.getClient();
     try {
-      const { data: messageData, error: msgError } = await client
-        .from('chat_message')
-        .select('cm_usr_id')
-        .eq('cm_id', messageId)
-        .single();
+      if (!messageIds || messageIds.length === 0) return { success: true };
 
-      if (msgError) throw msgError;
+      const receiptsToInsert = messageIds.map((msgId) => ({
+        rr_cm_id: msgId,
+        rr_usr_id: userId,
+        read_at: new Date().toISOString(),
+      }));
 
-      if (messageData.cm_usr_id === userId) {
-        throw new InternalServerErrorException(
-          'You cannot mark your own message as read',
-        );
-      }
+      const { error } = await client
+        .from('read_receipts')
+        .upsert(receiptsToInsert, { onConflict: 'rr_cm_id,rr_usr_id' });
 
-      const { error: upsertError } = await client.from('read_receipts').upsert(
-        {
-          rr_cm_id: messageId,
-          rr_usr_id: userId,
-          read_at: new Date().toISOString(),
-        },
-        { onConflict: 'rr_cm_id,rr_usr_id' },
-      );
+      if (error) throw error;
 
-      if (upsertError) throw upsertError;
+      // Broadcast ke pengirim pesan
+      this.chatGateway.server
+        .to(`room_${roomId}`)
+        .emit('messages_read_update', {
+          roomId,
+          readerId: userId,
+          messageIds,
+          readAt: new Date().toISOString(),
+        });
 
-      // --- REAL-TIME BROADCAST ---
-      // Memberitahu semua orang di room ini bahwa 'userId' telah membaca 'messageId'
-      this.chatGateway.server.to(`room_${roomId}`).emit('message_read', {
-        messageId: messageId,
-        userId: userId,
-        roomId: roomId,
-        readAt: new Date().toISOString(),
-      });
-
-      return { success: true, message: 'Message marked as read.' };
+      return { success: true };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error.message || 'Failed to mark message as read',
+        error.message || 'Failed to mark messages as read',
       );
     }
   }
