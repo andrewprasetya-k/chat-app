@@ -432,7 +432,22 @@ export class ChatRoomService {
       dto.groupMembers.push(creatorId);
     }
 
-    if (dto.groupMembers.length === 2 && !isGroup) {
+    if (dto.groupMembers.length <= 1) {
+      const existingRoomId = await this.findExistingSelfChat(groupMembers[0]);
+      dto.groupName = 'Me';
+      dto.isGroup = false;
+      if (existingRoomId) {
+        return plainToInstance(
+          CreateRoomResponseEntity,
+          {
+            success: true,
+            roomId: existingRoomId,
+            message: 'Personal chat room already exists',
+          },
+          { excludeExtraneousValues: true },
+        );
+      }
+    } else if (dto.groupMembers.length === 2 && !isGroup) {
       const existingRoomId = await this.findExistingPersonalChat([
         groupMembers[0],
         groupMembers[1],
@@ -450,10 +465,6 @@ export class ChatRoomService {
           { excludeExtraneousValues: true },
         );
       }
-    } else if (dto.groupMembers.length < 2) {
-      throw new InternalServerErrorException(
-        'A chat must have at least 2 members',
-      );
     }
 
     await this.sharedService.validateUsers(dto.groupMembers);
@@ -826,6 +837,51 @@ export class ChatRoomService {
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch room details',
+      );
+    }
+  }
+
+  private async findExistingSelfChat(
+    memberId: string,
+  ): Promise<string | null> {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('chat_room_member')
+        .select('crm_cr_id, crm_usr_id');
+
+      if (error) {
+        throw new InternalServerErrorException(
+          'Database error during self chat validation',
+        );
+      }
+
+      if (!data || data.length === 0) {
+        return null;
+      }
+
+      const membersByRoom = new Map<string, Set<string>>();
+
+      for (const row of data) {
+        const roomId = row.crm_cr_id;
+        const userId = row.crm_usr_id;
+
+        if (!membersByRoom.has(roomId)) {
+          membersByRoom.set(roomId, new Set());
+        }
+        membersByRoom.get(roomId)!.add(userId);
+      }
+
+      for (const [roomId, userSet] of membersByRoom.entries()) {
+        if (userSet.size === 1 && userSet.has(memberId)) {
+          return roomId;
+        }
+      }
+
+      return null;
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to validate self chat',
       );
     }
   }
