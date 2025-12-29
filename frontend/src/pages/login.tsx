@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { MessageCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/router";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-
+  const router = useRouter();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle login logic here
     console.log("Login attempt:", { email, password });
+
+    // Redirect to dashboard (UI-only for now)
+    router.push("/dashboard");
   };
 
   return (

@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useRouter } from "next/router";
 import { MessageCircle, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
 
 export default function RegisterPage() {
+  const router = useRouter();
   const [showPassword, setShowPassword] = useState(false);
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
@@ -11,6 +13,9 @@ export default function RegisterPage() {
     e.preventDefault();
     // Handle register logic here
     console.log("Register attempt:", { fullName, email, password });
+
+    // Redirect to dashboard (UI-only for now)
+    router.push("/dashboard");
   };
 
   return (
