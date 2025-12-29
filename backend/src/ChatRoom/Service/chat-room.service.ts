@@ -859,14 +859,14 @@ export class ChatRoomService {
     }
   }
 
-  private async findExistingSelfChat(
-    memberId: string,
-  ): Promise<string | null> {
+  private async findExistingSelfChat(memberId: string): Promise<string | null> {
     const client = this.supabase.getClient();
     try {
       const { data, error } = await client
         .from('chat_room_member')
-        .select('crm_cr_id, crm_usr_id');
+        .select('crm_cr_id, crm_usr_id')
+        .eq('crm_usr_id', memberId)
+        .is('leave_at', null);
 
       if (error) {
         throw new InternalServerErrorException(
