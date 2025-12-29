@@ -24,4 +24,7 @@ export class UserEntity extends BaseEntity {
 
   @Exclude()
   password?: string;
+
+  @Exclude()
+  refreshToken?: string;
 }

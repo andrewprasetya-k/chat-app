@@ -15,9 +15,11 @@ import {
   UnauthorizedException,
   BadRequestException,
   InternalServerErrorException,
+  ForbiddenException,
 } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
+import { ConfigService } from '@nestjs/config';
 import { LoginDto } from '../Dto/login.dto';
 import { RegisterDto } from '../Dto/register.dto';
 import { UserService } from 'src/User/Service/user.service';
@@ -27,6 +29,7 @@ export class AuthService {
   constructor(
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
+    private readonly configService: ConfigService,
   ) {}
 
   // Register user baru (menggunakan UserService -> Supabase)
@@ -41,6 +44,10 @@ export class AuthService {
         password,
         // role is not exposed in RegisterDto for public registration
       });
+
+      // Auto login or just return success
+      // Let's generate tokens for seamless UX if needed, but standard is usually return success
+      // For now, let's keep returning success message
       return {
         message: 'User registered successfully',
         userId: created?.id,
@@ -82,15 +89,15 @@ export class AuthService {
         throw new UnauthorizedException('Invalid credentials');
       }
 
-      const payload = {
-        sub: user.usr_id,
-        email: user.usr_email,
-        name: user.usr_nama_lengkap,
-        role: user.usr_role,
-      };
+      const tokens = await this.getTokens(
+        user.usr_id,
+        user.usr_email,
+        user.usr_nama_lengkap,
+        user.usr_role,
+      );
+      await this.updateRefreshToken(user.usr_id, tokens.refresh_token);
 
-      const token = this.jwtService.sign(payload);
-      return { access_token: token };
+      return tokens;
     } catch (err) {
       // Forward Unauthorized errors unchanged
       if (err instanceof UnauthorizedException) throw err;
@@ -106,7 +113,77 @@ export class AuthService {
     }
   }
 
-  async logout() {
+  async logout(userId: string) {
+    await this.userService.updateRefreshToken(userId, null);
     return { message: 'User logged out successfully' };
+  }
+
+  async refreshTokens(refreshToken: string) {
+    let payload;
+    try {
+      payload = await this.jwtService.verifyAsync(refreshToken, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+      });
+    } catch (e) {
+      throw new ForbiddenException('Invalid Refresh Token Signature');
+    }
+
+    const userId = payload.sub;
+    const user = (await this.userService.findByIdForAuth(userId)) as {
+      usr_id: string;
+      usr_email: string;
+      usr_nama_lengkap: string;
+      usr_role: string;
+      usr_refresh_token: string;
+    } | null;
+
+    if (!user || !user.usr_refresh_token)
+      throw new ForbiddenException('Access Denied');
+
+    const refreshTokenMatches = await bcrypt.compare(
+      refreshToken,
+      user.usr_refresh_token,
+    );
+
+    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
+
+    const tokens = await this.getTokens(
+      user.usr_id,
+      user.usr_email,
+      user.usr_nama_lengkap,
+      user.usr_role,
+    );
+    await this.updateRefreshToken(user.usr_id, tokens.refresh_token);
+    return tokens;
+  }
+
+  async updateRefreshToken(userId: string, refreshToken: string) {
+    const hash = await bcrypt.hash(refreshToken, 10);
+    await this.userService.updateRefreshToken(userId, hash);
+  }
+
+  async getTokens(userId: string, email: string, name: string, role: string) {
+    const payload = {
+      sub: userId,
+      email: email,
+      name: name,
+      role: role,
+    };
+
+    const [accessToken, refreshToken] = await Promise.all([
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_SECRET'),
+        expiresIn: '12h', // Access token short lived
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
+        expiresIn: '14d', // Refresh token long lived
+      }),
+    ]);
+
+    return {
+      access_token: accessToken,
+      refresh_token: refreshToken,
+    };
   }
 }

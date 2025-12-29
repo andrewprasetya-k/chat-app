@@ -113,6 +113,45 @@ export class UserService {
     }
   }
 
+  async findByIdForAuth(id: string) {
+    try {
+      const client = this.supabase.getClient();
+      const { data, error } = await client
+        .from('user')
+        .select('*')
+        .eq('usr_id', id)
+        .single();
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return data;
+    } catch (err) {
+      throw new InternalServerErrorException(
+        err?.message || 'Failed to query user by id',
+      );
+    }
+  }
+
+  async updateRefreshToken(userId: string, refreshToken: string | null) {
+    const client = this.supabase.getClient();
+    try {
+      const { error } = await client
+        .from('user')
+        .update({ usr_refresh_token: refreshToken })
+        .eq('usr_id', userId);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return { success: true };
+    } catch (error) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to update refresh token',
+      );
+    }
+  }
+
   async findByFullName(fullName: string) {
     try {
       const client = this.supabase.getClient();
