@@ -323,12 +323,21 @@ export class ChatService {
         );
       }
 
+      const unsendText = '[This message was unsent]';
       const { error: deleteError } = await client
         .from('chat_message')
-        .update({ message_text: '[This message was unsent]' })
+        .update({ message_text: unsendText })
         .eq('cm_id', messageId);
 
       if (deleteError) throw deleteError;
+
+      // Broadcast message unsent to room
+      this.chatGateway.server.to(`room_${roomId}`).emit('message_unsent', {
+        roomId,
+        messageId,
+        unsendText,
+        unsendBy: userId,
+      });
 
       return { message: 'Message unsent successfully.' };
     } catch (error: any) {

@@ -15,6 +15,7 @@ import {
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { ChatService } from 'src/Chat/Service/chat.service';
+import { ChatGateway } from 'src/Chat/Gateway/chat.gateway';
 
 @Injectable()
 export class ChatRoomService {
@@ -22,6 +23,7 @@ export class ChatRoomService {
     private readonly supabase: SupabaseService,
     private readonly sharedService: ChatSharedService,
     private readonly chatService: ChatService,
+    private readonly chatGateway: ChatGateway,
   ) {}
 
   async getActiveRooms(userId: string) {
@@ -569,6 +571,14 @@ export class ChatRoomService {
         );
       }
 
+      // Broadcast member left
+      this.chatGateway.server.to(`room_${roomId}`).emit('member_left', {
+        roomId,
+        userId,
+        userName: userData?.usr_nama_lengkap,
+        leftAt: now,
+      });
+
       return plainToInstance(
         BasicActionResponseEntity,
         {
@@ -733,12 +743,20 @@ export class ChatRoomService {
         );
       }
 
+      const deletedAt = new Date().toISOString();
       const { error } = await client
         .from('chat_room')
-        .update({ deleted_at: new Date().toISOString() })
+        .update({ deleted_at: deletedAt })
         .eq('cr_id', roomId);
 
       if (error) throw error;
+
+      // Broadcast room deleted to all members
+      this.chatGateway.server.to(`room_${roomId}`).emit('room_deleted', {
+        roomId,
+        deletedAt,
+        deletedBy: userId,
+      });
 
       return plainToInstance(
         BasicActionResponseEntity,
@@ -1209,6 +1227,16 @@ export class ChatRoomService {
         userId,
       );
 
+      // Broadcast role change
+      this.chatGateway.server.to(`room_${roomId}`).emit('member_role_changed', {
+        roomId,
+        userId: promoteUserId,
+        userName: targetName,
+        newRole: 'admin',
+        changedBy: userId,
+        changedByName: adminName,
+      });
+
       return {
         success: true,
         message: 'Member promoted to admin successfully',
@@ -1267,6 +1295,16 @@ export class ChatRoomService {
         `${adminName} demoted ${targetName} to member`,
         userId,
       );
+
+      // Broadcast role change
+      this.chatGateway.server.to(`room_${roomId}`).emit('member_role_changed', {
+        roomId,
+        userId: demoteUserId,
+        userName: targetName,
+        newRole: 'member',
+        changedBy: userId,
+        changedByName: adminName,
+      });
 
       return {
         success: true,
