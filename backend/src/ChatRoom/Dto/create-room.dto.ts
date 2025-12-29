@@ -23,7 +23,7 @@ export class CreateRoomDto {
   isPrivate?: boolean = false; // menandai apakah room ini private atau tidak
 
   @IsArray()
-  @ArrayMinSize(1, { message: 'Minimal harus ada 2 anggota dalam room.' })
+  @ArrayMinSize(0, { message: 'Minimal harus ada 1 anggota dalam room.' })
   @IsUUID('4', {
     each: true,
     message: 'Setiap user_id harus berupa UUID valid.',
