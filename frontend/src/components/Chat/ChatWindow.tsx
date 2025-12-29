@@ -2,10 +2,34 @@ import React from "react";
 import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
 
 const MOCK_MESSAGES = [
-  { id: 1, sender: "John Doe", text: "Hey! How's the project going?", time: "9:00 AM", isMe: false },
-  { id: 2, sender: "Me", text: "Pretty good! Just finished the UI design.", time: "9:05 AM", isMe: true },
-  { id: 3, sender: "John Doe", text: "Awesome! Can't wait to see it.", time: "9:10 AM", isMe: false },
-  { id: 4, sender: "Me", text: "I'll share the preview in a bit. Just polishing some components.", time: "9:12 AM", isMe: true },
+  {
+    id: 1,
+    sender: "John Doe",
+    text: "Hey! How's the project going?",
+    time: "9:00 AM",
+    isMe: false,
+  },
+  {
+    id: 2,
+    sender: "Me",
+    text: "Pretty good! Just finished the UI design.",
+    time: "9:05 AM",
+    isMe: true,
+  },
+  {
+    id: 3,
+    sender: "John Doe",
+    text: "Awesome! Can't wait to see it.",
+    time: "9:10 AM",
+    isMe: false,
+  },
+  {
+    id: 4,
+    sender: "Me",
+    text: "I'll share the preview in a bit. Just polishing some components.",
+    time: "9:12 AM",
+    isMe: true,
+  },
 ];
 
 export const ChatWindow = () => {
@@ -18,29 +42,50 @@ export const ChatWindow = () => {
             JD
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900 leading-tight">John Doe</h2>
+            <h2 className="font-semibold text-gray-900 leading-tight">
+              John Doe
+            </h2>
             <span className="text-xs text-green-500 font-medium">Online</span>
           </div>
         </div>
         <div className="flex items-center gap-1 text-gray-400">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Phone size={20} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Video size={20} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Info size={20} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Phone size={20} />
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Video size={20} />
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Info size={20} />
+          </button>
         </div>
       </div>
 
       {/* Messages */}
       <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
         {MOCK_MESSAGES.map((msg) => (
-          <div key={msg.id} className={`flex ${msg.isMe ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
-              msg.isMe 
-                ? 'bg-blue-600 text-white rounded-br-none' 
-                : 'bg-white text-gray-800 rounded-bl-none border border-gray-100'
-            }`}>
-              {!msg.isMe && <p className="text-[10px] font-bold opacity-60 mb-1">{msg.sender}</p>}
+          <div
+            key={msg.id}
+            className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}
+          >
+            <div
+              className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
+                msg.isMe
+                  ? "bg-blue-600 text-white rounded-br-none"
+                  : "bg-white text-gray-800 rounded-bl-none border border-gray-100"
+              }`}
+            >
+              {!msg.isMe && (
+                <p className="text-[10px] font-bold opacity-60 mb-1">
+                  {msg.sender}
+                </p>
+              )}
               <p className="text-sm">{msg.text}</p>
-              <p className={`text-[10px] mt-1 text-right ${msg.isMe ? 'text-blue-100' : 'text-gray-400'}`}>
+              <p
+                className={`text-[10px] mt-1 text-right ${
+                  msg.isMe ? "text-blue-100" : "text-gray-400"
+                }`}
+              >
                 {msg.time}
               </p>
             </div>

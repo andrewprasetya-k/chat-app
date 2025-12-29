@@ -1,11 +1,44 @@
 import React from "react";
-import { Search, MoreVertical, MessageSquarePlus, UserCircle } from "lucide-react";
+import {
+  Search,
+  MoreVertical,
+  MessageSquarePlus,
+  UserCircle,
+} from "lucide-react";
 
 const MOCK_CHATS = [
-  { id: 1, name: "Project X Team", lastMessage: "Let's meet at 10", time: "10:30 AM", unread: 3, isGroup: true },
-  { id: 2, name: "John Doe", lastMessage: "Did you see the latest update?", time: "9:15 AM", unread: 0, isGroup: false },
-  { id: 3, name: "Design System", lastMessage: "New icons are ready", time: "Yesterday", unread: 0, isGroup: true },
-  { id: 4, name: "Alice Smith", lastMessage: "Thanks!", time: "Yesterday", unread: 1, isGroup: false },
+  {
+    id: 1,
+    name: "Project X Team",
+    lastMessage: "Let's meet at 10",
+    time: "10:30 AM",
+    unread: 3,
+    isGroup: true,
+  },
+  {
+    id: 2,
+    name: "John Doe",
+    lastMessage: "Did you see the latest update?",
+    time: "9:15 AM",
+    unread: 0,
+    isGroup: false,
+  },
+  {
+    id: 3,
+    name: "Design System",
+    lastMessage: "New icons are ready",
+    time: "Yesterday",
+    unread: 0,
+    isGroup: true,
+  },
+  {
+    id: 4,
+    name: "Alice Smith",
+    lastMessage: "Thanks!",
+    time: "Yesterday",
+    unread: 1,
+    isGroup: false,
+  },
 ];
 
 export const Sidebar = () => {
@@ -32,7 +65,10 @@ export const Sidebar = () => {
       {/* Search */}
       <div className="p-4 bg-white">
         <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" size={18} />
+          <Search
+            className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400"
+            size={18}
+          />
           <input
             type="text"
             placeholder="Search messages..."
@@ -49,21 +85,31 @@ export const Sidebar = () => {
             className="p-4 flex items-center gap-3 hover:bg-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 group"
           >
             <div className="relative">
-              <div className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${chat.isGroup ? 'bg-indigo-100 text-indigo-600' : 'bg-gray-200 text-gray-600'}`}>
+              <div
+                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                  chat.isGroup
+                    ? "bg-indigo-100 text-indigo-600"
+                    : "bg-gray-200 text-gray-600"
+                }`}
+              >
                 {chat.name.substring(0, 2).toUpperCase()}
               </div>
               {!chat.isGroup && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
               )}
             </div>
-            
+
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline mb-1">
-                <h3 className="text-sm font-semibold text-gray-900 truncate">{chat.name}</h3>
+                <h3 className="text-sm font-semibold text-gray-900 truncate">
+                  {chat.name}
+                </h3>
                 <span className="text-xs text-gray-500">{chat.time}</span>
               </div>
               <div className="flex justify-between items-center">
-                <p className="text-xs text-gray-500 truncate">{chat.lastMessage}</p>
+                <p className="text-xs text-gray-500 truncate">
+                  {chat.lastMessage}
+                </p>
                 {chat.unread > 0 && (
                   <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                     {chat.unread}
