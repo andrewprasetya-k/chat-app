@@ -7,7 +7,7 @@ export default function DashboardPage() {
   return (
     <DashboardLayout>
       <Head>
-        <title>Dashboard | ChatApp</title>
+        <title>ChatApp</title>
       </Head>
       
       {/* Sidebar - Left Section */}
