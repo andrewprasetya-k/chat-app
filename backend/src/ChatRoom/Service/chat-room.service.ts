@@ -862,37 +862,36 @@ export class ChatRoomService {
   private async findExistingSelfChat(memberId: string): Promise<string | null> {
     const client = this.supabase.getClient();
     try {
-      const { data, error } = await client
+      // Step 1: Get all rooms where this user is a member
+      const { data: userRooms, error: roomsError } = await client
         .from('chat_room_member')
-        .select('crm_cr_id, crm_usr_id')
+        .select('crm_cr_id')
         .eq('crm_usr_id', memberId)
         .is('leave_at', null);
 
-      if (error) {
+      if (roomsError) {
         throw new InternalServerErrorException(
           'Database error during self chat validation',
         );
       }
 
-      if (!data || data.length === 0) {
+      if (!userRooms || userRooms.length === 0) {
         return null;
       }
 
-      const membersByRoom = new Map<string, Set<string>>();
+      // Step 2: For each room, check if it only has 1 member (self chat)
+      for (const room of userRooms) {
+        const { count, error: countError } = await client
+          .from('chat_room_member')
+          .select('*', { count: 'exact', head: true })
+          .eq('crm_cr_id', room.crm_cr_id)
+          .is('leave_at', null);
 
-      for (const row of data) {
-        const roomId = row.crm_cr_id;
-        const userId = row.crm_usr_id;
+        if (countError) continue;
 
-        if (!membersByRoom.has(roomId)) {
-          membersByRoom.set(roomId, new Set());
-        }
-        membersByRoom.get(roomId)!.add(userId);
-      }
-
-      for (const [roomId, userSet] of membersByRoom.entries()) {
-        if (userSet.size === 1 && userSet.has(memberId)) {
-          return roomId;
+        // If room has exactly 1 member, it's a self chat
+        if (count === 1) {
+          return room.crm_cr_id;
         }
       }
 
@@ -909,37 +908,64 @@ export class ChatRoomService {
   ): Promise<string | null> {
     const client = this.supabase.getClient();
     try {
-      const { data, error } = await client
-        .from('chat_room_member')
-        .select('crm_cr_id, crm_usr_id');
+      const [userId1, userId2] = memberIds;
 
-      if (error) {
+      // Step 1: Get all rooms where first user is a member
+      const { data: user1Rooms, error: user1Error } = await client
+        .from('chat_room_member')
+        .select('crm_cr_id')
+        .eq('crm_usr_id', userId1)
+        .is('leave_at', null);
+
+      if (user1Error) {
         throw new InternalServerErrorException(
           'Database error during room validation',
         );
       }
 
-      if (!data || data.length === 0) {
+      if (!user1Rooms || user1Rooms.length === 0) {
         return null;
       }
 
-      const membersByRoom = new Map<string, Set<string>>();
+      // Step 2: Get all rooms where second user is a member
+      const { data: user2Rooms, error: user2Error } = await client
+        .from('chat_room_member')
+        .select('crm_cr_id')
+        .eq('crm_usr_id', userId2)
+        .is('leave_at', null);
 
-      for (const row of data) {
-        const roomId = row.crm_cr_id;
-        const userId = row.crm_usr_id;
-
-        if (!membersByRoom.has(roomId)) {
-          membersByRoom.set(roomId, new Set());
-        }
-        membersByRoom.get(roomId)!.add(userId);
+      if (user2Error) {
+        throw new InternalServerErrorException(
+          'Database error during room validation',
+        );
       }
 
-      for (const [roomId, userSet] of membersByRoom.entries()) {
-        if (userSet.size >= 3) continue;
+      if (!user2Rooms || user2Rooms.length === 0) {
+        return null;
+      }
 
-        const bothUsersPresent = memberIds.every((id) => userSet.has(id));
-        if (bothUsersPresent) {
+      // Step 3: Find common rooms (where both users are members)
+      const user1RoomIds = new Set(user1Rooms.map((r) => r.crm_cr_id));
+      const commonRoomIds = user2Rooms
+        .map((r) => r.crm_cr_id)
+        .filter((roomId) => user1RoomIds.has(roomId));
+
+      if (commonRoomIds.length === 0) {
+        return null;
+      }
+
+      // Step 4: Check each common room to find one with exactly 2 members
+      for (const roomId of commonRoomIds) {
+        const { count, error: countError } = await client
+          .from('chat_room_member')
+          .select('*', { count: 'exact', head: true })
+          .eq('crm_cr_id', roomId)
+          .is('leave_at', null);
+
+        if (countError) continue;
+
+        // If room has exactly 2 members, it's a personal chat
+        if (count === 2) {
           return roomId;
         }
       }
