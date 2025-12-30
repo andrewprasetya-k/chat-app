@@ -45,7 +45,7 @@ export const Sidebar = () => {
   return (
     <div className="w-80 h-full border-r border-gray-200 flex flex-col bg-gray-50">
       {/* Header */}
-      <div className="p-4 bg-white border-b border-gray-200 flex items-center justify-between">
+      <div className="p-4 h-18.25 shrink-0 bg-white border-b border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
             AP
