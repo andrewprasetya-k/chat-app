@@ -1,64 +1,65 @@
-//struktur user
+// --- 1. User & Profile ---
+// Sesuai dengan UserEntity di backend
 export interface User {
-  id: string;
-  email: string;
+  id: string;        // UUID dari backend (usr_id)
   fullName: string;
+  email: string;
   avatarUrl?: string | null;
-  isOnline?: boolean;
-  lastSeenAt?: string;
+  role?: string;
 }
 
-//struktur chat room
+// --- 2. Chat Room (List/Inbox) ---
+// Sesuai dengan ChatRoomListEntity di backend
 export interface ChatRoom {
-  id: string;
-  groupName?: string;
+  roomId: string;
+  roomName: string;
   isGroup: boolean;
-  groupIcon?: string | null;
-  members: User[];
-  lastMessage?: {
-    id: string;
-    text: string;
-    createdAt: string;
-    senderName: string;
-  };
-  unreadCount: number;
-  createdAt: string;
-  updatedAt: string;
+  lastMessage: string | null;
+  lastMessageTime: string | null;
+  senderId: string | null;
+  senderName: string | null;
+  isLastMessageRead: boolean;
+  unreadCount?: number;
 }
 
-//struktur chat
+// --- 3. Chat Message ---
+// Sesuai dengan MessageDetailEntity di backend
 export interface ChatMessage {
-  id: string;
+  textId: string;    // Backend menggunakan textId sebagai primary identifier pesan
   text: string;
   createdAt: string;
-  sender: User;
-  replyTo?: {
+  sender: {
+    senderId: string;
+    senderName: string;
+  } | null;
+  replyTo: {
     id: string;
     text: string;
     senderName: string;
   } | null;
-  readBy?: string[];
+  readBy: {
+    userId: string;
+    userName: string;
+  }[];
 }
 
-//response saat login/register
+// --- 4. Auth & API Responses ---
 export interface AuthResponse {
   accessToken: string;
   user: User;
 }
 
-//parameter pagianation
 export interface MessageParams {
   limit?: number;
   beforeAt?: string;
 }
 
-// Data yang diterima saat event 'user_typing'
+// --- 5. WebSocket Event Payloads ---
 export interface TypingPayload {
   userId: string;
   roomId: string;
 }
 
-//data yang diterima saat event 'message_read_update'
 export interface ReadReceiptPayload {
   roomId: string;
   readerId: string;
