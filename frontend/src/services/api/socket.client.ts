@@ -3,6 +3,7 @@ import { io, Socket } from "socket.io-client";
 class SocketClient {
   private socket: Socket | null = null;
 
+  //inisialisasi koneksi
   connect() {
     //cek apakah sudah connected
     if (this.socket?.connected) {
@@ -27,6 +28,7 @@ class SocketClient {
     });
   }
 
+  //putus koneksi
   disconnect() {
     if (this.socket) {
       this.socket.disconnect();
@@ -34,20 +36,21 @@ class SocketClient {
     }
   }
 
-  //listener on
+  //untuk mendengarkan event
   on(event: string, callback: (...args: any[]) => void) {
     if (this.socket) {
       this.socket.on(event, callback);
     }
   }
 
-  //listener off
+  //untuk berhenti mendengarkan event
   off(event: string, callback?: (...args: any[]) => void) {
     if (this.socket) {
       this.socket.off(event, callback);
     }
   }
 
+  //untuk mengirim event
   emit(event: string, data: any) {
     if (!this.socket) {
       return;
@@ -55,3 +58,5 @@ class SocketClient {
     this.socket.emit(event, data);
   }
 }
+
+export const socketClient = new SocketClient();
