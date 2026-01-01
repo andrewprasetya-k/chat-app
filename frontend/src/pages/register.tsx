@@ -1,6 +1,16 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useRouter } from "next/router";
-import { MessageCircle, Mail, Lock, Eye, EyeOff, User } from "lucide-react";
+import {
+  MessageCircle,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  User,
+  AlertCircle,
+  Loader2,
+} from "lucide-react";
+import { authService } from "@/services/features/auth.service";
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -8,14 +18,35 @@ export default function RegisterPage() {
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle register logic here
-    console.log("Register attempt:", { fullName, email, password });
+    setIsLoading(true);
+    setError(null);
 
-    // Redirect to dashboard (UI-only for now)
-    router.push("/dashboard");
+    try {
+      await authService.register(fullName, email, password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Login failed", err);
+      // Handle axios error response
+      const message =
+        err.response?.data?.message ||
+        "Invalid email or password. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -43,7 +74,8 @@ export default function RegisterPage() {
               Today.
             </h2>
             <p className="text-lg text-blue-100">
-              Create your account and start connecting with people around the world.
+              Create your account and start connecting with people around the
+              world.
             </p>
           </div>
         </div>
@@ -73,6 +105,14 @@ export default function RegisterPage() {
                 Fill in your details to get started
               </p>
             </div>
+
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
 
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Full Name Input */}
@@ -187,9 +227,17 @@ export default function RegisterPage() {
               {/* Submit Button */}
               <button
                 type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
-                Create Account
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
               </button>
 
               {/* Divider */}
