@@ -5,7 +5,7 @@ class SocketClient {
 
   connect() {
     //cek apakah sudah connected
-    if (!this.socket?.connected) {
+    if (this.socket?.connected) {
       return;
     }
 
