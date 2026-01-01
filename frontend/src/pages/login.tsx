@@ -1,19 +1,26 @@
 import { useState } from "react";
 import { MessageCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/router";
+import { authService } from "@/services/features/auth.service";
 
 export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
   const router = useRouter();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     // Handle login logic here
     console.log("Login attempt:", { email, password });
-
-    // Redirect to dashboard (UI-only for now)
-    router.push("/dashboard");
+    authService
+      .login(email, password)
+      .then(() => {
+        router.push("/dashboard");
+      })
+      .catch((err) => {
+        console.log("Login failed: " + err.message);
+      });
   };
 
   return (
@@ -152,12 +159,25 @@ export default function LoginPage() {
               </div>
 
               {/* Submit Button */}
-              <button
-                type="submit"
-                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
-              >
-                Sign In
-              </button>
+              {loading ? (
+                <button
+                  type="button"
+                  className="w-full bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all cursor-not-allowed"
+                  disabled
+                >
+                  Logging you in...
+                </button>
+              ) : (
+                <button
+                  type="submit"
+                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
+                  onClick={() => {
+                    setLoading(true), handleSubmit;
+                  }}
+                >
+                  Sign In
+                </button>
+              )}
 
               {/* Divider */}
               <div className="relative my-6">
