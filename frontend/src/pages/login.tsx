@@ -7,12 +7,10 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
   const router = useRouter();
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    // Handle login logic here
-    console.log("Login attempt:", { email, password });
     authService
       .login(email, password)
       .then(() => {
@@ -20,6 +18,9 @@ export default function LoginPage() {
       })
       .catch((err) => {
         console.log("Login failed: " + err.message);
+      })
+      .finally(() => {
+        setIsLoading(false);
       });
   };
 
@@ -159,7 +160,7 @@ export default function LoginPage() {
               </div>
 
               {/* Submit Button */}
-              {loading ? (
+              {isLoading ? (
                 <button
                   type="button"
                   className="w-full bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all cursor-not-allowed"
@@ -172,7 +173,7 @@ export default function LoginPage() {
                   type="submit"
                   className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
                   onClick={() => {
-                    setLoading(true), handleSubmit;
+                    setIsLoading(true), handleSubmit;
                   }}
                 >
                   Sign In
