@@ -38,7 +38,6 @@ export default function RegisterPage() {
       await authService.register(fullName, email, password);
       router.push("/dashboard");
     } catch (err: any) {
-      console.error("Login failed", err);
       // Handle axios error response
       const message =
         err.response?.data?.message ||
@@ -233,10 +232,10 @@ export default function RegisterPage() {
                 {isLoading ? (
                   <>
                     <Loader2 className="w-5 h-5 animate-spin" />
-                    Signing In...
+                    Creating Account...
                   </>
                 ) : (
-                  "Sign In"
+                  "Create Account"
                 )}
               </button>
 

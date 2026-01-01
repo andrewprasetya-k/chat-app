@@ -1,5 +1,13 @@
 import { useState, useEffect } from "react";
-import { MessageCircle, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
+import {
+  MessageCircle,
+  Mail,
+  Lock,
+  Eye,
+  EyeOff,
+  Loader2,
+  AlertCircle,
+} from "lucide-react";
 import { useRouter } from "next/router";
 import { authService } from "@/services/features/auth.service";
 
@@ -9,7 +17,7 @@ export default function LoginPage() {
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  
+
   const router = useRouter();
 
   // Redirect if already logged in
@@ -25,15 +33,21 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-    try {
-      await authService.login(email, password);
-      router.push("/dashboard");
-    } catch (err: any) {
-      console.error("Login failed", err);
-      // Handle axios error response
-      const message = err.response?.data?.message || "Invalid email or password. Please try again.";
-      setError(message);
-    } finally {
+        try {
+
+          await authService.login(email, password);
+
+          router.push("/dashboard");
+
+        } catch (err: any) {
+
+          // Handle axios error response
+
+          const message = err.response?.data?.message || "Invalid email or password. Please try again.";
+
+          setError(message);
+
+        } finally {
       setIsLoading(false);
     }
   };
