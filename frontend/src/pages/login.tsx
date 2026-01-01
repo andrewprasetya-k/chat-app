@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { MessageCircle, Mail, Lock, Eye, EyeOff } from "lucide-react";
+import { useState, useEffect } from "react";
+import { MessageCircle, Mail, Lock, Eye, EyeOff, Loader2, AlertCircle } from "lucide-react";
 import { useRouter } from "next/router";
 import { authService } from "@/services/features/auth.service";
 
@@ -8,20 +8,34 @@ export default function LoginPage() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  
   const router = useRouter();
-  const handleSubmit = (e: React.FormEvent) => {
+
+  // Redirect if already logged in
+  useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (token) {
+      router.replace("/dashboard");
+    }
+  }, [router]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    authService
-      .login(email, password)
-      .then(() => {
-        router.push("/dashboard");
-      })
-      .catch((err) => {
-        console.log("Login failed: " + err.message);
-      })
-      .finally(() => {
-        setIsLoading(false);
-      });
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      await authService.login(email, password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      console.error("Login failed", err);
+      // Handle axios error response
+      const message = err.response?.data?.message || "Invalid email or password. Please try again.";
+      setError(message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
@@ -80,6 +94,14 @@ export default function LoginPage() {
               </p>
             </div>
 
+            {/* Error Alert */}
+            {error && (
+              <div className="mb-6 p-4 rounded-lg bg-red-50 border border-red-200 flex items-start gap-3">
+                <AlertCircle className="w-5 h-5 text-red-600 mt-0.5 shrink-0" />
+                <p className="text-sm text-red-600">{error}</p>
+              </div>
+            )}
+
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* Email Input */}
               <div>
@@ -100,7 +122,8 @@ export default function LoginPage() {
                     onChange={(e) => setEmail(e.target.value)}
                     placeholder="you@example.com"
                     required
-                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    disabled={isLoading}
+                    className="w-full pl-11 pr-4 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                 </div>
               </div>
@@ -124,7 +147,8 @@ export default function LoginPage() {
                     onChange={(e) => setPassword(e.target.value)}
                     placeholder="••••••••"
                     required
-                    className="w-full pl-11 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+                    disabled={isLoading}
+                    className="w-full pl-11 pr-12 py-3 bg-gray-50 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                   />
                   <button
                     type="button"
@@ -160,25 +184,20 @@ export default function LoginPage() {
               </div>
 
               {/* Submit Button */}
-              {isLoading ? (
-                <button
-                  type="button"
-                  className="w-full bg-gray-600 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2 transition-all cursor-not-allowed"
-                  disabled
-                >
-                  Logging you in...
-                </button>
-              ) : (
-                <button
-                  type="submit"
-                  className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30"
-                  onClick={() => {
-                    setIsLoading(true), handleSubmit;
-                  }}
-                >
-                  Sign In
-                </button>
-              )}
+              <button
+                type="submit"
+                disabled={isLoading}
+                className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 transition-all shadow-lg shadow-blue-500/20 hover:shadow-xl hover:shadow-blue-500/30 disabled:opacity-70 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+              >
+                {isLoading ? (
+                  <>
+                    <Loader2 className="w-5 h-5 animate-spin" />
+                    Signing In...
+                  </>
+                ) : (
+                  "Sign In"
+                )}
+              </button>
 
               {/* Divider */}
               <div className="relative my-6">
@@ -195,7 +214,9 @@ export default function LoginPage() {
               {/* Register Link */}
               <a
                 href="/register"
-                className="block w-full text-center bg-transparent hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all"
+                className={`block w-full text-center bg-transparent hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-lg border-2 border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all ${
+                  isLoading ? "pointer-events-none opacity-50" : ""
+                }`}
               >
                 Create New Account
               </a>
