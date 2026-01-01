@@ -33,6 +33,8 @@ class SocketClient {
     if (this.socket) {
       this.socket.disconnect();
       this.socket = null;
+    } else {
+      console.warn("Socket is not connected. Cannot disconnect.");
     }
   }
 
@@ -40,6 +42,8 @@ class SocketClient {
   on(event: string, callback: (...args: any[]) => void) {
     if (this.socket) {
       this.socket.on(event, callback);
+    } else {
+      console.warn("Socket is not connected. Cannot listen to event:", event);
     }
   }
 
@@ -47,12 +51,18 @@ class SocketClient {
   off(event: string, callback?: (...args: any[]) => void) {
     if (this.socket) {
       this.socket.off(event, callback);
+    } else {
+      console.warn(
+        "Socket is not connected. Cannot remove listener for event:",
+        event
+      );
     }
   }
 
   //untuk mengirim event
   emit(event: string, data: any) {
     if (!this.socket) {
+      console.warn("Socket is not connected. Cannot emit event:", event);
       return;
     }
     this.socket.emit(event, data);
