@@ -25,7 +25,12 @@ export const authService = {
       email,
       password,
     });
-    await this.login(email, password); // Auto-login setelah registrasi
+    try {
+      await this.login(email, password); // Auto-login setelah registrasi
+    } catch (error) {
+      console.warn("Auto-login failed after registration:", error);
+      
+    }
     return response.data;
   },
 
