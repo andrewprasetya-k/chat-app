@@ -43,7 +43,10 @@ export class AuthGuard implements CanActivate {
 
   async canActivate(context: ExecutionContext): Promise<boolean> {
     const request = context.switchToHttp().getRequest();
-    const token = this.extractTokenFromHeader(request);
+    // Prioritize cookie, fallback to header
+    const token =
+      this.extractTokenFromCookie(request) ||
+      this.extractTokenFromHeader(request);
 
     if (!token) {
       throw new UnauthorizedException('Token not found');
@@ -61,12 +64,10 @@ export class AuthGuard implements CanActivate {
     return true;
   }
 
-  /**
-   * extractTokenFromHeader
-   * - Helper function untuk mengambil token dari header
-   *   `Authorization: Bearer <token>`
-   * - Mengembalikan token jika format benar, atau `undefined` kalau tidak.
-   */
+  private extractTokenFromCookie(request: Request): string | undefined {
+    return request.cookies?.['access_token'];
+  }
+
   private extractTokenFromHeader(request: Request): string | undefined {
     const [type, token] = request.headers.authorization?.split(' ') ?? [];
     return type === 'Bearer' ? token : undefined;

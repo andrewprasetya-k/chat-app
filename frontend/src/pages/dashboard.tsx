@@ -14,13 +14,6 @@ export default function DashboardPage() {
 
   // Fetch active chat rooms on component mount
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      console.warn("No access token found. User might not be authenticated.");
-      window.location.href = "/login";
-      setLoading(false);
-      return;
-    }
     const fetchRooms = async () => {
       try {
         const activeRoom = await chatService.getActiveRooms();
@@ -30,10 +23,6 @@ export default function DashboardPage() {
         }
       } catch (error: any) {
         console.error("Failed to fetch chat rooms:", error);
-        if (error.response?.status === 401) {
-          console.warn("Unauthorized. Redirecting to login.");
-          window.location.href = "/login";
-        }
       } finally {
         setLoading(false);
       }

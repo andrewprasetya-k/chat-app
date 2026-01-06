@@ -31,18 +31,25 @@ export class AuthController {
   ) {
     const tokens = await this.authService.login(loginDto);
 
-    // Set Refresh Token in HttpOnly Cookie
+    // 1. Set Refresh Token (Long Lived)
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production', // true in production
-      sameSite: 'strict', // protects against CSRF
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
       maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     });
 
-    // Return only Access Token to frontend
+    // 2. Set Access Token (Short Lived)
+    res.cookie('access_token', tokens.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    // Return only User Info (Tokens are in cookies now)
     return {
-      access_token: tokens.access_token,
-      user: tokens.user, // Assuming service returns user info too
+      user: tokens.user,
     };
   }
 
@@ -54,6 +61,7 @@ export class AuthController {
   ) {
     await this.authService.logout(userId);
     res.clearCookie('refresh_token');
+    res.clearCookie('access_token');
     return { message: 'User logged out successfully' };
   }
 
@@ -70,7 +78,7 @@ export class AuthController {
 
     const tokens = await this.authService.refreshTokens(refreshToken);
 
-    // Update Refresh Token Cookie (Rotation)
+    // Rotate Refresh Token
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
       secure: process.env.NODE_ENV === 'production',
@@ -78,9 +86,15 @@ export class AuthController {
       maxAge: 14 * 24 * 60 * 60 * 1000,
     });
 
-    return {
-      access_token: tokens.access_token,
-    };
+    // Update Access Token
+    res.cookie('access_token', tokens.access_token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === 'production',
+      sameSite: 'strict',
+      maxAge: 15 * 60 * 1000,
+    });
+
+    return { message: 'Token refreshed' };
   }
 
   @Get('api-check')

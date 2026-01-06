@@ -11,12 +11,8 @@ const api = axios.create({
 
 api.interceptors.request.use(
   (config) => {
-    if (typeof window !== "undefined") {
-      const token = localStorage.getItem("accessToken");
-      if (token) {
-        config.headers.Authorization = `Bearer ${token}`;
-      }
-    }
+    // No need to inject Authorization header manually
+    // Cookies are sent automatically via withCredentials: true
     return config;
   },
   (error) => {
@@ -38,19 +34,14 @@ api.interceptors.response.use(
       originalRequest._retry = true;
 
       try {
-        // Coba refresh token (backend akan baca cookie HttpOnly)
-        const { data } = await api.post("/auth/refresh");
+        // Coba refresh token (backend update cookie access_token)
+        await api.post("/auth/refresh");
 
-        if (data.access_token) {
-          localStorage.setItem("accessToken", data.access_token);
-          api.defaults.headers.Authorization = `Bearer ${data.access_token}`;
-          originalRequest.headers.Authorization = `Bearer ${data.access_token}`;
-          return api(originalRequest); // Ulangi request awal
-        }
+        // Retry request asli (browser akan otomatis kirim cookie baru)
+        return api(originalRequest);
       } catch (refreshError) {
-        // Jika refresh gagal, berarti sesi benar-benar habis
+        // Jika refresh gagal, redirect ke login
         if (typeof window !== "undefined") {
-          localStorage.removeItem("accessToken");
           window.location.href = "/login";
         }
       }
