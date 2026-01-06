@@ -122,12 +122,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       {/* Header */}
       <div className="p-4 h-18.25 shrink-0 border-b border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold">
-            JD
+          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold uppercase">
+            {activeRoom.roomName ? activeRoom.roomName.substring(0, 2) : "??"}
           </div>
           <div>
             <h2 className="font-semibold text-gray-900 leading-tight">
-              John Doe
+              {activeRoom.roomName || "Unknown Room"}
             </h2>
             <span className="text-xs text-green-500 font-medium">Online</span>
           </div>
