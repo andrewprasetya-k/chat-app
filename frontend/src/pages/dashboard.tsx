@@ -17,9 +17,9 @@ export default function DashboardPage() {
     const fetchRooms = async () => {
       try {
         const activeRoom = await chatService.getActiveRooms();
-        setRooms(activeRoom);
+        setRooms(activeRoom); //ini ambil semua room yang aktif
         if (activeRoom.length > 0) {
-          setActiveRoom(activeRoom[0]);
+          setActiveRoom(activeRoom[0]); //ini set room pertama sebagai room aktif
         }
       } catch (error: any) {
         console.error("Failed to fetch chat rooms:", error);
@@ -39,7 +39,7 @@ export default function DashboardPage() {
       {/* Sidebar - Left Section */}
       <Sidebar
         rooms={rooms}
-        selectedRoomId={activeRoom?.roomId}
+        selectedRoomId={activeRoom?.roomId} //mengirim roomId yang sedang aktif
         onSelectRoom={(roomId) => {
           const selectedRoomId = rooms.find((room) => room.roomId === roomId);
           if (selectedRoomId) {
