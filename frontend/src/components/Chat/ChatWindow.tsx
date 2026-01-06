@@ -168,7 +168,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             return (
               <div
                 key={msg.textId}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                className={`flex ${
+                  isMe ? "justify-end" : "justify-start"
+                } space-y-0`}
+                style={{ marginBottom: "12px" }} // tambahkan jarak antar bubble lebih kecil
               >
                 <div
                   className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${
@@ -177,7 +180,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
                 >
                   <div
                     className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
-                      isMe ? "bg-blue-600 text-white" : "bg-white text-gray-900"
+                      isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"
                     }`}
                   >
                     <p className="text-sm wrap-break-word">{msg.text}</p>
