@@ -3,16 +3,26 @@ import { DashboardLayout } from "../components/Layout/DashboardLayout";
 import { Sidebar } from "../components/Chat/Sidebar";
 import { ChatWindow } from "../components/Chat/ChatWindow";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, use } from "react";
 import { chatService } from "@/services/features/chat.service";
 import { ChatRoom } from "@/services/types";
+
+import { socketClient } from "@/services/api/socket.client";
 
 export default function DashboardPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
-  // Fetch active chat rooms on component mount
+  //connect to web socket
+  useEffect(() => {
+    socketClient.connect();
+    return () => {
+      socketClient.disconnect(); //disconnect ketika pindah halaman
+    };
+  });
+
+  // Fetch active chat rooms
   useEffect(() => {
     const fetchRooms = async () => {
       try {

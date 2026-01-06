@@ -32,8 +32,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       // Client harus mengirim token via query / headers
       // Contoh: io('URL', { auth: { token: 'Bearer ...' } })
-      const token =
+      let token =
         client.handshake.auth.token || client.handshake.headers.authorization;
+
+      if (!token && client.handshake.headers.cookie) {
+        // Coba ambil token dari cookie jika tidak ada di header
+        const cookies = client.handshake.headers.cookie.split(';');
+
+        const tokenCookie = cookies.find((c) => c.trim().startsWith('token='));
+        if (tokenCookie) {
+          token = tokenCookie.split('=')[1];
+        }
+      }
 
       if (!token) {
         throw new Error('No token provided');
@@ -69,10 +79,16 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       const lastSeen = new Date().toISOString();
       // Kita tidak await di sini agar tidak memblokir event loop, tapi idealnya di-handle error-nya
       this.userService.updateOnlineStatus(userId, false).catch((err) => {
-        console.error(`Failed to update offline status for user ${userId}:`, err);
+        console.error(
+          `Failed to update offline status for user ${userId}:`,
+          err,
+        );
       });
 
-      this.server.emit('user_offline', { userId: userId, lastSeenAt: lastSeen });
+      this.server.emit('user_offline', {
+        userId: userId,
+        lastSeenAt: lastSeen,
+      });
     }
   }
 

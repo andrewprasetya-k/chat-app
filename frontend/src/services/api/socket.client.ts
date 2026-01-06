@@ -11,7 +11,7 @@ class SocketClient {
     }
 
     //inisialisasi koneksi socket.io
-    // Tidak perlu ambil token dari localStorage karena kita pakai Cookie
+    // Tidak perlu ambil token dari localStorage karena pakai Cookie
     this.socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000", {
       withCredentials: true, // PENTING: Agar cookie dikirim saat handshake
       transports: ["websocket"],
