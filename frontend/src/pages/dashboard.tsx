@@ -20,7 +20,7 @@ export default function DashboardPage() {
     return () => {
       socketClient.disconnect(); //disconnect ketika pindah halaman
     };
-  });
+  },[]);
 
   // Fetch active chat rooms
   useEffect(() => {
