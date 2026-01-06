@@ -33,21 +33,19 @@ export default function LoginPage() {
     setIsLoading(true);
     setError(null);
 
-        try {
+    try {
+      await authService.login(email, password);
 
-          await authService.login(email, password);
+      router.push("/dashboard");
+    } catch (err: any) {
+      // Handle axios error response
 
-          router.push("/dashboard");
+      const message =
+        err.response?.data?.message ||
+        "Invalid email or password. Please try again.";
 
-        } catch (err: any) {
-
-          // Handle axios error response
-
-          const message = err.response?.data?.message || "Invalid email or password. Please try again.";
-
-          setError(message);
-
-        } finally {
+      setError(message);
+    } finally {
       setIsLoading(false);
     }
   };
