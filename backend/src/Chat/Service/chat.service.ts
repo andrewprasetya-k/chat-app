@@ -115,27 +115,23 @@ export class ChatService {
       }
 
       // --- BROADCAST LOGIC (WebSocket) ---
-      if (newMessage) {
-        // Transform dulu datanya agar rapi sebelum dikirim
-        const transformedMessage = plainToInstance(
-          ChatMessageEntity,
-          newMessage,
-          {
-            excludeExtraneousValues: true,
-            enableImplicitConversion: true,
-          },
-        );
+      const transformedMessage = plainToInstance(
+        ChatMessageEntity,
+        newMessage,
+        {
+          excludeExtraneousValues: true,
+          enableImplicitConversion: true,
+        },
+      );
 
+      if (transformedMessage) {
         // Kirim ke room spesifik: "room_{roomId}"
         this.chatGateway.server
           .to(`room_${roomId}`)
           .emit('new_message', transformedMessage);
       }
 
-      return plainToInstance(ChatMessageEntity, newMessage, {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      });
+      return transformedMessage;
     } catch (error: any) {
       if (error instanceof BadRequestException) {
         throw error;
