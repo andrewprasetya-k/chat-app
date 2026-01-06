@@ -1,1 +1,1 @@
-cek apa saja function yang perlu dibroadcast, terutama chat yang sudah diunsend dan notifikasi
+token ga auto refresh, pasti akan muncul di console kalau error (walaupun dia bakal refresh otomatis sih)
