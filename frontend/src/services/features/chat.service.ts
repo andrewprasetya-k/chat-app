@@ -14,10 +14,13 @@ export const chatService = {
     roomId: string,
     params?: MessageParams
   ): Promise<ChatMessage[]> {
-    const response = await api.get<ChatMessage[]>(`/room/messages/${roomId}`, {
-      params,
-    });
-    return response.data;
+    const response = await api.get<{ messages: ChatMessage[] }>(
+      `/room/messages/${roomId}`,
+      {
+        params,
+      }
+    );
+    return response.data.messages;
   },
 
   // kirim chat
