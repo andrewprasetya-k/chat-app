@@ -155,7 +155,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
               placeholder="Type a message..."
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
-              onKeyDown={handleSendMessage}
+              onKeyDown={handleInputKeyPress}
               className="w-full pl-4 pr-10 py-3 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
             />
             <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600">
