@@ -4,15 +4,15 @@ import { BaseEntity } from '../../shared/entities/base.entity';
 export class UserEntity extends BaseEntity {
   @Expose()
   @Transform(({ obj }) => obj.usr_id, { toClassOnly: true })
-  id: string;
+  userId: string;
 
   @Expose()
   @Transform(({ obj }) => obj.usr_nama_lengkap, { toClassOnly: true })
-  fullName: string;
+  userFullName: string;
 
   @Expose()
   @Transform(({ obj }) => obj.usr_email, { toClassOnly: true })
-  email: string;
+  userEmail: string;
 
   @Expose()
   @Transform(({ obj }) => obj.usr_avatar, { toClassOnly: true })
@@ -20,7 +20,7 @@ export class UserEntity extends BaseEntity {
 
   @Expose()
   @Transform(({ obj }) => obj.usr_role, { toClassOnly: true }) // Default value
-  role?: string; // Optional with default
+  userRole?: string; // Optional with default
 
   @Exclude()
   password?: string;

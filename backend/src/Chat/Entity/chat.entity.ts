@@ -5,7 +5,7 @@ import { UserEntity } from '../../User/Entity/user.entity';
 export class ChatMessageEntity extends BaseEntity {
   @Expose()
   @Transform(({ obj }) => obj.cm_id, { toClassOnly: true })
-  id: string;
+  textId: string;
 
   @Expose()
   @Transform(({ obj }) => obj.message_text, { toClassOnly: true })
