@@ -3,6 +3,7 @@ import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
 import { authService } from "@/services/features/auth.service";
+import { socketClient } from "@/services/api/socket.client";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
@@ -27,6 +28,39 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     };
     fetchProfile();
   }, []);
+
+  //web scocket connection
+  useEffect(() => {
+    if (!activeRoom) return;
+
+    //masuk ke room
+    socketClient.emit("join_room", activeRoom.roomId);
+
+    //dengarkan event pesan baru, apabila ada pesan baru, tambahkan ke state messages
+    const handleNewMessage = (newMessage: ChatMessage) => {
+      setMessages((prevMessages) => {
+        //cek duplikat pesan
+        const isMessageExist = prevMessages.some(
+          (msg) => msg.textId === newMessage.textId
+        );
+        if (isMessageExist) {
+          return prevMessages; // Jangan tambahkan pesan duplikat
+        }
+        return [...prevMessages, newMessage];
+      });
+
+      //kalau ada pesan baru, run function handleNewMessage
+      socketClient.on("new_message", handleNewMessage);
+
+      return () => {
+        //keluar dari room
+        socketClient.emit("leave_room", activeRoom.roomId);
+        //bersihkan listener ketika komponen di unmount atau activeRoom berubah
+        socketClient.off("new_message", handleNewMessage);
+      };
+    };
+  }, [activeRoom]);
+
   //fetch messages ketika activeRoom berubah
   useEffect(() => {
     // Fetch messages when activeRoom changes
