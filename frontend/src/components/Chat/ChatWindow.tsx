@@ -1,42 +1,89 @@
-import React from "react";
+import React, { use, useEffect, useState } from "react";
 import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
-import { ChatRoom } from "@/services/types";
+import { ChatMessage, ChatRoom } from "@/services/types";
+import { chatService } from "@/services/features/chat.service";
+import { authService } from "@/services/features/auth.service";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
 }
-const MOCK_MESSAGES = [
-  {
-    id: 1,
-    sender: "John Doe",
-    text: "Hey! How's the project going?",
-    time: "9:00 AM",
-    isMe: false,
-  },
-  {
-    id: 2,
-    sender: "Me",
-    text: "Pretty good! Just finished the UI design.",
-    time: "9:05 AM",
-    isMe: true,
-  },
-  {
-    id: 3,
-    sender: "John Doe",
-    text: "Awesome! Can't wait to see it.",
-    time: "9:10 AM",
-    isMe: false,
-  },
-  {
-    id: 4,
-    sender: "Me",
-    text: "I'll share the preview in a bit. Just polishing some components.",
-    time: "9:12 AM",
-    isMe: true,
-  },
-];
 
 export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputText, setInputText] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [myUserId, setMyUserId] = useState<string>("");
+  const messagesEndRef = React.useRef<HTMLDivElement | null>(null); //auto-scroll ke bawah
+
+  //fetch user yang sedang login
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const user = await authService.getProfile();
+        setMyUserId(user.id);
+      } catch (error) {
+        console.error("Failed to fetch user ID:", error);
+      }
+    };
+    fetchProfile();
+  }, []);
+  //fetch messages ketika activeRoom berubah
+  useEffect(() => {
+    // Fetch messages when activeRoom changes
+    const fetchMessages = async () => {
+      if (!activeRoom) return;
+      setLoading(true);
+      try {
+        const fetchedMessages = await chatService.getMessages(
+          activeRoom.roomId
+        );
+        setMessages(fetchedMessages);
+      } catch (error) {
+        console.error("Failed to fetch messages:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchMessages();
+  }, [activeRoom]);
+
+  // Auto-scroll ke bawah ketika messages berubah
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  //handle kirim chat
+  const handleSendMessage = async () => {
+    if (!activeRoom || inputText.trim() === "") return;
+    try {
+      const temptText = inputText;
+      setInputText("");
+      const newMessage = await chatService.sendMessage(
+        activeRoom.roomId,
+        temptText
+      );
+      setMessages((prevMessages) => [...prevMessages, newMessage]);
+    } catch (error) {
+      console.error("Failed to send message:", error);
+    }
+  };
+
+  //kirim chat ketika tekan enter
+  const handleInputKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  if (!activeRoom) {
+    return (
+      <div className="flex-1 flex items-center justify-center h-full bg-white">
+        <p className="text-gray-500">Select a chat room to start messaging</p>
+      </div>
+    );
+  }
+
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
@@ -66,35 +113,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       </div>
 
       {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50/50">
-        {MOCK_MESSAGES.map((msg) => (
-          <div
-            key={msg.id}
-            className={`flex ${msg.isMe ? "justify-end" : "justify-start"}`}
-          >
-            <div
-              className={`max-w-[70%] px-4 py-2 rounded-2xl shadow-sm ${
-                msg.isMe
-                  ? "bg-blue-600 text-white rounded-br-none"
-                  : "bg-white text-gray-800 rounded-bl-none border border-gray-100"
-              }`}
-            >
-              {!msg.isMe && (
-                <p className="text-[10px] font-bold opacity-60 mb-1">
-                  {msg.sender}
-                </p>
-              )}
-              <p className="text-sm">{msg.text}</p>
-              <p
-                className={`text-[10px] mt-1 text-right ${
-                  msg.isMe ? "text-blue-100" : "text-gray-400"
-                }`}
-              >
-                {msg.time}
-              </p>
-            </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+        {loading ? (
+          <div className="text-center text-gray-400 mt-10">
+            Loading messages..
           </div>
-        ))}
+        ) : (
+          messages.map((msg) => {
+            const isMe = msg.sender?.senderId === myUserId;
+
+            return (
+              <div
+                key={msg.textId}
+                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+              >
+                <div
+                  className={`
+                  max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-xl 
+                  ${isMe ? "bg-blue-600 text-white" : "bg-white text-gray-900"}
+                  shadow
+                `}
+                >
+                  <p className="text-sm">{msg.text}</p>
+                </div>
+              </div>
+            );
+          })
+        )}
+        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
