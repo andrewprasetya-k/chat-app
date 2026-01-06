@@ -70,7 +70,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         const fetchedMessages = await chatService.getMessages(
           activeRoom.roomId
         );
-        setMessages(fetchedMessages.reverse());
+        setMessages(fetchedMessages);
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       } finally {
