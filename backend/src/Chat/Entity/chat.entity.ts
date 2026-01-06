@@ -14,37 +14,45 @@ export class ChatMessageEntity extends BaseEntity {
   @Expose()
   @Transform(({ obj }) => obj.cm_type || 'user', { toClassOnly: true })
   type: string;
+  
+  @Expose()
+  @Transform(({ obj }) => {
+    const s = Array.isArray(obj.sender) ? obj.sender[0] : obj.sender;
+    if (!s) return null;
+    return {
+      senderId: s.usr_id,
+      senderName: s.usr_nama_lengkap
+    };
+  }, { toClassOnly: true })
+  sender: any;
 
   @Expose()
-  @Transform(({ obj }) => obj.cm_cr_id, { toClassOnly: true })
-  roomId: string;
+  @Transform(({ obj }) => {
+    const replyRaw = obj.parent_message || obj.replied_to;
+    if (!replyRaw) return null;
+    const replyData = Array.isArray(replyRaw) ? replyRaw[0] : replyRaw;
+    const senderRaw = replyData.sender;
+    const replySender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
+
+    return {
+      id: replyData.cm_id,
+      text: replyData.message_text,
+      senderName: replySender?.usr_nama_lengkap || 'Unknown',
+    };
+  }, { toClassOnly: true })
+  replyTo: any;
 
   @Expose()
-  @Transform(({ obj }) => obj.chat_room?.cr_name || null, { toClassOnly: true })
-  roomName: string;
-
-  @Expose()
-  @Type(() => UserEntity)
-  sender: UserEntity;
-
-  @Expose()
-  @Transform(({ obj }) => obj.read_receipts, { toClassOnly: true })
-  @Type(() => ReadReceiptEntity)
-  readReceipts: ReadReceiptEntity[];
-}
-
-export class ReadReceiptEntity {
-  @Expose()
-  @Transform(({ obj }) => obj.read_at, { toClassOnly: true })
-  readAt: string;
-
-  @Expose()
-  @Type(() => UserEntity)
-  reader: UserEntity;
-}
-
-export class RepliedMessageEntity extends ChatMessageEntity {
-  @Expose()
-  @Transform(({ obj }) => obj.cm_reply_to_id, { toClassOnly: true })
-  replyTo: string;
+  @Transform(({ obj }) => {
+    const receipts = obj.read_receipts || [];
+    return receipts.map(rr => {
+      const reader = Array.isArray(rr.reader) ? rr.reader[0] : rr.reader;
+      if (!reader) return null;
+      return {
+        userId: reader.usr_id,
+        userName: reader.usr_nama_lengkap
+      };
+    }).filter(Boolean);
+  }, { toClassOnly: true })
+  readBy: any[];
 }
