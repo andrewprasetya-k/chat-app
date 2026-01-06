@@ -10,21 +10,20 @@ class SocketClient {
       return;
     }
 
-    const token =
-      typeof window !== "undefined"
-        ? localStorage.getItem("accessToken")
-        : null;
-    if (!token) {
-      console.warn("No access token found. Cannot connect to WebSocket.");
-      return;
-    }
     //inisialisasi koneksi socket.io
-    this.socket = io(process.env.NEXT_PUBLIC_API_URL || "", {
-      auth: {
-        token: `Bearer ${token}`,
-      },
+    // Tidak perlu ambil token dari localStorage karena kita pakai Cookie
+    this.socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3000", {
+      withCredentials: true, // PENTING: Agar cookie dikirim saat handshake
       transports: ["websocket"],
       autoConnect: true,
+    });
+
+    this.socket.on("connect", () => {
+      console.log("Socket connected:", this.socket?.id);
+    });
+
+    this.socket.on("connect_error", (err) => {
+      console.error("Socket connection error:", err.message);
     });
   }
 
