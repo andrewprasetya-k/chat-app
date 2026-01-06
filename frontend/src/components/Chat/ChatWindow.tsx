@@ -37,7 +37,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         const fetchedMessages = await chatService.getMessages(
           activeRoom.roomId
         );
-        setMessages(fetchedMessages);
+        setMessages(fetchedMessages.reverse());
       } catch (error) {
         console.error("Failed to fetch messages:", error);
       } finally {
@@ -153,13 +153,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             <input
               type="text"
               placeholder="Type a message..."
+              value={inputText}
+              onChange={(e) => setInputText(e.target.value)}
+              onKeyDown={handleSendMessage}
               className="w-full pl-4 pr-10 py-3 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
             />
             <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600">
               <Smile size={20} />
             </button>
           </div>
-          <button className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95">
+          <button
+            onClick={handleSendMessage}
+            disabled={!inputText.trim()}
+            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
             <Send size={20} />
           </button>
         </div>
