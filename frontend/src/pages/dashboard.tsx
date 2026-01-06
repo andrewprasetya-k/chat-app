@@ -9,20 +9,31 @@ import { ChatRoom } from "@/services/types";
 
 export default function DashboardPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
-  const [selectedRoomId, setSelectedRoomId] = useState<ChatRoom | null>(null);
+  const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
 
   // Fetch active chat rooms on component mount
   useEffect(() => {
+    const token = localStorage.getItem("accessToken");
+    if (!token) {
+      console.warn("No access token found. User might not be authenticated.");
+      window.location.href = "/login";
+      setLoading(false);
+      return;
+    }
     const fetchRooms = async () => {
       try {
-        const activeRooms = await chatService.getActiveRooms();
-        setRooms(activeRooms);
-        if (activeRooms.length > 0) {
-          setSelectedRoomId(activeRooms[0]);
+        const activeRoom = await chatService.getActiveRooms();
+        setRooms(activeRoom);
+        if (activeRoom.length > 0) {
+          setActiveRoom(activeRoom[0]);
         }
-      } catch (error) {
+      } catch (error: any) {
         console.error("Failed to fetch chat rooms:", error);
+        if (error.response?.status === 401) {
+          console.warn("Unauthorized. Redirecting to login.");
+          window.location.href = "/login";
+        }
       } finally {
         setLoading(false);
       }
@@ -37,10 +48,19 @@ export default function DashboardPage() {
       </Head>
 
       {/* Sidebar - Left Section */}
-      <Sidebar />
+      <Sidebar
+        rooms={rooms}
+        selectedRoomId={activeRoom?.roomId}
+        onSelectRoom={(roomId) => {
+          const selectedRoomId = rooms.find((room) => room.roomId === roomId);
+          if (selectedRoomId) {
+            setActiveRoom(selectedRoomId);
+          }
+        }}
+      />
 
       {/* Main Chat Window - Right Section */}
-      <ChatWindow />
+      <ChatWindow activeRoom={activeRoom} />
     </DashboardLayout>
   );
 }
