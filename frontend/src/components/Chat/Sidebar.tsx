@@ -59,10 +59,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {rooms?.map((chat) => (
           <div
             key={chat.roomId}
-            className={`p-4 flex items-center gap-3 hover:bg-white cursor-pointer transition-colors border-b border-gray-100 last:border-0 group ${
+            className={`p-4 flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100 last:border-0 group ${
               onSelectRoom && selectedRoomId === chat.roomId
-                ? "bg-white"
-                : "hover:bg-gray-50"
+                ? "bg-gray-100"
+                : "bg-gray-50"
             }`}
             onClick={() =>
               selectedRoomId && onSelectRoom && onSelectRoom(chat.roomId)
