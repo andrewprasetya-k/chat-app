@@ -61,6 +61,7 @@ export class ChatService {
         .select(
           `
           cm_id, 
+          cm_cr_id,
           message_text, 
           cm_type,
           created_at, 
@@ -158,6 +159,7 @@ export class ChatService {
         .select(
           `
           cm_id, 
+          cm_cr_id,
           message_text, 
           cm_type,
           created_at,

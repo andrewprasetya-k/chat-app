@@ -58,8 +58,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     socketClient.on("new_message", handleNewMessage);
 
     return () => {
-      //keluar dari room
-      socketClient.emit("leave_room", activeRoom.roomId);
       //bersihkan listener ketika komponen di unmount atau activeRoom berubah
       socketClient.off("new_message", handleNewMessage);
     };
