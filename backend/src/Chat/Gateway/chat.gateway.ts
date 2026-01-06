@@ -39,7 +39,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Coba ambil token dari cookie jika tidak ada di header
         const cookies = client.handshake.headers.cookie.split(';');
 
-        const tokenCookie = cookies.find((c) => c.trim().startsWith('token='));
+        const tokenCookie = cookies.find((c) => c.trim().startsWith('access_token='));
         if (tokenCookie) {
           token = tokenCookie.split('=')[1];
         }
