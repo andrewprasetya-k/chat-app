@@ -165,20 +165,36 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         ) : (
           messages.map((msg) => {
             const isMe = msg.sender?.senderId === myUserId;
-
             return (
               <div
                 key={msg.textId}
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`
-                  max-w-xs md:max-w-md lg:max-w-lg px-4 py-2 rounded-xl 
-                  ${isMe ? "bg-blue-600 text-white" : "bg-white text-gray-900"}
-                  shadow
-                `}
+                  className={`max-w-xs md:max-w-md lg:max-w-lg w-fit ${
+                    isMe ? "ml-auto" : "mr-auto"
+                  }`}
                 >
-                  <p className="text-sm">{msg.text}</p>
+                  <div
+                    className={`px-4 py-2 rounded-xl relative shadow ${
+                      isMe ? "bg-blue-600 text-white" : "bg-white text-gray-900"
+                    }`}
+                  >
+                    <p className="text-sm wrap-break-word">{msg.text}</p>
+                  </div>
+                  <span
+                    className={`text-[10px] mt-1 block text-right ${
+                      isMe ? "text-blue-400" : "text-gray-400"
+                    }`}
+                  >
+                    {msg.createdAt
+                      ? new Date(msg.createdAt).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })
+                      : ""}
+                  </span>
                 </div>
               </div>
             );
