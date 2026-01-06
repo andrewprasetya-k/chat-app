@@ -6,6 +6,14 @@ import {
   UserCircle,
 } from "lucide-react";
 
+import { ChatRoom } from "@/services/types";
+
+interface SidebarProps {
+  rooms?: ChatRoom[];
+  selectedRoomId?: string | null;
+  onSelectRoom?: (roomId: string) => void;
+}
+
 const MOCK_CHATS = [
   {
     id: 1,
@@ -41,7 +49,7 @@ const MOCK_CHATS = [
   },
 ];
 
-export const Sidebar = () => {
+export const Sidebar: React.FC<SidebarProps> = ({rooms, selectedRoomId, onSelectRoom}) => {
   return (
     <div className="w-80 h-full border-r border-gray-200 flex flex-col bg-gray-50">
       {/* Header */}
