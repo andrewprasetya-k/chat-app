@@ -20,8 +20,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   useEffect(() => {
     const fetchProfile = async () => {
       try {
-        const user = await authService.getProfile();
-        setMyUserId(user.id);
+        const user: any = await authService.getProfile();
+        // Jika data yang datang adalah array [user], ambil elemen pertamanya
+        const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
+        
+        if (actualId) {
+          setMyUserId(actualId);
+        }
       } catch (error) {
         console.error("Failed to fetch user ID:", error);
       }
