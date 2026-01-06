@@ -171,20 +171,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
                 className={`flex ${isMe ? "justify-end" : "justify-start"}`}
               >
                 <div
-                  className={`max-w-xs md:max-w-md lg:max-w-lg w-fit ${
+                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${
                     isMe ? "ml-auto" : "mr-auto"
                   }`}
                 >
                   <div
-                    className={`px-4 py-2 rounded-xl relative shadow ${
+                    className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
                       isMe ? "bg-blue-600 text-white" : "bg-white text-gray-900"
                     }`}
                   >
                     <p className="text-sm wrap-break-word">{msg.text}</p>
                   </div>
                   <span
-                    className={`text-[10px] mt-1 block text-right ${
-                      isMe ? "text-blue-400" : "text-gray-400"
+                    className={`text-[10px] mt-1 block  ${
+                      isMe
+                        ? "text-blue-800 text-right"
+                        : "text-gray-800 text-left"
                     }`}
                   >
                     {msg.createdAt
