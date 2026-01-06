@@ -11,6 +11,7 @@ export const authService = {
     if (response.data.accessToken) {
       localStorage.setItem("accessToken", response.data.accessToken);
     }
+    // Refresh token is now handled by HttpOnly cookie
     return response.data;
   },
 
@@ -39,10 +40,16 @@ export const authService = {
   },
 
   //untuk logout
-  logout() {
-    localStorage.removeItem("accessToken");
-    if (typeof window !== "undefined") {
-      window.location.href = "/login"; // Redirect to login page
+  async logout() {
+    try {
+      await api.post("/auth/logout"); // Clear cookie on server
+    } catch (error) {
+      console.error("Logout failed", error);
+    } finally {
+      localStorage.removeItem("accessToken");
+      if (typeof window !== "undefined") {
+        window.location.href = "/login"; // Redirect to login page
+      }
     }
   },
 };
