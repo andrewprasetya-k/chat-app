@@ -17,10 +17,40 @@ export default function DashboardPage() {
   //connect to web socket
   useEffect(() => {
     socketClient.connect();
+
+    // DENGARKAN PESAN BARU UNTUK SIDEBAR (REAL-TIME)
+    const handleNewMessageSidebar = (msg: any) => {
+      setRooms((prevRooms) => {
+        // 1. Update data room yang menerima pesan
+        const updatedRooms = prevRooms.map((room) => {
+          if (room.roomId === msg.roomId) {
+            return {
+              ...room,
+              lastMessage: msg.text,
+              lastMessageTime: msg.createdAt,
+              senderName: msg.sender?.senderName || null,
+              isLastMessageRead: false,
+            };
+          }
+          return room;
+        });
+
+        // 2. Sort ulang: Room dengan pesan terbaru naik ke paling atas
+        return [...updatedRooms].sort((a, b) => {
+          const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
+          const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+          return timeB - timeA;
+        });
+      });
+    };
+
+    socketClient.on("new_message", handleNewMessageSidebar);
+
     return () => {
+      socketClient.off("new_message", handleNewMessageSidebar);
       socketClient.disconnect(); //disconnect ketika pindah halaman
     };
-  },[]);
+  }, []);
 
   // Fetch active chat rooms
   useEffect(() => {

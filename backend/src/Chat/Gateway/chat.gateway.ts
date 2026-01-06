@@ -64,6 +64,23 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = payload.sub;
       console.log(`Client connected: ${client.id} (User: ${payload.sub})`);
 
+      // Supaya real-time sidebar jalan (untuk last message)
+      const { data: userRooms } = await this.chatSharedService['supabase']
+        .getClient()
+        .from('chat_room_member')
+        .select('crm_cr_id')
+        .eq('crm_usr_id', payload.sub)
+        .is('leave_at', null);
+
+      if (userRooms) {
+        userRooms.forEach((room) => {
+          client.join(`room_${room.crm_cr_id}`);
+        });
+        console.log(
+          `User ${payload.sub} auto-joined ${userRooms.length} rooms`,
+        );
+      }
+
       await this.userService.updateOnlineStatus(payload.sub, true);
       this.server.emit('user_online', { userId: payload.sub });
     } catch (e) {
