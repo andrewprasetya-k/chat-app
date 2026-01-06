@@ -1,6 +1,10 @@
 import React from "react";
 import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
+import { ChatRoom } from "@/services/types";
 
+interface ChatWindowProps {
+  activeRoom?: ChatRoom | null;
+}
 const MOCK_MESSAGES = [
   {
     id: 1,
@@ -32,7 +36,7 @@ const MOCK_MESSAGES = [
   },
 ];
 
-export const ChatWindow = () => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
