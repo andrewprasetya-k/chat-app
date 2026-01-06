@@ -23,7 +23,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         const user: any = await authService.getProfile();
         // Jika data yang datang adalah array [user], ambil elemen pertamanya
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
-        
+
         if (actualId) {
           setMyUserId(actualId);
         }
@@ -100,7 +100,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         activeRoom.roomId,
         temptText
       );
-      setMessages((prevMessages) => [...prevMessages, newMessage]);
+      setMessages((prevMessages) => {
+        const isMessageExist = prevMessages.some(
+          (msg) => msg.textId === newMessage.textId
+        );
+        if (isMessageExist) {
+          return prevMessages; // Jangan tambahkan pesan duplikat
+        }
+        return [...prevMessages, newMessage];
+      });
     } catch (error) {
       console.error("Failed to send message:", error);
     }
