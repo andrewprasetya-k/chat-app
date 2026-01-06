@@ -76,7 +76,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     : "bg-gray-200 text-gray-600"
                 }`}
               >
-                {chat.roomName.substring(0, 2).toUpperCase()}
+                {chat.roomName.split(" ").length > 1
+                  ? `${chat.roomName.split(" ")[0][0]}${
+                      chat.roomName.split(" ").slice(-1)[0][0]
+                    }`.toUpperCase()
+                  : chat.roomName.substring(0, 2).toUpperCase()}
               </div>
               {!chat.isGroup && (
                 <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
@@ -89,7 +93,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {chat.roomName}
                 </h3>
                 <span className="text-xs text-gray-500">
-                  {chat.lastMessageTime}
+                    {chat.lastMessageTime
+                    ? new Date(chat.lastMessageTime).toLocaleString("id-ID", {
+                      day: "2-digit",
+                      month: "2-digit",
+                      year: "2-digit",
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: false,
+                      })
+                    : ""}
                 </span>
               </div>
               <div className="flex justify-between items-center">
