@@ -225,7 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     ? `${typingStatus[chat.roomId].join(", ")} is typing...`
                     : chat.lastMessage || "No messages yet."}
                 </p>
-                {chat.unreadCount && (
+                {(chat.unreadCount ?? 0) > 0 && (
                   <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
                     {chat.unreadCount}
                   </span>

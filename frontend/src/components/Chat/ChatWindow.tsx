@@ -284,7 +284,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <span className="text-xs text-blue-500 font-medium animate-pulse">
                 {renderTypingText()}
               </span>
-            ) : isOtherUserOnline ? (
+            ) : isOtherUserOnline && activeRoom.isGroup === false ? (
               <span className="text-xs font-light text-green-600">Online</span>
             ) : (
               <span className="text-xs font-light text-gray-600">
