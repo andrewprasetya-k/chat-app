@@ -183,6 +183,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   ) {
     client.to(`room_${roomId}`).emit('user_stopped_typing', {
       userId: client.data.userId,
+      userName: client.data.userName,
       roomId: roomId,
     });
   }

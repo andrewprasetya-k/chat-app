@@ -150,6 +150,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       clearTimeout(typingTimeout.current);
     }
 
+    // stop typing setelah 500ms tidak mengetik
     typingTimeout.current = setTimeout(() => {
       socketClient.emit("typing_stop", activeRoom.roomId);
     }, 500);

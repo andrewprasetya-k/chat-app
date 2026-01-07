@@ -1,4 +1,4 @@
-import React from "react";
+import React, { use } from "react";
 import {
   Search,
   MoreVertical,
@@ -6,7 +6,10 @@ import {
   UserCircle,
 } from "lucide-react";
 
+import { useState, useEffect } from "react";
+
 import { ChatRoom } from "@/services/types";
+import { socketClient } from "@/services/api/socket.client";
 
 interface SidebarProps {
   rooms?: ChatRoom[];
@@ -19,6 +22,73 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedRoomId,
   onSelectRoom,
 }) => {
+  // Format: { "id_room_1": ["Nama A", "Nama B"], "id_room_2": ["Nama C"] }
+  const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>(
+    {}
+  );
+  const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({});
+
+  useEffect(() => {
+    const handleStopTypingStatus = ({
+      userId,
+      userName,
+      roomId,
+    }: {
+      userId: string;
+      userName: string;
+      roomId: string;
+    }) => {
+      setTypingStatus((prevStatus) => {
+        const currentTypers = prevStatus[roomId] || [];
+        return {
+          ...prevStatus,
+          [roomId]: currentTypers.filter((name) => name !== userName),
+        };
+      });
+    };
+
+    const handleTypingStatus = ({
+      userId,
+      userName,
+      roomId,
+    }: {
+      userId: string;
+      userName: string;
+      roomId: string;
+    }) => {
+      setTypingStatus((prevStatus) => {
+        const currentTypers = prevStatus[roomId] || [];
+        if (!currentTypers.includes(userName)) {
+          return {
+            ...prevStatus,
+            [roomId]: [...currentTypers, userName],
+          };
+        }
+        return prevStatus;
+      });
+
+      // --- Logic Timeout Otomatis ---
+      const timeoutKey = `${roomId}-${userName}`;
+      if (typingTimeoutsRef.current[timeoutKey]) {
+        clearTimeout(typingTimeoutsRef.current[timeoutKey]);
+      }
+
+      typingTimeoutsRef.current[timeoutKey] = setTimeout(() => {
+        handleStopTypingStatus({ userId, userName, roomId });
+      }, 500);
+    };
+
+    socketClient.on("user_typing", handleTypingStatus);
+    socketClient.on("user_stopped_typing", handleStopTypingStatus);
+
+    return () => {
+      socketClient.off("user_typing", handleTypingStatus);
+      socketClient.off("user_stopped_typing", handleStopTypingStatus);
+      // Cleanup all timeouts on unmount
+      Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
+    };
+  }, []);
+
   return (
     <div className="w-80 h-full border-gray-200 flex flex-col bg-gray-50">
       {/* Header */}
@@ -93,21 +163,24 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {chat.roomName}
                 </h3>
                 <span className="text-xs text-gray-500">
-                    {chat.lastMessageTime
+                  {chat.lastMessageTime
                     ? new Date(chat.lastMessageTime).toLocaleString("id-ID", {
-                      day: "2-digit",
-                      month: "2-digit",
-                      year: "2-digit",
-                      hour: "2-digit",
-                      minute: "2-digit",
-                      hour12: false,
+                        day: "2-digit",
+                        month: "2-digit",
+                        year: "2-digit",
+                        hour: "2-digit",
+                        minute: "2-digit",
+                        hour12: false,
                       })
                     : ""}
                 </span>
               </div>
               <div className="flex justify-between items-center">
                 <p className="text-xs text-gray-500 truncate">
-                  {chat.lastMessage}
+                  {typingStatus[chat.roomId] &&
+                  typingStatus[chat.roomId].length > 0
+                    ? `${typingStatus[chat.roomId].join(", ")} is typing...`
+                    : chat.lastMessage || "No messages yet."}
                 </p>
                 {chat.unreadCount && (
                   <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
