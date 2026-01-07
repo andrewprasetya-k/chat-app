@@ -132,7 +132,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       </div>
     );
   }
-
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
@@ -183,6 +182,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
                     isMe ? "ml-auto" : "mr-auto"
                   }`}
                 >
+                  {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
+                    <span className="ml-2 text-xs font-light opacity-70">
+                      {msg.sender.senderName}
+                    </span>
+                  )}
                   <div
                     className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
                       isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"
