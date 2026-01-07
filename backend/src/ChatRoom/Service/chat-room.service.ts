@@ -43,7 +43,9 @@ export class ChatRoomService {
             members:chat_room_member (
               user:crm_usr_id (
                 usr_id,
-                usr_nama_lengkap
+                usr_nama_lengkap,
+                usr_is_online,
+                usr_last_seen_at
               )
             ),
             chat_message (
@@ -106,6 +108,17 @@ export class ChatRoomService {
           roomName = otherUser?.usr_nama_lengkap ?? roomName;
         }
 
+        const members = room?.members ?? [];
+        const otherMemberRaw = members.find((m: any) => {
+          const user = Array.isArray(m.user) ? m.user[0] : m.user;
+          return user?.usr_id !== userId;
+        });
+        const otherMember = otherMemberRaw
+          ? Array.isArray(otherMemberRaw.user)
+            ? otherMemberRaw.user[0]
+            : otherMemberRaw.user
+          : null;
+
         return plainToInstance(
           ChatRoomListEntity,
           {
@@ -119,6 +132,9 @@ export class ChatRoomService {
             senderName: senderName ?? null,
             isLastMessageRead,
             deletedAt: room?.deleted_at ?? null,
+            otherUserId: otherMember?.usr_id ?? null,
+            isOnline: otherMember?.usr_is_online ?? null,
+            lastSeenAt: otherMember?.usr_last_seen_at ?? null,
           },
           {
             excludeExtraneousValues: true,

@@ -31,6 +31,15 @@ export class ChatRoomListEntity {
 
   @Expose()
   isLastMessageRead: boolean;
+
+  @Expose()
+  otherUserId: string | null;
+
+  @Expose()
+  isOnline: boolean | null;
+
+  @Expose()
+  lastSeenAt: string | null;
 }
 
 // --- 2. MESSAGES IN ROOM Entity ---
