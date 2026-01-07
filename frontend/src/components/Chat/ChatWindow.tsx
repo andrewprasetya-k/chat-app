@@ -22,14 +22,18 @@ interface TypingUser {
  * Menampilkan jendela percakapan aktif, menangani pengiriman pesan,
  * memuat riwayat pesan, dan mengelola indikator real-time (typing).
  */
-export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom, onlineUsers }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({
+  activeRoom,
+  onlineUsers,
+}) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const isOtherUserOnline = React.useMemo(() => {
-    if (!activeRoom || activeRoom.isGroup || !activeRoom.otherUserId) return false;
+    if (!activeRoom || activeRoom.isGroup || !activeRoom.otherUserId)
+      return false;
     return onlineUsers.has(activeRoom.otherUserId);
   }, [activeRoom, onlineUsers]);
   const [isMeMyId, setIsMyId] = useState<boolean>(false);
@@ -98,24 +102,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom, onlineUsers 
       setIsMyId(true);
     }
 
-    // --- C. Handle Online Indicator ---'
-    const handleUserOnline = (data: { userId: string }) => {
-      if (!activeRoom) return;
-      if (data.userId === myUserId) return; //abaikan diri sendiri
-    };
-
-    const handleUserOffline = (data: {
-      userId: string;
-      lastSeenAt: string;
-    }) => {
-      if (!activeRoom) return;
-      if (data.userId === myUserId) return; //abaikan diri sendiri
-      if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
-        setLastSeen(formatRelativeTime(data.lastSeenAt));
-      }
-    };
-
-    // --- D. Typing Handlers ---
+    // --- C. Typing Handlers ---
     const handleTypingStart = (data: {
       userId: string;
       userName: string;
@@ -149,13 +136,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom, onlineUsers 
       }
     };
 
-    // --- C. Register Listeners & Join ---
+    // --- D. Register Listeners & Join ---
     socketClient.emit("join_room", roomId);
     socketClient.on("new_message", handleNewMessage);
     socketClient.on("user_typing", handleTypingStart);
     socketClient.on("user_stopped_typing", handleTypingStop);
 
-    // --- D. Cleanup ---
+    // --- E. Cleanup ---
     return () => {
       setMessages([]); // Reset messages UI
       setTypingUsers([]); // Reset typing indicator
@@ -235,7 +222,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom, onlineUsers 
   if (!activeRoom) {
     return (
       <div className="flex-1 flex items-center justify-center h-full bg-white text-gray-500">
-        Select a chat room to start messaging
+        Select a chat room to start messaging!!
       </div>
     );
   }
