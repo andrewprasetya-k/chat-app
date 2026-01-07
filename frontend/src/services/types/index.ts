@@ -20,13 +20,16 @@ export interface ChatRoom {
   senderName: string | null;
   isLastMessageRead: boolean;
   unreadCount?: number;
+  isOnline?: boolean;
+  lastSeenAt?: string | null;
+  otherUserId?: string | null;
 }
 
 // --- 3. Chat Message ---
 // Sesuai dengan MessageDetailEntity di backend
 export interface ChatMessage {
-  textId: string; 
-  roomId: string; 
+  textId: string;
+  roomId: string;
   text: string;
   createdAt: string;
   sender: {
