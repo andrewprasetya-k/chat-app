@@ -134,7 +134,7 @@ export class ChatRoomService {
             deletedAt: room?.deleted_at ?? null,
             otherUserId: otherMember?.usr_id ?? null,
             isOnline: otherMember?.usr_is_online ?? null,
-            lastSeenAt: otherMember?.usr_last_seen ?? null,
+            lastSeen: otherMember?.usr_last_seen ?? null,
           },
           {
             excludeExtraneousValues: true,

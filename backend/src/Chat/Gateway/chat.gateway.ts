@@ -113,7 +113,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       this.server.emit('user_offline', {
         userId: userId,
-        lastSeenAt: lastSeen,
+        lastSeen: lastSeen,
       });
     }
   }

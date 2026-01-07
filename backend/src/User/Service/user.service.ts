@@ -359,7 +359,7 @@ export class UserService {
       const updatePayload: any = { usr_is_online: isOnline };
 
       if (!isOnline) {
-        updatePayload.usr_last_seen_at = new Date().toISOString();
+        updatePayload.usr_last_seen = new Date().toISOString();
       }
 
       const { error } = await client
