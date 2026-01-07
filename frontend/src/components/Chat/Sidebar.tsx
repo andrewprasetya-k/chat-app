@@ -10,6 +10,7 @@ import { useState, useEffect } from "react";
 
 import { ChatRoom } from "@/services/types";
 import { socketClient } from "@/services/api/socket.client";
+import { authService } from "@/services/features/auth.service";
 
 interface SidebarProps {
   rooms?: ChatRoom[];
@@ -26,7 +27,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>(
     {}
   );
+  const [myUserId, setMyUserId] = useState<string>("");
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Ambil profil user untuk mendapatkan ID sendiri agar bisa memfilter di sidebar
+  useEffect(() => {
+    const fetchProfile = async () => {
+      try {
+        const user: any = await authService.getProfile();
+        const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
+        if (actualId) setMyUserId(actualId);
+      } catch (error) {
+        console.error("Failed to fetch profile in sidebar:", error);
+      }
+    };
+    fetchProfile();
+  }, []);
 
   useEffect(() => {
     const handleStopTypingStatus = ({
@@ -56,6 +72,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
       userName: string;
       roomId: string;
     }) => {
+      // JANGAN tampilkan jika yang mengetik adalah DIRI SENDIRI
+      if (userId === myUserId) return;
+
       setTypingStatus((prevStatus) => {
         const currentTypers = prevStatus[roomId] || [];
         if (!currentTypers.includes(userName)) {
@@ -75,7 +94,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       typingTimeoutsRef.current[timeoutKey] = setTimeout(() => {
         handleStopTypingStatus({ userId, userName, roomId });
-      }, 1000);
+      }, 5000);
     };
 
     socketClient.on("user_typing", handleTypingStatus);
@@ -87,7 +106,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       // Cleanup all timeouts on unmount
       Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
     };
-  }, []);
+  }, [myUserId]); // Tambahkan myUserId ke dependensi agar filter berfungsi logicnya
 
   return (
     <div className="w-80 h-full border-gray-200 flex flex-col bg-gray-50">
