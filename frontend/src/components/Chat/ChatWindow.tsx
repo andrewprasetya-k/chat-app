@@ -26,8 +26,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-  
-  const typingTimeout = React.useRef<NodeJS.Timeout | null>(null);
+
+  const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
+  const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
 
   /**
@@ -78,24 +79,44 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     const handleNewMessage = (msg: ChatMessage) => {
       // Filter: Hanya terima pesan untuk room yang sedang aktif
       if (msg.roomId !== roomId) return;
-      
+
       setMessages((prev) => {
-        if (prev.some(m => m.textId === msg.textId)) return prev;
+        if (prev.some((m) => m.textId === msg.textId)) return prev;
         return [...prev, msg];
       });
     };
 
-    const handleTypingStart = (data: { userId: string; userName: string; roomId: string }) => {
+    const handleTypingStart = (data: {
+      userId: string;
+      userName: string;
+      roomId: string;
+    }) => {
       if (data.roomId !== roomId || data.userId === myUserId) return;
       setTypingUsers((prev) => {
-        if (prev.find(u => u.userId === data.userId)) return prev;
-        return [...prev, { userId: data.userId, userName: data.userName || "Someone" }];
+        if (prev.find((u) => u.userId === data.userId)) return prev;
+        return [
+          ...prev,
+          { userId: data.userId, userName: data.userName || "Someone" },
+        ];
       });
+
+      // Fail-safe Timeout: Hapus user dari daftar jika tidak ada update selama 5 detik
+      if (typingTimeoutsRef.current[data.userId]) {
+        clearTimeout(typingTimeoutsRef.current[data.userId]);
+      }
+      typingTimeoutsRef.current[data.userId] = setTimeout(() => {
+        setTypingUsers((prev) => prev.filter((u) => u.userId !== data.userId));
+      }, 5000);
     };
 
     const handleTypingStop = (data: { userId: string; roomId: string }) => {
       if (data.roomId !== roomId) return;
-      setTypingUsers((prev) => prev.filter(u => u.userId !== data.userId));
+      setTypingUsers((prev) => prev.filter((u) => u.userId !== data.userId));
+
+      if (typingTimeoutsRef.current[data.userId]) {
+        clearTimeout(typingTimeoutsRef.current[data.userId]);
+        delete typingTimeoutsRef.current[data.userId];
+      }
     };
 
     // --- C. Register Listeners & Join ---
@@ -147,16 +168,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
    */
   const handleSendMessage = async () => {
     if (!activeRoom || !inputText.trim()) return;
-    
+
     try {
       const text = inputText;
       setInputText(""); // Clear input segera (Optimistic UI)
-      
+
       const newMessage = await chatService.sendMessage(activeRoom.roomId, text);
-      
+
       // Tambahkan ke state jika belum ada (antisipasi broadcast socket)
       setMessages((prev) => {
-        if (prev.some(m => m.textId === newMessage.textId)) return prev;
+        if (prev.some((m) => m.textId === newMessage.textId)) return prev;
         return [...prev, newMessage];
       });
     } catch (error) {
@@ -173,8 +194,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
 
   const renderTypingText = () => {
     if (typingUsers.length === 0) return null;
-    if (typingUsers.length === 1) return `${typingUsers[0].userName} is typing...`;
-    if (typingUsers.length === 2) return `${typingUsers[0].userName} & ${typingUsers[1].userName} are typing...`;
+    if (typingUsers.length === 1)
+      return `${typingUsers[0].userName} is typing...`;
+    if (typingUsers.length === 2)
+      return `${typingUsers.map((u) => u.userName.split(","))} are typing...`;
     return `${typingUsers[0].userName} and others are typing...`;
   };
 
@@ -208,30 +231,64 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
           </div>
         </div>
         <div className="flex items-center gap-1 text-gray-400">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Phone size={20} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Video size={20} /></button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Info size={20} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Phone size={20} />
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Video size={20} />
+          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <Info size={20} />
+          </button>
         </div>
       </div>
 
       {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {loading ? (
-          <div className="text-center text-gray-400 mt-10">Loading messages...</div>
+          <div className="text-center text-gray-400 mt-10">
+            Loading messages...
+          </div>
         ) : (
           messages.map((msg) => {
             const isMe = msg.sender?.senderId === myUserId;
             return (
-              <div key={msg.textId} className={`flex ${isMe ? "justify-end" : "justify-start"}`} style={{ marginBottom: "12px" }}>
-                <div className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${isMe ? "ml-auto" : "mr-auto"}`}>
+              <div
+                key={msg.textId}
+                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                style={{ marginBottom: "12px" }}
+              >
+                <div
+                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${
+                    isMe ? "ml-auto" : "mr-auto"
+                  }`}
+                >
                   {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
-                    <span className="ml-2 text-xs font-light opacity-70">{msg.sender.senderName}</span>
+                    <span className="ml-2 text-xs font-light opacity-70">
+                      {msg.sender.senderName}
+                    </span>
                   )}
-                  <div className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"}`}>
+                  <div
+                    className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
+                      isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"
+                    }`}
+                  >
                     <p className="text-sm wrap-break-word">{msg.text}</p>
                   </div>
-                  <span className={`text-[10px] mt-1 block ${isMe ? "text-blue-800 text-right" : "text-gray-800 text-left"}`}>
-                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) : ""}
+                  <span
+                    className={`text-[10px] mt-1 block ${
+                      isMe
+                        ? "text-blue-800 text-right"
+                        : "text-gray-800 text-left"
+                    }`}
+                  >
+                    {msg.createdAt
+                      ? new Date(msg.createdAt).toLocaleTimeString("id-ID", {
+                          hour: "2-digit",
+                          minute: "2-digit",
+                          hour12: false,
+                        })
+                      : ""}
                   </span>
                 </div>
               </div>
