@@ -26,6 +26,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  const [isOtherUserOnline, setIsOtherUserOnline] = useState<boolean>(false);
+  const [isMeMyId, setIsMyId] = useState<boolean>(false);
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
@@ -86,6 +88,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       });
     };
 
+    if (activeRoom.roomName === "Me") {
+      setIsMyId(true);
+    }
+    setIsOtherUserOnline(activeRoom.isOnline || false);
+
+    // --- C. Handle Online Indicator ---'
+    const handleUserOnline = (data: { userId: string }) => {
+      if (!activeRoom) return;
+      if (data.userId === myUserId) return; //abaikan diri sendiri
+      if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
+        setIsOtherUserOnline(true);
+      }
+    };
+
+    const handleUserOffline = (data: { userId: string }) => {
+      if (!activeRoom) return;
+      if (data.userId === myUserId) return; //abaikan diri sendiri
+      if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
+        setIsOtherUserOnline(false);
+      }
+    };
+
+    socketClient.on("user_online", handleUserOnline);
+    socketClient.on("user_offline", handleUserOffline);
+
+    // --- D. Typing Handlers ---
     const handleTypingStart = (data: {
       userId: string;
       userName: string;
@@ -221,12 +249,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             <h2 className="font-semibold text-gray-900 leading-tight">
               {activeRoom.roomName || "Unknown Room"}
             </h2>
-            {typingUsers.length > 0 ? (
+            {isMeMyId ? (
+              ""
+            ) : typingUsers.length > 0 ? (
               <span className="text-xs text-blue-500 font-medium animate-pulse">
                 {renderTypingText()}
               </span>
+            ) : isOtherUserOnline ? (
+              <span className="text-xs font-light text-green-600">Online</span>
             ) : (
-              <span className="text-xs text-green-500 font-medium">Online</span>
+              <span className="text-xs font-light text-gray-600">Offline</span>
             )}
           </div>
         </div>
