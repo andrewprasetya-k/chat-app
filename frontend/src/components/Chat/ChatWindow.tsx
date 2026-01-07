@@ -4,6 +4,8 @@ import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
 import { authService } from "@/services/features/auth.service";
 import { socketClient } from "@/services/api/socket.client";
+import { format } from "path";
+import { formatRelativeTime } from "@/utils/date.util";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
@@ -28,6 +30,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [isOtherUserOnline, setIsOtherUserOnline] = useState<boolean>(false);
   const [isMeMyId, setIsMyId] = useState<boolean>(false);
+  const [lastSeen, setLastSeen] = useState<String | null>(null);
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
@@ -102,11 +105,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       }
     };
 
-    const handleUserOffline = (data: { userId: string }) => {
+    const handleUserOffline = (data: { userId: string; lastSeen: Date }) => {
       if (!activeRoom) return;
       if (data.userId === myUserId) return; //abaikan diri sendiri
       if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
         setIsOtherUserOnline(false);
+        setLastSeen(formatRelativeTime(activeRoom.lastSeen?.toString()));
       }
     };
 
@@ -261,7 +265,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             ) : isOtherUserOnline ? (
               <span className="text-xs font-light text-green-600">Online</span>
             ) : (
-              <span className="text-xs font-light text-gray-600">Offline</span>
+              <span className="text-xs font-light text-gray-600">
+                Last seen {lastSeen || "unknown"}
+              </span>
             )}
           </div>
         </div>

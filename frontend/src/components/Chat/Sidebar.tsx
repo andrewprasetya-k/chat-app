@@ -11,6 +11,7 @@ import { useState, useEffect } from "react";
 import { ChatRoom } from "@/services/types";
 import { socketClient } from "@/services/api/socket.client";
 import { authService } from "@/services/features/auth.service";
+import { formatRelativeTime } from "@/utils/date.util";
 
 interface SidebarProps {
   rooms?: ChatRoom[];
@@ -226,14 +227,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 </h3>
                 <span className="text-xs text-gray-500">
                   {chat.lastMessageTime
-                    ? new Date(chat.lastMessageTime).toLocaleString("id-ID", {
-                        day: "2-digit",
-                        month: "2-digit",
-                        year: "2-digit",
-                        hour: "2-digit",
-                        minute: "2-digit",
-                        hour12: false,
-                      })
+                    ? formatRelativeTime(chat.lastMessageTime)
                     : ""}
                 </span>
               </div>
