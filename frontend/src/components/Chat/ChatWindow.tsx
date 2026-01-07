@@ -180,6 +180,45 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }, 1000);
   };
 
+  //effect 4: auto-mark as read messages
+  useEffect(() => {
+    // pastikan room aktif dan ada pesan
+    if (!activeRoom || messages.length === 0 || !myUserId) return;
+
+    // cari pesan yang belum dibaca dan bukan dari diri sendiri
+    const unreadMessageIds = messages.filter((msg) => {
+      const isMyMessage = msg.sender?.senderId === myUserId; //pesan dari diri sendiri
+      const isReadByMe = msg.readBy.some(
+        (reader) => reader.userId === myUserId
+      ); //sudah dibaca oleh diri sendiri
+      return !isMyMessage && !isReadByMe;
+    });
+
+    //kalau tidak ada pesan yang belum dibaca, hentikan proses
+    if (unreadMessageIds.length === 0) return;
+
+    // ambil ID pesan saja
+    const unreadMessageIdsStrings = unreadMessageIds.map((msg) => msg.textId);
+
+    // panggil API mark as read
+    chatService
+      .markAsRead(activeRoom.roomId, unreadMessageIdsStrings)
+      .catch((err) => console.error("Mark as read failed:", err));
+
+    // update state lokal untuk menandai pesan sudah dibaca
+    setMessages((prevMessages) => {
+      return prevMessages.map((msg) => {
+        if (unreadMessageIdsStrings.includes(msg.textId)) {
+          return {
+            ...msg,
+            readBy: [...msg.readBy, { userId: myUserId, userName: "Me" }],
+          };
+        }
+        return msg;
+      });
+    });
+  }, [messages, activeRoom?.roomId, myUserId]);
+
   /**
    * Mengirim pesan baru ke server via HTTP.
    * Respon akan otomatis ditambahkan ke UI lewat state lokal (atau via socket nantinya).
