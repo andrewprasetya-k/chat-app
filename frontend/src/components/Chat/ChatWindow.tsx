@@ -8,6 +8,7 @@ import { formatRelativeTime } from "@/utils/date.util";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
+  onlineUsers: Set<string>;
 }
 
 interface TypingUser {
@@ -21,13 +22,16 @@ interface TypingUser {
  * Menampilkan jendela percakapan aktif, menangani pengiriman pesan,
  * memuat riwayat pesan, dan mengelola indikator real-time (typing).
  */
-export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
+export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom, onlineUsers }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
-  const [isOtherUserOnline, setIsOtherUserOnline] = useState<boolean>(false);
+  const isOtherUserOnline = React.useMemo(() => {
+    if (!activeRoom || activeRoom.isGroup || !activeRoom.otherUserId) return false;
+    return onlineUsers.has(activeRoom.otherUserId);
+  }, [activeRoom, onlineUsers]);
   const [isMeMyId, setIsMyId] = useState<boolean>(false);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
 
@@ -93,15 +97,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     if (activeRoom.roomName === "Me") {
       setIsMyId(true);
     }
-    setIsOtherUserOnline(activeRoom.isOnline || false);
 
     // --- C. Handle Online Indicator ---'
     const handleUserOnline = (data: { userId: string }) => {
       if (!activeRoom) return;
       if (data.userId === myUserId) return; //abaikan diri sendiri
-      if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
-        setIsOtherUserOnline(true);
-      }
     };
 
     const handleUserOffline = (data: {
@@ -111,13 +111,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       if (!activeRoom) return;
       if (data.userId === myUserId) return; //abaikan diri sendiri
       if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
-        setIsOtherUserOnline(false);
         setLastSeen(formatRelativeTime(data.lastSeenAt));
       }
     };
-
-    socketClient.on("user_online", handleUserOnline);
-    socketClient.on("user_offline", handleUserOffline);
 
     // --- D. Typing Handlers ---
     const handleTypingStart = (data: {
@@ -166,8 +162,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       socketClient.off("new_message", handleNewMessage);
       socketClient.off("user_typing", handleTypingStart);
       socketClient.off("user_stopped_typing", handleTypingStop);
-      socketClient.off("user_online", handleUserOnline);
-      socketClient.off("user_offline", handleUserOffline);
       socketClient.emit("leave_room", roomId);
     };
   }, [activeRoom, myUserId]);

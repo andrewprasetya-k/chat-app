@@ -13,12 +13,25 @@ export default function DashboardPage() {
   const [rooms, setRooms] = useState<ChatRoom[]>([]);
   const [activeRoom, setActiveRoom] = useState<ChatRoom | null>(null);
   const [loading, setLoading] = useState<boolean>(true);
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
 
   //connect to web socket
   useEffect(() => {
     socketClient.connect();
 
     // DENGARKAN PESAN BARU UNTUK SIDEBAR (REAL-TIME)
+    const handleUserOnline = (data: { userId: string }) => {
+      setOnlineUsers((prev) => new Set(prev).add(data.userId));
+    };
+
+    const handleUserOffline = (data: { userId: string }) => {
+      setOnlineUsers((prev) => {
+        const updated = new Set(prev);
+        updated.delete(data.userId);
+        return updated;
+      });
+    };
+
     const handleNewMessageSidebar = (msg: any) => {
       setRooms((prevRooms) => {
         // 1. Update data room yang menerima pesan
@@ -37,17 +50,25 @@ export default function DashboardPage() {
 
         // 2. Sort ulang: Room dengan pesan terbaru naik ke paling atas
         return [...updatedRooms].sort((a, b) => {
-          const timeA = a.lastMessageTime ? new Date(a.lastMessageTime).getTime() : 0;
-          const timeB = b.lastMessageTime ? new Date(b.lastMessageTime).getTime() : 0;
+          const timeA = a.lastMessageTime
+            ? new Date(a.lastMessageTime).getTime()
+            : 0;
+          const timeB = b.lastMessageTime
+            ? new Date(b.lastMessageTime).getTime()
+            : 0;
           return timeB - timeA;
         });
       });
     };
 
     socketClient.on("new_message", handleNewMessageSidebar);
+    socketClient.on("user_online", handleUserOnline);
+    socketClient.on("user_offline", handleUserOffline);
 
     return () => {
       socketClient.off("new_message", handleNewMessageSidebar);
+      socketClient.off("user_online", handleUserOnline);
+      socketClient.off("user_offline", handleUserOffline);
       socketClient.disconnect(); //disconnect ketika pindah halaman
     };
   }, []);
@@ -61,6 +82,16 @@ export default function DashboardPage() {
         if (activeRoom.length > 0) {
           setActiveRoom(activeRoom[0]); //ini set room pertama sebagai room aktif
         }
+        //mengisi
+        setOnlineUsers((prevOnline) => {
+          const initialOnline = new Set<string>();
+          activeRoom.forEach((room) => {
+            if (room.isOnline && room.otherUserId) {
+              initialOnline.add(room.otherUserId);
+            }
+          });
+          return initialOnline;
+        });
       } catch (error: any) {
         console.error("Failed to fetch chat rooms:", error);
       } finally {
@@ -86,10 +117,11 @@ export default function DashboardPage() {
             setActiveRoom(selectedRoomId);
           }
         }}
+        onlineUsers={onlineUsers}
       />
 
       {/* Main Chat Window - Right Section */}
-      <ChatWindow activeRoom={activeRoom} />
+      <ChatWindow activeRoom={activeRoom} onlineUsers={onlineUsers} />
     </DashboardLayout>
   );
 }
