@@ -9,12 +9,17 @@ interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
 }
 
+interface TypingUser {
+  userId: string;
+  userName: string;
+}
+
 export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
-  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null); //auto-scroll ke bawah
 
@@ -53,8 +58,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         return;
       }
       setTypingUsers((prev) => {
-        if (!prev.includes(userName)) {
-          return [...prev, userName];
+        // Cek berdasarkan userId agar unik
+        if (!prev.find((u) => u.userId === userId)) {
+          return [...prev, { userId, userName: userName || "Someone" }];
         }
         return prev;
       });
@@ -68,7 +74,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       roomId: string;
     }) => {
       if (roomId !== activeRoom?.roomId) return;
-      setTypingUsers((prev) => prev.filter((id) => id !== userId));
+      // Filter berdasarkan properti userId di dalam object
+      setTypingUsers((prev) => prev.filter((u) => u.userId !== userId));
     };
 
     socketClient.on("user_typing", handleTypingStart);
@@ -187,6 +194,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       </div>
     );
   }
+  // helper typing indicator
+  const renderTypingText = () => {
+    if (typingUsers.length === 0) return null;
+    if (typingUsers.length === 1)
+      return `${typingUsers[0].userName} is typing...`;
+    if (typingUsers.length >= 2)
+      return `${typingUsers.map((u) => u.userName)} are typing...`;
+    return `${typingUsers[0].userName} and others are typing...`;
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
@@ -201,9 +218,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             </h2>
             {typingUsers.length > 0 ? (
               <span className="text-xs text-blue-500 font-medium animate-pulse">
-                {activeRoom.isGroup
-                  ? `${typingUsers.map((user) => )} is typing...`
-                  : "typing..."}
+                {renderTypingText()}
               </span>
             ) : (
               <span className="text-xs text-green-500 font-medium">Online</span>
