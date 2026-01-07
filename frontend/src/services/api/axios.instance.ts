@@ -9,10 +9,25 @@ const api = axios.create({
   withCredentials: true, // Enable cookies
 });
 
+let isRefreshing = false;
+
+let failedQueue: any[] = [];
+
+const processQueue = (error: any, token: string | null = null) => {
+  failedQueue.forEach((prom) => {
+    if (error) {
+      prom.reject(error);
+    } else {
+      prom.resolve(token);
+    }
+  });
+
+  failedQueue = [];
+};
+
 api.interceptors.request.use(
   (config) => {
-    // No need to inject Authorization header manually
-    // Cookies are sent automatically via withCredentials: true
+    // token akan fetch dari cookie oleh browser secara otomatis
     return config;
   },
   (error) => {
@@ -25,25 +40,43 @@ api.interceptors.response.use(
   async (error) => {
     const originalRequest = error.config;
 
-    // Jika 401 dan belum pernah dicoba retry
+    // Jika 401 dan bukan request refresh itu sendiri
     if (
       error.response &&
       error.response.status === 401 &&
-      !originalRequest._retry
+      !originalRequest._retry &&
+      originalRequest.url !== "/auth/refresh"
     ) {
+      if (isRefreshing) {
+        // Jika sedang refresh, masukkan ke queue
+        return new Promise(function (resolve, reject) {
+          failedQueue.push({ resolve, reject });
+        })
+          .then(() => {
+            return api(originalRequest);
+          })
+          .catch((err) => {
+            return Promise.reject(err);
+          });
+      }
+
       originalRequest._retry = true;
+      isRefreshing = true;
 
       try {
         // Coba refresh token (backend update cookie access_token)
         await api.post("/auth/refresh");
-
-        // Retry request asli (browser akan otomatis kirim cookie baru)
+        processQueue(null);
         return api(originalRequest);
       } catch (refreshError) {
+        processQueue(refreshError, null);
         // Jika refresh gagal, redirect ke login
         if (typeof window !== "undefined") {
           window.location.href = "/login";
         }
+        return Promise.reject(refreshError);
+      } finally {
+        isRefreshing = false;
       }
     }
     return Promise.reject(error);
