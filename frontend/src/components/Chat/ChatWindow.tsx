@@ -1,5 +1,14 @@
 import React, { act, use, useEffect, useState } from "react";
-import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
+import {
+  Send,
+  Smile,
+  Paperclip,
+  Phone,
+  Video,
+  Info,
+  Check,
+  CheckCheck,
+} from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
 import { authService } from "@/services/features/auth.service";
@@ -345,13 +354,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         : "text-gray-800 text-left"
                     }`}
                   >
-                    {msg.createdAt
-                      ? new Date(msg.createdAt).toLocaleTimeString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        })
-                      : ""}
+                    <span
+                      className={`flex items-center gap-1 ${
+                        isMe ? "justify-end" : "justify-start"
+                      }`}
+                    >
+                      {isMe && msg.readBy.length > 0 && (
+                        <span className="text-blue-200">
+                          <CheckCheck size={12} />
+                        </span>
+                      )}
+                      {msg.createdAt
+                        ? new Date(msg.createdAt).toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                            hour12: false,
+                          })
+                        : ""}
+                    </span>
                   </span>
                 </div>
               </div>
