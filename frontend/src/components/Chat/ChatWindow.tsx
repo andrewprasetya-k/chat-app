@@ -14,173 +14,156 @@ interface TypingUser {
   userName: string;
 }
 
+/**
+ * ChatWindow Component
+ * -------------------
+ * Menampilkan jendela percakapan aktif, menangani pengiriman pesan,
+ * memuat riwayat pesan, dan mengelola indikator real-time (typing).
+ */
 export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputText, setInputText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
+  
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null);
-  const messagesEndRef = React.useRef<HTMLDivElement | null>(null); //auto-scroll ke bawah
+  const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
 
-  //fetch user yang sedang login
+  /**
+   * EFFECT 1: Initial Setup
+   * Berjalan sekali saat komponen dimount untuk mengambil profil user yang login.
+   */
   useEffect(() => {
-    const fetchProfile = async () => {
+    const initProfile = async () => {
       try {
         const user: any = await authService.getProfile();
-        // Jika data yang datang adalah array [user], ambil elemen pertamanya
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
-
-        if (actualId) {
-          console.log("My User ID:", actualId); // Debug ID saya
-          setMyUserId(actualId);
-        }
+        if (actualId) setMyUserId(actualId);
       } catch (error) {
-        console.error("Failed to fetch user ID:", error);
+        console.error("Initialization failed:", error);
       }
     };
-    fetchProfile();
+    initProfile();
   }, []);
 
-  //web scocket connection
+  /**
+   * EFFECT 2: Room Lifecycle (Data & WebSocket)
+   * Mengatur semua kebutuhan saat pindah room:
+   * 1. Ambil riwayat pesan (HTTP)
+   * 2. Join room WebSocket
+   * 3. Pasang listeners (New Message, Typing)
+   * 4. Cleanup saat pindah room/unmount
+   */
   useEffect(() => {
-    const handleTypingStart = ({
-      userId,
-      userName,
-      roomId,
-    }: {
-      userId: string;
-      userName: string;
-      roomId: string;
-    }) => {
-      // Pastikan event untuk room yang aktif dan bukan diri sendiri
-      if (roomId !== activeRoom?.roomId || userId === myUserId) {
-        return;
-      }
-      setTypingUsers((prev) => {
-        // Cek berdasarkan userId agar unik
-        if (!prev.find((u) => u.userId === userId)) {
-          return [...prev, { userId, userName: userName || "Someone" }];
-        }
-        return prev;
-      });
-    };
+    if (!activeRoom) return;
 
-    const handleTypingStop = ({
-      userId,
-      roomId,
-    }: {
-      userId: string;
-      roomId: string;
-    }) => {
-      if (roomId !== activeRoom?.roomId) return;
-      // Filter berdasarkan properti userId di dalam object
-      setTypingUsers((prev) => prev.filter((u) => u.userId !== userId));
-    };
+    const roomId = activeRoom.roomId;
 
-    socketClient.on("user_typing", handleTypingStart);
-    socketClient.on("user_stopped_typing", handleTypingStop);
-
-    // --- Pemisahan logic Join Room ---
-    if (activeRoom) {
-      setTypingUsers([]); // Reset list saat ganti room
-      socketClient.emit("join_room", activeRoom.roomId);
-    }
-
-    //dengarkan event pesan baru
-    const handleNewMessage = (newMessage: ChatMessage) => {
-      if (activeRoom && newMessage.roomId !== activeRoom.roomId) {
-        return;
-      }
-
-      setMessages((prevMessages) => {
-        const isMessageExist = prevMessages.some(
-          (msg) => msg.textId === newMessage.textId
-        );
-        if (isMessageExist) {
-          return prevMessages;
-        }
-        return [...prevMessages, newMessage];
-      });
-    };
-    socketClient.on("new_message", handleNewMessage);
-
-    return () => {
-      socketClient.off("new_message", handleNewMessage);
-      socketClient.off("user_typing", handleTypingStart);
-      socketClient.off("user_stopped_typing", handleTypingStop);
-    };
-  }, [activeRoom, myUserId]); // Tambahkan myUserId ke dependency agar perbandingan isMe akurat
-
-  //fetch messages ketika activeRoom berubah
-  useEffect(() => {
-    // Fetch messages when activeRoom changes
+    // --- A. Fetch Messages ---
     const fetchMessages = async () => {
-      if (!activeRoom) return;
       setLoading(true);
       try {
-        const fetchedMessages = await chatService.getMessages(
-          activeRoom.roomId
-        );
-        setMessages(fetchedMessages);
-      } catch (error) {
-        console.error("Failed to fetch messages:", error);
+        const fetched = await chatService.getMessages(roomId);
+        setMessages(fetched);
+      } catch (err) {
+        console.error("Load messages failed:", err);
       } finally {
         setLoading(false);
       }
     };
     fetchMessages();
-  }, [activeRoom]);
 
-  // Auto-scroll ke bawah ketika messages berubah
+    // --- B. WebSocket Event Handlers ---
+    const handleNewMessage = (msg: ChatMessage) => {
+      // Filter: Hanya terima pesan untuk room yang sedang aktif
+      if (msg.roomId !== roomId) return;
+      
+      setMessages((prev) => {
+        if (prev.some(m => m.textId === msg.textId)) return prev;
+        return [...prev, msg];
+      });
+    };
+
+    const handleTypingStart = (data: { userId: string; userName: string; roomId: string }) => {
+      if (data.roomId !== roomId || data.userId === myUserId) return;
+      setTypingUsers((prev) => {
+        if (prev.find(u => u.userId === data.userId)) return prev;
+        return [...prev, { userId: data.userId, userName: data.userName || "Someone" }];
+      });
+    };
+
+    const handleTypingStop = (data: { userId: string; roomId: string }) => {
+      if (data.roomId !== roomId) return;
+      setTypingUsers((prev) => prev.filter(u => u.userId !== data.userId));
+    };
+
+    // --- C. Register Listeners & Join ---
+    socketClient.emit("join_room", roomId);
+    socketClient.on("new_message", handleNewMessage);
+    socketClient.on("user_typing", handleTypingStart);
+    socketClient.on("user_stopped_typing", handleTypingStop);
+
+    // --- D. Cleanup ---
+    return () => {
+      setMessages([]); // Reset messages UI
+      setTypingUsers([]); // Reset typing indicator
+      socketClient.off("new_message", handleNewMessage);
+      socketClient.off("user_typing", handleTypingStart);
+      socketClient.off("user_stopped_typing", handleTypingStop);
+    };
+  }, [activeRoom, myUserId]);
+
+  /**
+   * EFFECT 3: Auto-scroll
+   * Memastikan window selalu scroll ke bawah setiap ada pesan baru.
+   */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
+  /**
+   * Menangani perubahan input teks dan mengirim sinyal typing ke server.
+   */
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
     setInputText(value);
 
-    // Handle typing indicator
     if (!activeRoom) return;
+
+    // Emit typing signal
     socketClient.emit("typing_start", activeRoom.roomId);
 
-    // Reset timeout
-    if (typingTimeout.current) {
-      clearTimeout(typingTimeout.current);
-    }
-
-    // stop typing setelah 500ms tidak mengetik
+    // Debounce: Kirim typing_stop jika tidak ada aktivitas selama 2 detik
+    if (typingTimeout.current) clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
       socketClient.emit("typing_stop", activeRoom.roomId);
-    }, 500);
+    }, 2000);
   };
 
-  //handle kirim chat
+  /**
+   * Mengirim pesan baru ke server via HTTP.
+   * Respon akan otomatis ditambahkan ke UI lewat state lokal (atau via socket nantinya).
+   */
   const handleSendMessage = async () => {
-    if (!activeRoom || inputText.trim() === "") return;
+    if (!activeRoom || !inputText.trim()) return;
+    
     try {
-      const temptText = inputText;
-      setInputText("");
-      const newMessage = await chatService.sendMessage(
-        activeRoom.roomId,
-        temptText
-      );
-      setMessages((prevMessages) => {
-        const isMessageExist = prevMessages.some(
-          (msg) => msg.textId === newMessage.textId
-        );
-        if (isMessageExist) {
-          return prevMessages; // Jangan tambahkan pesan duplikat
-        }
-        return [...prevMessages, newMessage];
+      const text = inputText;
+      setInputText(""); // Clear input segera (Optimistic UI)
+      
+      const newMessage = await chatService.sendMessage(activeRoom.roomId, text);
+      
+      // Tambahkan ke state jika belum ada (antisipasi broadcast socket)
+      setMessages((prev) => {
+        if (prev.some(m => m.textId === newMessage.textId)) return prev;
+        return [...prev, newMessage];
       });
     } catch (error) {
-      console.error("Failed to send message:", error);
+      console.error("Send failed:", error);
     }
   };
 
-  //kirim chat ketika tekan enter
   const handleInputKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter") {
       e.preventDefault();
@@ -188,30 +171,28 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     }
   };
 
+  const renderTypingText = () => {
+    if (typingUsers.length === 0) return null;
+    if (typingUsers.length === 1) return `${typingUsers[0].userName} is typing...`;
+    if (typingUsers.length === 2) return `${typingUsers[0].userName} & ${typingUsers[1].userName} are typing...`;
+    return `${typingUsers[0].userName} and others are typing...`;
+  };
+
   if (!activeRoom) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full bg-white">
-        <p className="text-gray-500">Select a chat room to start messaging</p>
+      <div className="flex-1 flex items-center justify-center h-full bg-white text-gray-500">
+        Select a chat room to start messaging
       </div>
     );
   }
-  // helper typing indicator
-  const renderTypingText = () => {
-    if (typingUsers.length === 0) return null;
-    if (typingUsers.length === 1)
-      return `${typingUsers[0].userName} is typing...`;
-    if (typingUsers.length >= 2)
-      return `${typingUsers.map((u) => u.userName)} are typing...`;
-    return `${typingUsers[0].userName} and others are typing...`;
-  };
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-4 h-18.25 shrink-0  border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10">
+      <div className="p-4 h-18.25 shrink-0 border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold uppercase">
-            {activeRoom.roomName ? activeRoom.roomName.substring(0, 2) : "??"}
+            {activeRoom.roomName?.substring(0, 2) || "??"}
           </div>
           <div>
             <h2 className="font-semibold text-gray-900 leading-tight">
@@ -227,66 +208,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
           </div>
         </div>
         <div className="flex items-center gap-1 text-gray-400">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Phone size={20} />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Video size={20} />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Info size={20} />
-          </button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Phone size={20} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Video size={20} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><Info size={20} /></button>
         </div>
       </div>
 
-      {/* Messages */}
+      {/* Messages List */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {loading ? (
-          <div className="text-center text-gray-400 mt-10">
-            Loading messages..
-          </div>
+          <div className="text-center text-gray-400 mt-10">Loading messages...</div>
         ) : (
           messages.map((msg) => {
             const isMe = msg.sender?.senderId === myUserId;
             return (
-              <div
-                key={msg.textId}
-                className={`flex ${
-                  isMe ? "justify-end" : "justify-start"
-                } space-y-0`}
-                style={{ marginBottom: "12px" }} // tambahkan jarak antar bubble lebih kecil
-              >
-                <div
-                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${
-                    isMe ? "ml-auto" : "mr-auto"
-                  }`}
-                >
+              <div key={msg.textId} className={`flex ${isMe ? "justify-end" : "justify-start"}`} style={{ marginBottom: "12px" }}>
+                <div className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${isMe ? "ml-auto" : "mr-auto"}`}>
                   {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
-                    <span className="ml-2 text-xs font-light opacity-70">
-                      {msg.sender.senderName}
-                    </span>
+                    <span className="ml-2 text-xs font-light opacity-70">{msg.sender.senderName}</span>
                   )}
-                  <div
-                    className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
-                      isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"
-                    }`}
-                  >
+                  <div className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"}`}>
                     <p className="text-sm wrap-break-word">{msg.text}</p>
                   </div>
-                  <span
-                    className={`text-[10px] mt-1 block  ${
-                      isMe
-                        ? "text-blue-800 text-right"
-                        : "text-gray-800 text-left"
-                    }`}
-                  >
-                    {msg.createdAt
-                      ? new Date(msg.createdAt).toLocaleTimeString("id-ID", {
-                          hour: "2-digit",
-                          minute: "2-digit",
-                          hour12: false,
-                        })
-                      : ""}
+                  <span className={`text-[10px] mt-1 block ${isMe ? "text-blue-800 text-right" : "text-gray-800 text-left"}`}>
+                    {msg.createdAt ? new Date(msg.createdAt).toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", hour12: false }) : ""}
                   </span>
                 </div>
               </div>
@@ -299,9 +244,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       {/* Input Area */}
       <div className="p-4">
         <div className="flex items-center gap-2 mx-auto">
-          {/* <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
-            <Paperclip size={22} />
-          </button> */}
           <div className="flex-1 relative">
             <input
               type="text"
@@ -309,16 +251,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-xl wrap-break-word text-sm focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-xl text-sm focus:ring-1 focus:ring-blue-500 transition-all"
             />
-            {/* <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600">
-              <Smile size={20} />
-            </button> */}
           </div>
           <button
             onClick={handleSendMessage}
             disabled={!inputText.trim()}
-            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50"
           >
             <Send size={20} />
           </button>
