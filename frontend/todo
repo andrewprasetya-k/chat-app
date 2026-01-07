@@ -1,11 +1,9 @@
 kadang chat real time muncul di chat room lain sampai di reload baru mucnul di halaman yang seharusnya
 unread message blm ada (harus websocket juga ya)
-keterangan waktu kirimnya di bubble chat
 online indicator
 typing indicator
 cari user lain (buat kayak telegram aja sih)
 yesterday, today, 10m ago
 read receipt
-group bubble chat
 status ketersimpanan pesan? (centang 1, centang 2, centang biru)
 unsend message
