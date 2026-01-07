@@ -160,6 +160,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       socketClient.off("new_message", handleNewMessage);
       socketClient.off("user_typing", handleTypingStart);
       socketClient.off("user_stopped_typing", handleTypingStop);
+      socketClient.off("user_online", handleUserOnline);
+      socketClient.off("user_offline", handleUserOffline);
+      socketClient.emit("leave_room", roomId);
     };
   }, [activeRoom, myUserId]);
 
