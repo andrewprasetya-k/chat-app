@@ -1,4 +1,4 @@
-import React, { use, useEffect, useState } from "react";
+import React, { act, use, useEffect, useState } from "react";
 import { Send, Smile, Paperclip, Phone, Video, Info } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
@@ -14,6 +14,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [inputText, setInputText] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [myUserId, setMyUserId] = useState<string>("");
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const typingTimeout = React.useRef<NodeJS.Timeout | null>(null);
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null); //auto-scroll ke bawah
 
   //fetch user yang sedang login
@@ -36,6 +38,38 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
 
   //web scocket connection
   useEffect(() => {
+    setTypingUsers([]); // Reset typing users when room changes
+
+    const handleTypingStart = ({
+      userId,
+      roomId,
+    }: {
+      userId: string;
+      roomId: string;
+    }) => {
+      // Pastikan event untuk room yang aktif dan bukan diri sendiri
+      if (roomId !== activeRoom?.roomId || userId === myUserId) return;
+      setTypingUsers((prev) => {
+        if (!prev.includes(userId)) {
+          return [...prev, userId];
+        }
+        return prev;
+      });
+    };
+
+    const handleTypingStop = ({
+      userId,
+      roomId,
+    }: {
+      userId: string;
+      roomId: string;
+    }) => {
+      if (roomId !== activeRoom?.roomId) return;
+      setTypingUsers((prev) => prev.filter((id) => id !== userId));
+    };
+
+    socketClient.on("user_typing", handleTypingStart);
+    socketClient.on("user_stopped_typing", handleTypingStop);
     if (!activeRoom) return;
 
     //masuk ke room
@@ -65,6 +99,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     return () => {
       //bersihkan listener ketika komponen di unmount atau activeRoom berubah
       socketClient.off("new_message", handleNewMessage);
+
+      socketClient.off("user_typing", handleTypingStart);
+      socketClient.off("user_stopped_typing", handleTypingStop);
     };
   }, [activeRoom]);
 
@@ -92,6 +129,24 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setInputText(value);
+
+    // Handle typing indicator
+    if (!activeRoom) return;
+    socketClient.emit("typing_start", activeRoom.roomId);
+
+    // Reset timeout
+    if (typingTimeout.current) {
+      clearTimeout(typingTimeout.current);
+    }
+
+    typingTimeout.current = setTimeout(() => {
+      socketClient.emit("typing_stop", activeRoom.roomId);
+    }, 2000);
+  };
 
   //handle kirim chat
   const handleSendMessage = async () => {
@@ -144,7 +199,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             <h2 className="font-semibold text-gray-900 leading-tight">
               {activeRoom.roomName || "Unknown Room"}
             </h2>
-            <span className="text-xs text-green-500 font-medium">Online</span>
+            {typingUsers.length > 0 ? (
+              <span className="text-xs text-green-500 font-medium">
+                {typingUsers.length === 1
+                  ? "Someone is typing..."
+                  : "Multiple people are typing..."}
+              </span>
+            ) : (
+              <span className="text-xs text-green-500 font-medium">Online</span>
+            )}
           </div>
         </div>
         <div className="flex items-center gap-1 text-gray-400">
@@ -228,7 +291,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
               type="text"
               placeholder="Type a message..."
               value={inputText}
-              onChange={(e) => setInputText(e.target.value)}
+              onChange={handleInputChange}
               onKeyDown={handleInputKeyPress}
               className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-xl wrap-break-word text-sm focus:ring-1 focus:ring-blue-500 transition-all"
             />
