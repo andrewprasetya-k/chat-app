@@ -197,10 +197,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <div className="relative">
               <div
-                className={`w-12 h-12 rounded-full flex items-center justify-center font-bold ${
+                className={`w-12 h-12 flex items-center justify-center font-bold ${
                   chat.isGroup
-                    ? "bg-indigo-100 text-indigo-600"
-                    : "bg-gray-200 text-gray-600"
+                    ? "rounded-xl bg-indigo-100 text-indigo-600" // Group: Rounded Square
+                    : "rounded-full bg-gray-200 text-gray-600"   // Personal: Circle
                 }`}
               >
                 {chat.roomName.split(" ").length > 1
@@ -209,15 +209,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`.toUpperCase()
                   : chat.roomName.substring(0, 2).toUpperCase()}
               </div>
-              {!chat.isGroup &&
-                chat.otherUserId &&
-                onlineUsers.has(chat.otherUserId) && (
-                  <div
-                    className={
-                      "absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full bg-green-500"
-                    }
-                  ></div>
-                )}
+              {/* Indikator Online (Hanya untuk personal chat dan bukan room "Me") */}
+              {!chat.isGroup && chat.roomName !== "Me" && (
+                <div
+                  className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
+                    chat.otherUserId && onlineUsers.has(chat.otherUserId)
+                      ? "bg-green-500" // Online
+                      : "bg-gray-400"  // Offline
+                  }`}
+                ></div>
+              )}
             </div>
 
             <div className="flex-1 min-w-0">
