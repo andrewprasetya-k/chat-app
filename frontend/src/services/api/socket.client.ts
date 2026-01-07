@@ -7,6 +7,9 @@ class SocketClient {
       withCredentials: true, // PENTING: Agar cookie dikirim saat handshake
       transports: ["websocket"],
       autoConnect: true,
+      reconnection: true,
+      reconnectionAttempts: 10,
+      reconnectionDelay: 1000,
     }
   );
 
