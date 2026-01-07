@@ -41,19 +41,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   useEffect(() => {
     const handleTypingStart = ({
       userId,
+      userName,
       roomId,
     }: {
       userId: string;
+      userName: string;
       roomId: string;
     }) => {
-      console.log("Typing Start Event Received:", { userId, roomId, myUserId, activeRoomId: activeRoom?.roomId });
       // Pastikan event untuk room yang aktif dan bukan diri sendiri
       if (roomId !== activeRoom?.roomId || userId === myUserId) {
         return;
       }
       setTypingUsers((prev) => {
-        if (!prev.includes(userId)) {
-          return [...prev, userId];
+        if (!prev.includes(userName)) {
+          return [...prev, userName];
         }
         return prev;
       });
@@ -200,7 +201,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
             </h2>
             {typingUsers.length > 0 ? (
               <span className="text-xs text-blue-500 font-medium animate-pulse">
-                {activeRoom.isGroup ? "Someone is typing..." : "typing..."}
+                {activeRoom.isGroup
+                  ? `${typingUsers.map((user) => )} is typing...`
+                  : "typing..."}
               </span>
             ) : (
               <span className="text-xs text-green-500 font-medium">Online</span>

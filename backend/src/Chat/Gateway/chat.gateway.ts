@@ -39,7 +39,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         // Coba ambil token dari cookie jika tidak ada di header
         const cookies = client.handshake.headers.cookie.split(';');
 
-        const tokenCookie = cookies.find((c) => c.trim().startsWith('access_token='));
+        const tokenCookie = cookies.find((c) =>
+          c.trim().startsWith('access_token='),
+        );
         if (tokenCookie) {
           token = tokenCookie.split('=')[1];
         }
@@ -62,7 +64,14 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Simpan user ID di socket instance agar mudah diakses
       client.data.userId = payload.sub;
-      console.log(`Client connected: ${client.id} (User: ${payload.sub})`);
+
+      // Ambil data user untuk mendapatkan nama
+      const user = await this.userService.findByIdForAuth(payload.sub);
+      if (user) {
+        client.data.userName = user.usr_nama_lengkap;
+      }
+
+      console.log(`Client connected: ${client.id} (User: ${payload.sub}, Name: ${client.data.userName})`);
 
       // Supaya real-time sidebar jalan (untuk last message)
       const { data: userRooms } = await this.chatSharedService['supabase']
@@ -162,6 +171,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     // client.to(...) artinya kirim ke semua KECUALI pengirim
     client.to(`room_${roomId}`).emit('user_typing', {
       userId: client.data.userId,
+      userName: client.data.userName,
       roomId: roomId,
     });
   }

@@ -18,7 +18,7 @@ const processQueue = (error: any, token: string | null = null) => {
     if (error) {
       prom.reject(error);
     } else {
-      prom.resolve(token);
+    prom.resolve(token);
     }
   });
 
