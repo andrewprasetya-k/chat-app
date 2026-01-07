@@ -8,7 +8,7 @@ export const formatRelativeTime = (
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
   if (diffInSeconds < 60) {
-    return "Just now"; // Kurang dari 1 menit
+    return "just now"; // Kurang dari 1 menit
   } else if (diffInSeconds < 3600) {
     const minutes = Math.floor(diffInSeconds / 60);
     return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`; // Kurang dari 1 jam

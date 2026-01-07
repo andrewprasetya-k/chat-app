@@ -4,7 +4,6 @@ import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
 import { authService } from "@/services/features/auth.service";
 import { socketClient } from "@/services/api/socket.client";
-import { format } from "path";
 import { formatRelativeTime } from "@/utils/date.util";
 
 interface ChatWindowProps {
@@ -30,7 +29,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   const [typingUsers, setTypingUsers] = useState<TypingUser[]>([]);
   const [isOtherUserOnline, setIsOtherUserOnline] = useState<boolean>(false);
   const [isMeMyId, setIsMyId] = useState<boolean>(false);
-  const [lastSeen, setLastSeen] = useState<String | null>(null);
+  const [lastSeen, setLastSeen] = useState<string | null>(null);
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
@@ -90,7 +89,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         return [...prev, msg];
       });
     };
-
+    setLastSeen(formatRelativeTime(activeRoom.lastSeen) || null);
     if (activeRoom.roomName === "Me") {
       setIsMyId(true);
     }
@@ -105,12 +104,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       }
     };
 
-    const handleUserOffline = (data: { userId: string; lastSeen: Date }) => {
+    const handleUserOffline = (data: {
+      userId: string;
+      lastSeenAt: string;
+    }) => {
       if (!activeRoom) return;
       if (data.userId === myUserId) return; //abaikan diri sendiri
       if (!activeRoom.isGroup && activeRoom.otherUserId === data.userId) {
         setIsOtherUserOnline(false);
-        setLastSeen(formatRelativeTime(activeRoom.lastSeen?.toString()));
+        setLastSeen(formatRelativeTime(data.lastSeenAt));
       }
     };
 
