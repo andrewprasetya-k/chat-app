@@ -20,6 +20,11 @@ export default function DashboardPage() {
   // Refs untuk mengatasi stale closure di dalam socket listeners
   const activeRoomRef = useRef<ChatRoom | null>(null);
   const myIdRef = useRef<string>("");
+  const roomsRef = useRef<ChatRoom[]>(rooms);
+
+  useEffect(() => {
+    roomsRef.current = rooms;
+  }, [rooms]);
 
   useEffect(() => {
     activeRoomRef.current = activeRoom;
@@ -32,6 +37,12 @@ export default function DashboardPage() {
   // Connect to web socket & Listeners
   useEffect(() => {
     socketClient.connect();
+    socketClient.on("connect", () => {
+      console.log("Reconnected with socket ID, rejoining rooms...");
+      roomsRef.current.forEach((room) => {
+        socketClient.emit("join_room", room.roomId);
+      });
+    });
 
     // Handler: User Online
     const handleUserOnline = (data: { userId: string }) => {
@@ -53,9 +64,10 @@ export default function DashboardPage() {
         const updatedRooms = prevRooms.map((room) => {
           if (room.roomId === msg.roomId) {
             // Gunakan Ref untuk data terbaru
-            const isCurrentActiveRoom = activeRoomRef.current?.roomId === room.roomId;
+            const isCurrentActiveRoom =
+              activeRoomRef.current?.roomId === room.roomId;
             const isSenderMe = msg.sender?.senderId === myIdRef.current;
-            
+
             let newCount = room.unreadCount || 0;
             // Tambah unread count jika: BUKAN room aktif DAN BUKAN saya pengirimnya
             if (!isCurrentActiveRoom && !isSenderMe) {
@@ -113,6 +125,7 @@ export default function DashboardPage() {
 
     // Cleanup
     return () => {
+      socketClient.off("connect");
       socketClient.off("new_message", handleNewMessageSidebar);
       socketClient.off("messages_read_update", handleReadMessage);
       socketClient.off("user_online", handleUserOnline);
