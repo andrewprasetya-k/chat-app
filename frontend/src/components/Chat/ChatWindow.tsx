@@ -43,6 +43,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
 
     //dengarkan event pesan baru, apabila ada pesan baru, tambahkan ke state messages
     const handleNewMessage = (newMessage: ChatMessage) => {
+      // Pastikan pesan yang diterima adalah untuk room yang sedang aktif
+      if (newMessage.roomId !== activeRoom.roomId) {
+        return;
+      }
+
       setMessages((prevMessages) => {
         //cek duplikat pesan
         const isMessageExist = prevMessages.some(

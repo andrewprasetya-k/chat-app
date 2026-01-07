@@ -25,7 +25,8 @@ export interface ChatRoom {
 // --- 3. Chat Message ---
 // Sesuai dengan MessageDetailEntity di backend
 export interface ChatMessage {
-  textId: string; // Backend menggunakan textId sebagai primary identifier pesan
+  textId: string; 
+  roomId: string; 
   text: string;
   createdAt: string;
   sender: {
