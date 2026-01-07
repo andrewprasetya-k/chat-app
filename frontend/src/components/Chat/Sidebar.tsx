@@ -75,7 +75,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
       typingTimeoutsRef.current[timeoutKey] = setTimeout(() => {
         handleStopTypingStatus({ userId, userName, roomId });
-      }, 500);
+      }, 1000);
     };
 
     socketClient.on("user_typing", handleTypingStatus);

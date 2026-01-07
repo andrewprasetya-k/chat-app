@@ -138,7 +138,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
     if (typingTimeout.current) clearTimeout(typingTimeout.current);
     typingTimeout.current = setTimeout(() => {
       socketClient.emit("typing_stop", activeRoom.roomId);
-    }, 2000);
+    }, 1000);
   };
 
   /**
