@@ -131,7 +131,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
-      <div className="p-4 h-18.25 shrink-0 border-b border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10">
+      <div className="p-4 h-18.25 shrink-0  border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold uppercase">
             {activeRoom.roomName ? activeRoom.roomName.substring(0, 2) : "??"}
@@ -209,11 +209,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       </div>
 
       {/* Input Area */}
-      <div className="p-4 bg-white border-t border-gray-200">
-        <div className="flex items-center gap-2 max-w-4xl mx-auto">
-          <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
+      <div className="p-4">
+        <div className="flex items-center gap-2 mx-auto">
+          {/* <button className="p-2 text-gray-400 hover:text-blue-600 transition-colors">
             <Paperclip size={22} />
-          </button>
+          </button> */}
           <div className="flex-1 relative">
             <input
               type="text"
@@ -221,16 +221,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
               value={inputText}
               onChange={(e) => setInputText(e.target.value)}
               onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-10 py-3 bg-gray-100 border-none rounded-xl text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+              className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-xl wrap-break-word text-sm focus:ring-1 focus:ring-blue-500 transition-all"
             />
-            <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600">
+            {/* <button className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-blue-600">
               <Smile size={20} />
-            </button>
+            </button> */}
           </div>
           <button
             onClick={handleSendMessage}
             disabled={!inputText.trim()}
-            className="p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed"
           >
             <Send size={20} />
           </button>
