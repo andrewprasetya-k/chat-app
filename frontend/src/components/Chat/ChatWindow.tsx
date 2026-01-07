@@ -27,6 +27,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
 
         if (actualId) {
+          console.log("My User ID:", actualId); // Debug ID saya
           setMyUserId(actualId);
         }
       } catch (error) {
@@ -38,8 +39,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
 
   //web scocket connection
   useEffect(() => {
-    setTypingUsers([]); // Reset typing users when room changes
-
     const handleTypingStart = ({
       userId,
       roomId,
@@ -47,8 +46,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
       userId: string;
       roomId: string;
     }) => {
+      console.log("Typing Start Event Received:", { userId, roomId, myUserId, activeRoomId: activeRoom?.roomId });
       // Pastikan event untuk room yang aktif dan bukan diri sendiri
-      if (roomId !== activeRoom?.roomId || userId === myUserId) return;
+      if (roomId !== activeRoom?.roomId || userId === myUserId) {
+        return;
+      }
       setTypingUsers((prev) => {
         if (!prev.includes(userId)) {
           return [...prev, userId];
@@ -70,40 +72,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
 
     socketClient.on("user_typing", handleTypingStart);
     socketClient.on("user_stopped_typing", handleTypingStop);
-    if (!activeRoom) return;
 
-    //masuk ke room
-    socketClient.emit("join_room", activeRoom.roomId);
+    // --- Pemisahan logic Join Room ---
+    if (activeRoom) {
+      setTypingUsers([]); // Reset list saat ganti room
+      socketClient.emit("join_room", activeRoom.roomId);
+    }
 
-    //dengarkan event pesan baru, apabila ada pesan baru, tambahkan ke state messages
+    //dengarkan event pesan baru
     const handleNewMessage = (newMessage: ChatMessage) => {
-      // Pastikan pesan yang diterima adalah untuk room yang sedang aktif
-      if (newMessage.roomId !== activeRoom.roomId) {
+      if (activeRoom && newMessage.roomId !== activeRoom.roomId) {
         return;
       }
 
       setMessages((prevMessages) => {
-        //cek duplikat pesan
         const isMessageExist = prevMessages.some(
           (msg) => msg.textId === newMessage.textId
         );
         if (isMessageExist) {
-          return prevMessages; // Jangan tambahkan pesan duplikat
+          return prevMessages;
         }
         return [...prevMessages, newMessage];
       });
     };
-    //kalau ada pesan baru, run function handleNewMessage
     socketClient.on("new_message", handleNewMessage);
 
     return () => {
-      //bersihkan listener ketika komponen di unmount atau activeRoom berubah
       socketClient.off("new_message", handleNewMessage);
-
       socketClient.off("user_typing", handleTypingStart);
       socketClient.off("user_stopped_typing", handleTypingStop);
     };
-  }, [activeRoom]);
+  }, [activeRoom, myUserId]); // Tambahkan myUserId ke dependency agar perbandingan isMe akurat
 
   //fetch messages ketika activeRoom berubah
   useEffect(() => {
@@ -145,7 +144,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
 
     typingTimeout.current = setTimeout(() => {
       socketClient.emit("typing_stop", activeRoom.roomId);
-    }, 2000);
+    }, 500);
   };
 
   //handle kirim chat
@@ -200,10 +199,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({ activeRoom }) => {
               {activeRoom.roomName || "Unknown Room"}
             </h2>
             {typingUsers.length > 0 ? (
-              <span className="text-xs text-green-500 font-medium">
-                {typingUsers.length === 1
-                  ? "Someone is typing..."
-                  : "Multiple people are typing..."}
+              <span className="text-xs text-blue-500 font-medium animate-pulse">
+                {activeRoom.isGroup ? "Someone is typing..." : "typing..."}
               </span>
             ) : (
               <span className="text-xs text-green-500 font-medium">Online</span>
