@@ -1,9 +1,7 @@
-kadang chat real time muncul di chat room lain sampai di reload baru mucnul di halaman yang seharusnya
-unread message blm ada (harus websocket juga ya)
-online indicator
-typing indicator
-cari user lain (buat kayak telegram aja sih)
-yesterday, today, 10m ago
-read receipt
-status ketersimpanan pesan? (centang 1, centang 2, centang biru)
-unsend message
+typing indicator di sidebar (saat ini baru ada di header chat window)
+cari user lain (fitur search user untuk memulai chat baru)
+format waktu pesan (yesterday, today, 10m ago) - perlu dipoles
+ui status pesan (tampilkan ikon centang 1, centang 2, centang biru di balon chat)
+unsend message (tambahkan ui/tombol untuk menarik pesan)
+fix personal chat realtime (implementasi event 'added_to_room' agar user otomatis join socket room saat chat personal baru dibuat)
+test/fix scroll position saat buka chat (kadang tidak langsung ke paling bawah)
