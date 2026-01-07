@@ -30,6 +30,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [myUserId, setMyUserId] = useState<string>("");
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({});
 
+  const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
+
   // Ambil profil user untuk mendapatkan ID sendiri agar bisa memfilter di sidebar
   useEffect(() => {
     const fetchProfile = async () => {
@@ -41,9 +43,44 @@ export const Sidebar: React.FC<SidebarProps> = ({
         console.error("Failed to fetch profile in sidebar:", error);
       }
     };
+
+    // Handler untuk user online, tambah ke set
+    const handleOnlineUsers = (data: { userId: string }) => {
+      setOnlineUsers((prev) => new Set(prev).add(data.userId));
+    };
+
+    // Handler untuk user offline, hapus dari set
+    const handleOfflineUsers = (data: { userId: string }) => {
+      setOnlineUsers((prev) => {
+        const updated = new Set(prev);
+        updated.delete(data.userId);
+        return updated;
+      });
+    };
+    socketClient.on("user_online", handleOnlineUsers);
+    socketClient.on("user_offline", handleOfflineUsers);
     fetchProfile();
+
+    return () => {
+      socketClient.off("user_online", handleOnlineUsers);
+      socketClient.off("user_offline", handleOfflineUsers);
+    };
   }, []);
 
+  useEffect(() => {
+    if (rooms) {
+      const initialOnline = new Set<string>();
+      rooms.forEach((user) => {
+        // Cek apakah user ini adalah chat personal (bukan grup)
+        if (user.isOnline && user.otherUserId) {
+          initialOnline.add(user.otherUserId);
+        }
+      });
+      setOnlineUsers(initialOnline);
+    }
+  }, [rooms]);
+
+  // Dengarkan event typing dan stop typing
   useEffect(() => {
     const handleStopTypingStatus = ({
       userId,
@@ -171,9 +208,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     }`.toUpperCase()
                   : chat.roomName.substring(0, 2).toUpperCase()}
               </div>
-              {!chat.isGroup && (
-                <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
-              )}
+              {!chat.isGroup &&
+                chat.otherUserId &&
+                onlineUsers.has(chat.otherUserId) && (
+                  <div
+                    className={
+                      "absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full bg-green-500"
+                    }
+                  ></div>
+                )}
             </div>
 
             <div className="flex-1 min-w-0">
