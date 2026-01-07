@@ -18,6 +18,11 @@ interface SidebarProps {
   selectedRoomId?: string | null;
   onSelectRoom?: (roomId: string) => void;
 }
+interface UserInfo {
+  id?: string;
+  fullName?: string;
+  [key: string]: any;
+}
 
 export const Sidebar: React.FC<SidebarProps> = ({
   rooms,
@@ -29,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {}
   );
   const [myUserId, setMyUserId] = useState<string>("");
+  const [userInfo, setUserInfo] = useState<UserInfo>({});
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({});
 
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
@@ -38,6 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const fetchProfile = async () => {
       try {
         const user: any = await authService.getProfile();
+        setUserInfo(user[0] || user); // Sesuaikan dengan struktur data yang diterima
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
         if (actualId) setMyUserId(actualId);
       } catch (error) {
@@ -152,9 +159,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <div className="p-4 h-18.25 shrink-0 bg-white border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-            AP
+            {userInfo.fullName ? (
+              userInfo.fullName
+                .split(" ")
+                .map((n: string) => n[0])
+                .join("")
+                .toUpperCase()
+            ) : (
+              <UserCircle size={24} />
+            )}
           </div>
-          <span className="font-semibold text-gray-800">Me</span>
+          <span className="font-semibold text-gray-800">{userInfo.fullName}</span>
         </div>
         <div className="flex gap-2 text-gray-500">
           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -200,7 +215,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 className={`w-12 h-12 flex items-center justify-center font-bold ${
                   chat.isGroup
                     ? "rounded-xl bg-indigo-100 text-indigo-600" // Group: Rounded Square
-                    : "rounded-full bg-gray-200 text-gray-600"   // Personal: Circle
+                    : "rounded-full bg-gray-200 text-gray-600" // Personal: Circle
                 }`}
               >
                 {chat.roomName.split(" ").length > 1
@@ -215,7 +230,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
                     chat.otherUserId && onlineUsers.has(chat.otherUserId)
                       ? "bg-green-500" // Online
-                      : "bg-gray-400"  // Offline
+                      : "bg-gray-400" // Offline
                   }`}
                 ></div>
               )}
