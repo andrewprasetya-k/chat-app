@@ -45,7 +45,7 @@ export class ChatRoomService {
                 usr_id,
                 usr_nama_lengkap,
                 usr_is_online,
-                usr_last_seen_at
+                usr_last_seen
               )
             ),
             chat_message (
@@ -134,7 +134,7 @@ export class ChatRoomService {
             deletedAt: room?.deleted_at ?? null,
             otherUserId: otherMember?.usr_id ?? null,
             isOnline: otherMember?.usr_is_online ?? null,
-            lastSeenAt: otherMember?.usr_last_seen_at ?? null,
+            lastSeenAt: otherMember?.usr_last_seen ?? null,
           },
           {
             excludeExtraneousValues: true,

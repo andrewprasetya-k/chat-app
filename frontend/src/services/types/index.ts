@@ -21,7 +21,7 @@ export interface ChatRoom {
   isLastMessageRead: boolean;
   unreadCount?: number;
   isOnline?: boolean;
-  lastSeenAt?: string | null;
+  lastSeen?: string | null;
   otherUserId?: string | null;
 }
 

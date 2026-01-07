@@ -39,7 +39,7 @@ export class ChatRoomListEntity {
   isOnline: boolean | null;
 
   @Expose()
-  lastSeenAt: string | null;
+  lastSeen: string | null;
 }
 
 // --- 2. MESSAGES IN ROOM Entity ---
