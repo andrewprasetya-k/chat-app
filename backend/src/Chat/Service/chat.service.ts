@@ -9,6 +9,7 @@ import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { ChatMessageEntity } from '../Entity/chat.entity';
 import { plainToInstance } from 'class-transformer';
 import { ChatGateway } from '../Gateway/chat.gateway'; // Import Gateway
+import { read } from 'fs';
 
 @Injectable()
 export class ChatService {
@@ -230,6 +231,19 @@ export class ChatService {
     const client = this.supabase.getClient();
     try {
       if (!messageIds || messageIds.length === 0) return { success: true };
+      const { data: readerData, error: readerError } = await client
+        .from('user')
+        .select('usr_id, usr_nama_lengkap')
+        .eq('usr_id', userId)
+        .single();
+
+      if (readerError) {
+        throw new InternalServerErrorException(
+          `Failed to fetch reader data: ${readerError.message}`,
+        );
+      }
+
+      const userName = readerData?.usr_nama_lengkap || 'someone';
 
       const receiptsToInsert = messageIds.map((msgId) => ({
         rr_cm_id: msgId,
@@ -249,7 +263,7 @@ export class ChatService {
         .emit('messages_read_update', {
           roomId,
           readerId: userId,
-          messageIds,
+          readerName: userName,
           readAt: new Date().toISOString(),
         });
 

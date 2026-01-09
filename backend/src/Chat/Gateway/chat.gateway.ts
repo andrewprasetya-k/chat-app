@@ -65,13 +65,18 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       // Simpan user ID di socket instance agar mudah diakses
       client.data.userId = payload.sub;
 
+      client.join(`user_${payload.sub}`); // Room untuk user ini
+      console.log(`User ${payload.sub} joined room`);
+
       // Ambil data user untuk mendapatkan nama
       const user = await this.userService.findByIdForAuth(payload.sub);
       if (user) {
         client.data.userName = user.usr_nama_lengkap;
       }
 
-      console.log(`Client connected: ${client.id} (User: ${payload.sub}, Name: ${client.data.userName})`);
+      console.log(
+        `Client connected: ${client.id} (User: ${payload.sub}, Name: ${client.data.userName})`,
+      );
 
       // Supaya real-time sidebar jalan (untuk last message)
       const { data: userRooms } = await this.chatSharedService['supabase']
