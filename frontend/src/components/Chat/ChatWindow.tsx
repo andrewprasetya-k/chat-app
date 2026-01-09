@@ -14,6 +14,7 @@ import { chatService } from "@/services/features/chat.service";
 import { authService } from "@/services/features/auth.service";
 import { socketClient } from "@/services/api/socket.client";
 import { formatRelativeTime } from "@/utils/date.util";
+import { read } from "fs";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
@@ -350,7 +351,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   <span
                     className={`text-[10px] mt-1 block ${
                       isMe
-                        ? "text-blue-800 text-right"
+                        ? "text-gray-800 text-right"
                         : "text-gray-800 text-left"
                     }`}
                   >
@@ -359,18 +360,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         isMe ? "justify-end" : "justify-start"
                       }`}
                     >
-                      {isMe && msg.readBy.length > 0 && (
-                        <span className="text-blue-200">
+                      {isMe && msg.readBy.length > 0 ? (
+                        <span className="text-blue-600">
                           <CheckCheck size={12} />
                         </span>
-                      )}
-                      {msg.createdAt
-                        ? new Date(msg.createdAt).toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            hour12: false,
-                          })
-                        : ""}
+                      ) : isMe && msg.readBy.length <= 0 ? (
+                        <span className="text-gray-600">
+                          <CheckCheck size={12} />
+                        </span>
+                      ) : null}
+                      <span>
+                        {msg.createdAt
+                          ? new Date(msg.createdAt).toLocaleTimeString(
+                              "id-ID",
+                              {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              }
+                            )
+                          : ""}
+                      </span>
                     </span>
                   </span>
                 </div>
