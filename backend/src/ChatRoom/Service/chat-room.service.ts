@@ -86,7 +86,6 @@ export class ChatRoomService {
         const messages = room?.chat_message ?? [];
         const lastMessage = messages.length > 0 ? messages[0] : null;
         const sender = lastMessage?.sender;
-
         const senderId = Array.isArray(sender)
           ? sender[0]?.usr_id
           : (sender as any)?.usr_id;
@@ -130,7 +129,11 @@ export class ChatRoomService {
             lastMessageTime: (() => {
               const val = lastMessage?.created_at || room?.created_at;
               if (!val) return null;
-              if (typeof val === 'string' && !val.endsWith('Z') && !val.includes('+')) {
+              if (
+                typeof val === 'string' &&
+                !val.endsWith('Z') &&
+                !val.includes('+')
+              ) {
                 return new Date(val + 'Z').toISOString();
               }
               return new Date(val).toISOString();
@@ -139,12 +142,17 @@ export class ChatRoomService {
             senderName: senderName ?? null,
             isLastMessageRead,
             deletedAt: room?.deleted_at ?? null,
+            memberCount: members.length,
             otherUserId: otherMember?.usr_id ?? null,
             isOnline: otherMember?.usr_is_online ?? null,
             lastSeen: (() => {
               const val = otherMember?.usr_last_seen;
               if (!val) return null;
-              if (typeof val === 'string' && !val.endsWith('Z') && !val.includes('+')) {
+              if (
+                typeof val === 'string' &&
+                !val.endsWith('Z') &&
+                !val.includes('+')
+              ) {
                 return new Date(val + 'Z').toISOString();
               }
               return new Date(val).toISOString();
@@ -271,12 +279,17 @@ export class ChatRoomService {
             lastMessageTime: (() => {
               const val = lastMessage?.created_at || room?.created_at;
               if (!val) return null;
-              if (typeof val === 'string' && !val.endsWith('Z') && !val.includes('+')) {
+              if (
+                typeof val === 'string' &&
+                !val.endsWith('Z') &&
+                !val.includes('+')
+              ) {
                 return new Date(val + 'Z').toISOString();
               }
               return new Date(val).toISOString();
             })(),
             senderId: senderId ?? null,
+            memberCount: room?.members ? room.members.length : 0,
             senderName: senderName ?? null,
             isLastMessageRead,
           },
