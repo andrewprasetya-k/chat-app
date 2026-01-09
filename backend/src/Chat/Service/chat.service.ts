@@ -157,7 +157,7 @@ export class ChatService {
             cm_usr_id: actorId,
             message_text: text,
             cm_type: 'system',
-            create_at: new Date().toISOString(),
+            created_at: new Date().toISOString(),
           },
         ])
         .select(
