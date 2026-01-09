@@ -399,25 +399,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     >
                       {isMe && msg.readBy.length > 0 ? (
                         <span className="text-blue-600">
-                          <p>Read at </p>
+                          <p>Read </p>
                         </span>
                       ) : isMe && msg.readBy.length <= 0 ? (
                         <span className="text-gray-600">
-                          <p>Sent at </p>
+                          <p>Sent </p>
                         </span>
                       ) : null}
                       <span>
-                        {msg.createdAt
-                          ? new Date(msg.createdAt).toLocaleTimeString(
-                              "id-ID",
-                              {
+                        {"at " +
+                          (msg.createdAt
+                            ? new Date(
+                                msg.createdAt.endsWith("Z") ||
+                                msg.createdAt.includes("+")
+                                  ? msg.createdAt
+                                  : msg.createdAt + "Z"
+                              ).toLocaleTimeString("id-ID", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                                 hour12: false,
-                              }
-                            )
-                          : ""}
+                              })
+                            : "")}
                       </span>
+                      <span className="text-[8px] opacity-30 ml-1">
+                        ({msg.createdAt})
+                      </span>{" "}
                     </span>
                   </span>
                 </div>

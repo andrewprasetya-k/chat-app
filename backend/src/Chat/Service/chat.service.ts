@@ -58,7 +58,6 @@ export class ChatService {
             message_text: text,
             cm_reply_to_id: replyTo || null,
             cm_type: 'user',
-            created_at: new Date().toISOString(),
           },
         ])
         .select(
@@ -157,7 +156,6 @@ export class ChatService {
             cm_usr_id: actorId,
             message_text: text,
             cm_type: 'system',
-            created_at: new Date().toISOString(),
           },
         ])
         .select(

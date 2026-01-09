@@ -3,7 +3,13 @@ export const formatRelativeTime = (
 ): string => {
   if (!dateString) return "";
 
-  const date = new Date(dateString);
+  // Force UTC interpretation if no timezone is provided
+  let normalizedDate = dateString;
+  if (typeof dateString === 'string' && !dateString.endsWith('Z') && !dateString.includes('+')) {
+    normalizedDate = dateString + 'Z';
+  }
+
+  const date = new Date(normalizedDate);
   const now = new Date();
   const diffInSeconds = Math.floor((now.getTime() - date.getTime()) / 1000);
 
