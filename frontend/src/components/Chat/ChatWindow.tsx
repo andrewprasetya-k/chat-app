@@ -317,7 +317,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (activeRoom.isGroup) {
       return (
         <span className="text-sm text-gray-500">
-          {activeRoom.memberCount} members
+          todo: berapa member online
         </span>
       );
     } else {
