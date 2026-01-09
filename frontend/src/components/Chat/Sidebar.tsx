@@ -212,6 +212,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div className="flex justify-between items-baseline mb-1">
                 <h3 className="text-sm font-semibold text-gray-900 truncate">
                   {chat.roomName}
+                  {chat.isGroup && chat.memberCount && (
+                    <span className="ml-2 text-[10px] font-normal text-gray-400">
+                      ({chat.memberCount})
+                    </span>
+                  )}
                 </h3>
                 <span className="text-xs text-gray-500">
                   {chat.lastMessageTime

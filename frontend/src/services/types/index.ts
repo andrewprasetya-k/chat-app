@@ -23,6 +23,8 @@ export interface ChatRoom {
   isOnline?: boolean;
   lastSeen?: string | null;
   otherUserId?: string | null;
+  memberCount?: number;
+  deletedAt?: string | null;
 }
 
 // --- 3. Chat Message ---

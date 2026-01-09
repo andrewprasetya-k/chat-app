@@ -18,7 +18,7 @@ export class ChatRoomListEntity {
   deletedAt: string | null; // Added field
 
   @Expose()
-  memberCount: number;
+  memberCount: number = 0;
 
   @Expose()
   lastMessage: string | null;

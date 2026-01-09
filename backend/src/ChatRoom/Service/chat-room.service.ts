@@ -109,6 +109,7 @@ export class ChatRoomService {
         }
 
         const members = room?.members ?? [];
+        const memberCount = members.length;
         const otherMemberRaw = members.find((m: any) => {
           const user = Array.isArray(m.user) ? m.user[0] : m.user;
           return user?.usr_id !== userId;
@@ -180,6 +181,10 @@ export class ChatRoomService {
         return timeB - timeA;
       });
 
+      console.log(
+        'DEBUG TRANSFORMED DATA:',
+        JSON.stringify(transformedData[0], null, 2),
+      );
       return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -237,7 +242,6 @@ export class ChatRoomService {
       if (error) {
         throw new InternalServerErrorException(error.message);
       }
-
       const transformedData = (data ?? []).map((item) => {
         const room = Array.isArray(item.chat_room)
           ? item.chat_room[0]
