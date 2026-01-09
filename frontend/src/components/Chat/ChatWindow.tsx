@@ -313,6 +313,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     );
   }
 
+  const renderRoomStatus = () => {
+    if (activeRoom.isGroup) {
+      return (
+        <span className="text-sm text-gray-500">
+          {activeRoom.otherUserId} members
+        </span>
+      );
+    } else {
+      return (
+        <span
+          className={`text-sm ${
+            isOtherUserOnline ? "text-green-500" : "text-gray-500"
+          }`}
+        >
+          {isOtherUserOnline
+            ? "Online"
+            : lastSeen
+            ? `Last seen: ${lastSeen}`
+            : "Offline"}
+        </span>
+      );
+    }
+  };
+
   return (
     <div className="flex-1 flex flex-col h-full bg-white">
       {/* Header */}
@@ -325,19 +349,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             <h2 className="font-semibold text-gray-900 leading-tight">
               {activeRoom.roomName || "Unknown Room"}
             </h2>
-            {isMeMyId ? (
-              ""
-            ) : typingUsers.length > 0 ? (
-              <span className="text-xs text-blue-500 font-medium animate-pulse">
-                {renderTypingText()}
-              </span>
-            ) : isOtherUserOnline && activeRoom.isGroup === false ? (
-              <span className="text-xs font-light text-green-600">Online</span>
-            ) : (
-              <span className="text-xs font-light text-gray-600">
-                Last seen {lastSeen || "unknown"}
-              </span>
-            )}
+            {renderRoomStatus()}
           </div>
         </div>
         <div className="flex items-center gap-1 text-gray-400">
