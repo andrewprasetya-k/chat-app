@@ -127,8 +127,9 @@ export class ChatRoomService {
             roomName: roomName,
             isGroup: room?.cr_is_group,
             lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime:
-              lastMessage?.created_at ?? room?.created_at ?? null,
+            lastMessageTime: lastMessage?.created_at
+              ? new Date(lastMessage.created_at).toISOString()
+              : (room?.created_at ?? null),
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
@@ -255,8 +256,9 @@ export class ChatRoomService {
             isGroup: room?.cr_is_group,
             deletedAt: room?.deleted_at ?? null,
             lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime:
-              lastMessage?.created_at ?? room?.created_at ?? null,
+            lastMessageTime: lastMessage?.created_at
+              ? new Date(lastMessage.created_at).toISOString()
+              : (room?.created_at ?? null),
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
