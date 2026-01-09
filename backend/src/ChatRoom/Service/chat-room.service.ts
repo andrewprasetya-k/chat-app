@@ -16,6 +16,7 @@ import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { ChatService } from 'src/Chat/Service/chat.service';
 import { ChatGateway } from 'src/Chat/Gateway/chat.gateway';
+import { last } from 'rxjs';
 
 @Injectable()
 export class ChatRoomService {
@@ -544,6 +545,22 @@ export class ChatRoomService {
           `Group "${dto.groupName}" created`,
           creatorId,
         );
+      }
+
+      for (const memberId of groupMembers) {
+        this.chatGateway.server
+          .to(`user_${memberId}`)
+          .emit('new_room_created', {
+            roomId: room.cr_id,
+            roomName: dto.groupName,
+            isGroup: dto.isGroup,
+            lastMessage: null,
+            lastMessageTime: new Date().toISOString(),
+            unreadCount: 0,
+            otherUserId: dto.groupMembers.find((id) => id !== memberId)
+              ? dto.groupMembers.find((id) => id !== memberId)
+              : null,
+          });
       }
 
       return plainToInstance(

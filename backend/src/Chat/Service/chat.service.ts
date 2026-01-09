@@ -260,7 +260,7 @@ export class ChatService {
       // Broadcast ke pengirim pesan
       this.chatGateway.server
         .to(`room_${roomId}`)
-        .emit('messages_read_update', {
+        .emit('read_message_realtime', {
           roomId,
           readerId: userId,
           readerName: userName,

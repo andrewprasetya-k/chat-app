@@ -97,6 +97,41 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     };
     fetchMessages();
 
+    //Handle reatltime read receipt
+    const handleReadMessageRealtime = (data: {
+      roomId: string;
+      readerId: string;
+      readerName: string;
+      messageIds: string[];
+    }) => {
+      //cek kalau roomId sesuai dengan room yang sedang aktif
+      if (data.roomId != activeRoom.roomId) {
+        return;
+      }
+      //update state messages untuk menandai pesan sudah dibaca
+      setMessages((prevMessages) =>
+        prevMessages.map((msg) => {
+          if (data.messageIds.includes(msg.textId)) {
+            //cek apakah readerId sudah ada di readBy
+            const alreadyRead = msg.readBy.some(
+              (reader) => reader.userId === data.readerId
+            );
+            if (alreadyRead) {
+              return msg; //tidak perlu diupdate
+            }
+            return {
+              ...msg,
+              readBy: [
+                ...msg.readBy,
+                { userId: data.readerId, userName: data.readerName }, //nama tidak tersedia di sini
+              ],
+            };
+          }
+          return msg;
+        })
+      );
+    };
+
     // --- B. WebSocket Event Handlers ---
     const handleNewMessage = (msg: ChatMessage) => {
       // Filter: Hanya terima pesan untuk room yang sedang aktif
@@ -147,6 +182,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     };
 
     // --- D. Register Listeners & Join ---
+    socketClient.on("read_message_realtime", handleReadMessageRealtime);
     socketClient.emit("join_room", roomId);
     socketClient.on("new_message", handleNewMessage);
     socketClient.on("user_typing", handleTypingStart);
@@ -156,6 +192,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => {
       setMessages([]); // Reset messages UI
       setTypingUsers([]); // Reset typing indicator
+      socketClient.off("read_message_realtime", handleReadMessageRealtime);
       socketClient.off("new_message", handleNewMessage);
       socketClient.off("user_typing", handleTypingStart);
       socketClient.off("user_stopped_typing", handleTypingStop);
@@ -362,11 +399,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     >
                       {isMe && msg.readBy.length > 0 ? (
                         <span className="text-blue-600">
-                          <CheckCheck size={12} />
+                          <p>Read at </p>
                         </span>
                       ) : isMe && msg.readBy.length <= 0 ? (
                         <span className="text-gray-600">
-                          <CheckCheck size={12} />
+                          <p>Sent at </p>
                         </span>
                       ) : null}
                       <span>

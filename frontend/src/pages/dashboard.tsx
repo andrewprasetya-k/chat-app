@@ -58,6 +58,21 @@ export default function DashboardPage() {
       });
     };
 
+    const handleNewRoom = (newRoom: ChatRoom) => {
+      // Cek jika room sudah ada
+      setRooms((prevRooms) => {
+        if (prevRooms.find((room) => room.roomId === newRoom.roomId)) {
+          return prevRooms;
+        }
+        // Tambah room baru di paling atas
+        return [newRoom, ...prevRooms];
+      });
+      // Otomatis join room baru
+      socketClient.emit("join_room", newRoom.roomId);
+    };
+
+    socketClient.on("new_room_created", handleNewRoom);
+
     // Handler: New Message (Update Sidebar & Unread Count)
     const handleNewMessageSidebar = (msg: any) => {
       setRooms((prevRooms) => {
@@ -125,6 +140,7 @@ export default function DashboardPage() {
 
     // Cleanup
     return () => {
+      socketClient.off("new_room_created", handleNewRoom);
       socketClient.off("connect");
       socketClient.off("new_message", handleNewMessageSidebar);
       socketClient.off("messages_read_update", handleReadMessage);
