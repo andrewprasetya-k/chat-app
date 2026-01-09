@@ -421,9 +421,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                               })
                             : "")}
                       </span>
-                      <span className="text-[8px] opacity-30 ml-1">
-                        ({msg.createdAt})
-                      </span>{" "}
                     </span>
                   </span>
                 </div>

@@ -211,7 +211,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <div className="flex-1 min-w-0">
               <div className="flex justify-between items-baseline mb-1">
                 <h3 className="text-sm font-semibold text-gray-900 truncate">
-                  {chat.roomName + chat.lastMessageTime}
+                  {chat.roomName}
                 </h3>
                 <span className="text-xs text-gray-500">
                   {chat.lastMessageTime
