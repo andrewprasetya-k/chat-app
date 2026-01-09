@@ -38,16 +38,11 @@ export default function DashboardPage() {
   useEffect(() => {
     socketClient.connect();
     socketClient.on("connect", () => {
-      socketClient.connect();
       console.log("Reconnected with socket ID, rejoining rooms...");
       roomsRef.current.forEach((room) => {
-        socketClient.connect();
         socketClient.emit("join_room", room.roomId);
       });
-      console.log(
-        "Rejoined rooms:",
-        roomsRef.current.map((r) => r.roomId)
-      );
+      console.log("Rejoined all rooms after reconnecting: ", roomsRef.current);
     });
 
     // Handler: User Online
