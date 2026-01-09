@@ -123,7 +123,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               ...msg,
               readBy: [
                 ...msg.readBy,
-                { userId: data.readerId, userName: data.readerName }, //nama tidak tersedia di sini
+                { userId: data.readerId, userName: data.readerName },
               ],
             };
           }
@@ -182,7 +182,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     };
 
     // --- D. Register Listeners & Join ---
-    socketClient.on("read_message_realtime", handleReadMessageRealtime);
+    socketClient.on("messages_read_update", handleReadMessageRealtime);
     socketClient.emit("join_room", roomId);
     socketClient.on("new_message", handleNewMessage);
     socketClient.on("user_typing", handleTypingStart);
@@ -192,7 +192,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     return () => {
       setMessages([]); // Reset messages UI
       setTypingUsers([]); // Reset typing indicator
-      socketClient.off("read_message_realtime", handleReadMessageRealtime);
+      socketClient.off("messages_read_update", handleReadMessageRealtime);
       socketClient.off("new_message", handleNewMessage);
       socketClient.off("user_typing", handleTypingStart);
       socketClient.off("user_stopped_typing", handleTypingStop);
