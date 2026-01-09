@@ -260,10 +260,11 @@ export class ChatService {
       // Broadcast ke pengirim pesan
       this.chatGateway.server
         .to(`room_${roomId}`)
-        .emit('read_message_realtime', {
+        .emit('messages_read_update', {
           roomId,
           readerId: userId,
           readerName: userName,
+          messageIds,
           readAt: new Date().toISOString(),
         });
 
