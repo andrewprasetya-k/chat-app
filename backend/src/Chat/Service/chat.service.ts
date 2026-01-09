@@ -10,6 +10,7 @@ import { ChatMessageEntity } from '../Entity/chat.entity';
 import { plainToInstance } from 'class-transformer';
 import { ChatGateway } from '../Gateway/chat.gateway'; // Import Gateway
 import { read } from 'fs';
+import { create } from 'domain';
 
 @Injectable()
 export class ChatService {
@@ -57,6 +58,7 @@ export class ChatService {
             message_text: text,
             cm_reply_to_id: replyTo || null,
             cm_type: 'user',
+            created_at: new Date().toISOString(),
           },
         ])
         .select(
@@ -155,6 +157,7 @@ export class ChatService {
             cm_usr_id: actorId,
             message_text: text,
             cm_type: 'system',
+            create_at: new Date().toISOString(),
           },
         ])
         .select(
