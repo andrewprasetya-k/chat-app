@@ -27,6 +27,28 @@ export interface ChatRoom {
   deletedAt?: string | null;
 }
 
+// --- 2a. Chat Room Details ---
+// Sesuai dengan ChatRoomInfo di backend
+export interface RoomMemberInfo {
+  userId: string;
+  name: string;
+  email: string;
+  role: "admin" | "member" | "personal";
+  joinedAt: string;
+  leftAt: string | null;
+  isMe: boolean;
+}
+
+export interface ChatRoomInfo {
+  roomId: string;
+  roomName: string;
+  isGroup: boolean;
+  createdAt: string;
+  totalMembers: number;
+  activeMembers: RoomMemberInfo[];
+  pastMembers: RoomMemberInfo[];
+}
+
 // --- 3. Chat Message ---
 // Sesuai dengan MessageDetailEntity di backend
 export interface ChatMessage {

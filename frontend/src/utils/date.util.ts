@@ -22,7 +22,7 @@ export const formatRelativeTime = (
     const hours = Math.floor(diffInSeconds / 3600);
     return `${hours} hour${hours !== 1 ? "s" : ""} ago`; //kurang dari 1 hari
   } else if (diffInSeconds >= 86400 && diffInSeconds < 172800) {
-    return "Yesterday"; // kemarin
+    return "yesterday"; // kemarin
   } else if (diffInSeconds < 604800) {
     const days = Math.floor(diffInSeconds / 86400);
     return `${days} day${days !== 1 ? "s" : ""} ago`; //kurang dari 1 minggu

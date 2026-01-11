@@ -880,6 +880,19 @@ export class ChatRoomService {
         );
       }
 
+      let roomName = data.cr_name;
+      if (!data.cr_is_group) {
+        const otherMember = (data.members ?? []).find(
+          (m: any) => m.crm_usr_id !== userId,
+        );
+        const otherUser = otherMember
+          ? Array.isArray(otherMember.user)
+            ? otherMember.user[0]
+            : otherMember.user
+          : null;
+        roomName = otherUser?.usr_nama_lengkap || 'Personal Chat';
+      }
+
       const allMembers = (data.members ?? []).map((m: any) => {
         const user = Array.isArray(m.user) ? m.user[0] : m.user;
         return {
@@ -911,7 +924,7 @@ export class ChatRoomService {
         ChatRoomInfoEntity,
         {
           roomId: data.cr_id,
-          roomName: data.cr_name,
+          roomName: roomName,
           isGroup: data.cr_is_group,
           createdAt: data.created_at,
           deletedAt: data.deleted_at ?? null,

@@ -1,11 +1,16 @@
 import api from "../api/axios.instance";
 import { socketClient } from "../api/socket.client";
-import { ChatRoom, ChatMessage, MessageParams } from "../types";
+import { ChatRoom, ChatMessage, MessageParams, ChatRoomInfo } from "../types";
 
 export const chatService = {
   // untuk mendapatkan daftar ruang chat aktif
   async getActiveRooms(): Promise<ChatRoom[]> {
     const response = await api.get<ChatRoom[]>("/room/active");
+    return response.data;
+  },
+
+  async getRoomInfo(roomId: string): Promise<ChatRoomInfo> {
+    const response = await api.get<ChatRoomInfo>(`/room/${roomId}`);
     return response.data;
   },
 

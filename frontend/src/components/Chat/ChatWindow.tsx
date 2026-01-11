@@ -14,7 +14,7 @@ import { chatService } from "@/services/features/chat.service";
 import { authService } from "@/services/features/auth.service";
 import { socketClient } from "@/services/api/socket.client";
 import { formatRelativeTime } from "@/utils/date.util";
-import { read } from "fs";
+import { RoomInfoDrawer } from "./RoomInfoDrawer";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
@@ -48,6 +48,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   }, [activeRoom, onlineUsers]);
   const [isMeMyId, setIsMyId] = useState<boolean>(false);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
+  const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
@@ -314,23 +315,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   }
 
   const renderRoomStatus = () => {
+    if (typingUsers.length > 0) {
+      return (
+        <span className="text-xs text-blue-500 font-medium animate-pulse">
+          {typingUsers.length === 1
+            ? `${typingUsers[0].userName} is typing...`
+            : `${typingUsers.length} users are typing...`}
+        </span>
+      );
+    }
     if (activeRoom.isGroup) {
       return (
-        <span className="text-sm text-gray-500">
-          todo: berapa member online
-        </span>
+        <span className="text-xs text-gray-500">Click for group info</span>
       );
     } else {
       return (
         <span
-          className={`text-sm ${
-            isOtherUserOnline ? "text-green-500" : "text-gray-500"
+          className={`text-xs ${
+            isOtherUserOnline ? "text-blue-500 font-medium" : "text-gray-500"
           }`}
         >
           {isOtherUserOnline
             ? "Online"
             : lastSeen
-            ? `Last seen: ${lastSeen}`
+            ? `Last seen ${lastSeen}`
             : "Offline"}
         </span>
       );
@@ -338,10 +346,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   };
 
   return (
-    <div className="flex-1 flex flex-col h-full bg-white">
+    <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
       {/* Header */}
-      <div className="p-4 h-18.25 shrink-0 border-gray-200 flex items-center justify-between bg-white sticky top-0 z-10">
-        <div className="flex items-center gap-3">
+      <div className="p-4 h-18.25 shrink-0 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+        <div
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          onClick={() => setIsDrawerOpen(true)}
+        >
           <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold uppercase">
             {activeRoom.roomName?.substring(0, 2) || "??"}
           </div>
@@ -359,13 +370,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <Video size={20} />
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button
+            onClick={() => setIsDrawerOpen(true)}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-blue-600"
+          >
             <Info size={20} />
           </button>
         </div>
       </div>
 
       {/* Messages List */}
+      {/* ... (tetap sama) ... */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {loading ? (
           <div className="text-center text-gray-400 mt-10">
@@ -464,6 +479,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Room Info Drawer */}
+      <RoomInfoDrawer
+        isOpen={isDrawerOpen}
+        onClose={() => setIsDrawerOpen(false)}
+        roomId={activeRoom.roomId}
+      />
     </div>
   );
 };

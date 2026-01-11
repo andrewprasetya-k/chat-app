@@ -124,7 +124,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, [myUserId]); // Tambahkan myUserId ke dependensi agar filter berfungsi logicnya
 
   return (
-    <div className="w-80 h-full border-gray-200 flex flex-col bg-gray-50">
+    <div className="w-1/4 h-full border-gray-200 flex flex-col bg-gray-50">
       {/* Header */}
       <div className="p-4 h-18.25 shrink-0 bg-white border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
