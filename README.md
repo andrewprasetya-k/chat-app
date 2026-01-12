@@ -1,4 +1,4 @@
-# Chat Application
+# Chat Application (Still under development)
 
 A full-stack real-time chat application with WhatsApp/Teams-like features built with NestJS (Backend) and Next.js (Frontend).
 
