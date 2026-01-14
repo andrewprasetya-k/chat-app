@@ -147,22 +147,24 @@ export default function DashboardPage() {
       });
     };
 
-    // Handler: Read Receipt (Reset Unread Count)
+    // Handler: Read Receipt (Reset Unread Count & Update Status)
     const handleReadMessage = (data: { roomId: string; readerId: string }) => {
-      // Jika SAYA yang membaca, reset count jadi 0
-      if (data.readerId === myIdRef.current) {
-        setRooms((prevRooms) =>
-          prevRooms.map((room) => {
-            if (room.roomId === data.roomId) {
-              return {
-                ...room,
-                unreadCount: 0,
-              };
-            }
-            return room;
-          })
-        );
-      }
+      setRooms((prevRooms) =>
+        prevRooms.map((room) => {
+          if (room.roomId === data.roomId) {
+            const isMeReading = data.readerId === myIdRef.current;
+            
+            return {
+              ...room,
+              // Jika SAYA yang baca, reset unread count
+              unreadCount: isMeReading ? 0 : room.unreadCount,
+              // Jika ORANG LAIN yang baca, tandai pesan terakhir SAYA sudah dibaca
+              isLastMessageRead: !isMeReading ? true : room.isLastMessageRead,
+            };
+          }
+          return room;
+        })
+      );
     };
 
     // Handler: Unsend Message Sidebar

@@ -203,7 +203,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           if (msg.textId === data.messageId) {
             return {
               ...msg,
-              text: "This message was unsend", // Hardcoded to match backend DB update
+              text: "This message was unsent", // Hardcoded to match backend DB update
             };
           }
           return msg;

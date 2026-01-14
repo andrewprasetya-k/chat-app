@@ -1,1 +1,3 @@
-pagination dengan listener scrollign?
+fix realtime read receipt status di sidebar (saat ini teks '(Sent)' belum otomatis berubah jadi '(Read)' secara realtime saat lawan bicara membaca pesan)
+investigasi payload socket 'messages_read_update' dari backend
+cek masih ada emit websocket "this message was unsend" instead of "this message was unsent"
