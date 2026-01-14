@@ -54,6 +54,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // Group Creation State (Modular Modal)
   const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
 
+  // Filter: Ambil daftar user yang sudah pernah diajak chat personal (untuk buat grup)
+  const contactUsers = React.useMemo(() => {
+    if (!rooms) return [];
+    return rooms
+      .filter(room => !room.isGroup && room.otherUserId && room.roomName !== "Me")
+      .map(room => ({
+        id: room.otherUserId as string,
+        fullName: room.roomName,
+        email: "", // Kita tidak butuh email lengkap di sini, tapi interface butuh placeholder
+      } as User));
+  }, [rooms]);
+
   // ==================================================================================
   // 2. EFFECTS (Logic Otomatis)
   // ==================================================================================
@@ -316,7 +328,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       <CreateGroupModal 
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
-        users={suggestedUsers}
+        users={contactUsers}
         onGroupCreated={(roomId) => onSelectRoom && onSelectRoom(roomId)}
       />
     </div>
