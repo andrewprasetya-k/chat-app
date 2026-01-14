@@ -9,6 +9,7 @@ import {
   Check,
   CheckCheck,
   Trash,
+  CircleAlert,
 } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
@@ -402,7 +403,6 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Messages List */}
-      {/* ... (tetap sama) ... */}
       <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
         {loading ? (
           <div className="text-center text-gray-400 mt-10">
@@ -456,7 +456,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           : "bg-white text-gray-900"
                       }`}
                     >
-                      <p className="text-sm wrap-break-word">{msg.text}</p>
+                      {msg.text.includes("This message was unsent") ? (
+                        <span className="flex items-center gap-2 text-blue-100 italic text-sm wrap-break-word">
+                          <CircleAlert className="w-4 h-4 text-blue" />
+                          This message was unsent
+                        </span>
+                      ) : (
+                        <p className="text-sm wrap-break-word">{msg.text}</p>
+                      )}
                     </div>
                   </div>
 
