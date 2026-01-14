@@ -337,7 +337,7 @@ export class ChatService {
         );
       }
 
-      // const unsendText = '[This message was unsent]';
+      // const unsendText = 'This message was unsent';
       const { error: deleteError } = await client
         .from('chat_message')
         .update({ message_text: 'This message was unsent' })

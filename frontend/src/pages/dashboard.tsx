@@ -144,37 +144,37 @@ export default function DashboardPage() {
       }
     };
 
-    const handleUnsentMessage = (data: {
+    // Handler: Unsend Message Sidebar
+    const handleUnsentMessageSidebar = (data: {
       roomId: string;
       messageId: string;
-      unsendText?: string;
     }) => {
-      // Update pesan di dalam activeRoom jika sedang dibuka
       setRooms((prevRooms) =>
         prevRooms.map((room) => {
           if (room.roomId === data.roomId) {
             return {
               ...room,
-              lastMessage: data.unsendText || "This message was unsend",
+              lastMessage: "This message was unsent",
             };
           }
           return room;
         })
       );
     };
+
     // Register Listeners
-    socketClient.on("message_unsent", handleUnsentMessage);
     socketClient.on("new_message", handleNewMessageSidebar);
+    socketClient.on("message_unsent", handleUnsentMessageSidebar);
     socketClient.on("messages_read_update", handleReadMessage);
     socketClient.on("user_online", handleUserOnline);
     socketClient.on("user_offline", handleUserOffline);
 
     // Cleanup
     return () => {
-      socketClient.off("message_unsent", handleUnsentMessage);
       socketClient.off("new_room_created", handleNewRoom);
       socketClient.off("connect");
       socketClient.off("new_message", handleNewMessageSidebar);
+      socketClient.off("message_unsent", handleUnsentMessageSidebar);
       socketClient.off("messages_read_update", handleReadMessage);
       socketClient.off("user_online", handleUserOnline);
       socketClient.off("user_offline", handleUserOffline);

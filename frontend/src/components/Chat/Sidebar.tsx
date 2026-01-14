@@ -5,6 +5,8 @@ import {
   MessageSquarePlus,
   UserCircle,
   X,
+  Circle,
+  CircleAlert,
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
@@ -213,8 +215,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
               : ""}
           </span>
         </div>
-        <div className="flex justify-between items-center">
-          <p className="text-xs text-gray-500 truncate">
+        <div className="flex items-center gap-1">
+          <p
+            className={`text-xs truncate ${
+              chat.lastMessage === "This message was unsent"
+                ? "italic text-gray-400"
+                : "text-gray-500"
+            }`}
+          >
             {typingStatus[chat.roomId]?.length > 0
               ? "Typing..."
               : chat.lastMessage || "Start a conversation"}
