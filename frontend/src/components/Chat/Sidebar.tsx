@@ -7,11 +7,7 @@ import {
   X,
 } from "lucide-react";
 
-import {
-  ChatRoom,
-  GlobalSearchResults,
-  User,
-} from "@/services/types";
+import { ChatRoom, GlobalSearchResults, User } from "@/services/types";
 import { socketClient } from "@/services/api/socket.client";
 import { authService } from "@/services/features/auth.service";
 import { formatRelativeTime } from "@/utils/date.util";
@@ -34,16 +30,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // ==================================================================================
   // 1. STATE & CONFIGURATION
   // ==================================================================================
-  
+
   // Data Profil & Status Real-time
   const [userInfo, setUserInfo] = useState<User>();
   const [myUserId, setMyUserId] = useState<string>("");
-  const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>({});
+  const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>(
+    {}
+  );
   const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
 
   // Unified Search States
   const [globalSearchTerm, setGlobalSearchTerm] = useState<string>("");
-  const [globalSearchResults, setGlobalSearchResults] = useState<GlobalSearchResults | null>(null);
+  const [globalSearchResults, setGlobalSearchResults] =
+    useState<GlobalSearchResults | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
@@ -58,12 +57,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const contactUsers = React.useMemo(() => {
     if (!rooms) return [];
     return rooms
-      .filter(room => !room.isGroup && room.otherUserId && room.roomName !== "Me")
-      .map(room => ({
-        id: room.otherUserId as string,
-        fullName: room.roomName,
-        email: "", // Kita tidak butuh email lengkap di sini, tapi interface butuh placeholder
-      } as User));
+      .filter(
+        (room) => !room.isGroup && room.otherUserId && room.roomName !== "Me"
+      )
+      .map(
+        (room) =>
+          ({
+            id: room.otherUserId as string,
+            fullName: room.roomName,
+            email: "", // Kita tidak butuh email lengkap di sini, tapi interface butuh placeholder
+          } as User)
+      );
   }, [rooms]);
 
   // ==================================================================================
@@ -72,7 +76,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // A. Heartbeat: Trigger re-render setiap 60 detik agar label waktu selalu akurat
   useEffect(() => {
-    const interval = setInterval(() => setTick(t => t + 1), 60000);
+    const interval = setInterval(() => setTick((t) => t + 1), 60000);
     return () => clearInterval(interval);
   }, []);
 
@@ -97,23 +101,42 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
   // C. Socket Listeners (Typing Indicator)
   useEffect(() => {
-    const handleStopTypingStatus = ({ userName, roomId }: { userName: string; roomId: string }) => {
+    const handleStopTypingStatus = ({
+      userName,
+      roomId,
+    }: {
+      userName: string;
+      roomId: string;
+    }) => {
       setTypingStatus((prev) => ({
         ...prev,
         [roomId]: (prev[roomId] || []).filter((name) => name !== userName),
       }));
     };
 
-    const handleTypingStatus = ({ userId, userName, roomId }: { userId: string; userName: string; roomId: string }) => {
+    const handleTypingStatus = ({
+      userId,
+      userName,
+      roomId,
+    }: {
+      userId: string;
+      userName: string;
+      roomId: string;
+    }) => {
       if (userId === myUserId) return;
       setTypingStatus((prev) => {
         const currentTypers = prev[roomId] || [];
-        if (!currentTypers.includes(userName)) return { ...prev, [roomId]: [...currentTypers, userName] };
+        if (!currentTypers.includes(userName))
+          return { ...prev, [roomId]: [...currentTypers, userName] };
         return prev;
       });
       const timeoutKey = `${roomId}-${userName}`;
-      if (typingTimeoutsRef.current[timeoutKey]) clearTimeout(typingTimeoutsRef.current[timeoutKey]);
-      typingTimeoutsRef.current[timeoutKey] = setTimeout(() => handleStopTypingStatus({ userName, roomId }), 5000);
+      if (typingTimeoutsRef.current[timeoutKey])
+        clearTimeout(typingTimeoutsRef.current[timeoutKey]);
+      typingTimeoutsRef.current[timeoutKey] = setTimeout(
+        () => handleStopTypingStatus({ userName, roomId }),
+        5000
+      );
     };
 
     socketClient.on("user_typing", handleTypingStatus);
@@ -135,7 +158,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results: any = await chatService.globalSearchQuery(globalSearchTerm);
+        const results: any = await chatService.globalSearchQuery(
+          globalSearchTerm
+        );
         setGlobalSearchResults(results);
       } catch (error) {
         console.error("Global search failed:", error);
@@ -178,27 +203,47 @@ export const Sidebar: React.FC<SidebarProps> = ({
       onClick={() => onSelectRoom && onSelectRoom(chat.roomId)}
     >
       <div className="relative">
-        <div className={`w-12 h-12 flex items-center justify-center font-bold text-sm ${
-          chat.isGroup ? "rounded-xl bg-indigo-100 text-indigo-600" : "rounded-full bg-gray-100 text-gray-600"
-        }`}>
+        <div
+          className={`w-12 h-12 flex items-center justify-center font-bold text-sm ${
+            chat.isGroup
+              ? "rounded-xl bg-indigo-100 text-indigo-600"
+              : "rounded-full bg-gray-100 text-gray-600"
+          }`}
+        >
           {chat.roomName.substring(0, 2).toUpperCase()}
         </div>
         {!chat.isGroup && chat.roomName !== "Me" && (
-          <div className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
-            chat.otherUserId && onlineUsers.has(chat.otherUserId) ? "bg-green-500" : "bg-gray-300"
-          }`}></div>
+          <div
+            className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
+              chat.otherUserId && onlineUsers.has(chat.otherUserId)
+                ? "bg-green-500"
+                : "bg-gray-300"
+            }`}
+          ></div>
         )}
       </div>
       <div className="flex-1 min-w-0">
         <div className="flex justify-between items-baseline mb-0.5">
-          <h3 className="text-sm font-semibold text-gray-900 truncate">{chat.roomName}</h3>
+          <h3 className="text-sm font-semibold text-gray-900 truncate">
+            {chat.roomName}
+          </h3>
           <span className="text-[10px] text-gray-500 whitespace-nowrap">
-            {chat.lastMessageTime ? formatRelativeTime(chat.lastMessageTime) : ""}
+            {chat.lastMessageTime
+              ? formatRelativeTime(chat.lastMessageTime)
+              : ""}
           </span>
         </div>
         <div className="flex justify-between items-center">
-          <p className={`text-xs truncate ${chat.lastMessage === "This message was unsent" ? "italic text-gray-400" : "text-gray-500"}`}>
-            {typingStatus[chat.roomId]?.length > 0 ? "Typing..." : chat.lastMessage || "Start a conversation"}
+          <p
+            className={`text-xs truncate ${
+              chat.lastMessage === "This message was unsent"
+                ? "italic text-gray-400"
+                : "text-gray-500"
+            }`}
+          >
+            {typingStatus[chat.roomId]?.length > 0
+              ? "Typing..."
+              : chat.lastMessage || "Start a conversation"}
           </p>
           {(chat.unreadCount ?? 0) > 0 && (
             <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
@@ -211,7 +256,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
   );
 
   // Komponen Kartu User (Hasil Search / Discovery)
-  const UserListItem = ({ user, subtext }: { user: User; subtext?: string }) => (
+  const UserListItem = ({
+    user,
+    subtext,
+  }: {
+    user: User;
+    subtext?: string;
+  }) => (
     <div
       key={user.id}
       onClick={() => handleCreatePersonalChat(user.id)}
@@ -221,8 +272,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {user.fullName[0].toUpperCase()}
       </div>
       <div className="flex-1 min-w-0">
-        <p className="text-sm font-medium text-gray-900 truncate">{user.fullName}</p>
-        <p className="text-[11px] text-gray-500 truncate">{subtext || user.email}</p>
+        <p className="text-sm font-medium text-gray-900 truncate">
+          {user.fullName}
+        </p>
+        <p className="text-[11px] text-gray-500 truncate">
+          {subtext || user.email}
+        </p>
       </div>
     </div>
   );
@@ -238,24 +293,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
             {userInfo?.fullName?.[0].toUpperCase() || <UserCircle size={20} />}
           </div>
-          <span className="font-bold text-gray-800 text-sm tracking-tight">Chats</span>
+          <span className="font-bold text-gray-800 text-sm tracking-tight">
+            Chats
+          </span>
         </div>
         <div className="flex gap-1 text-gray-400">
-          <button 
+          <button
             onClick={() => setIsGroupModalOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors" 
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
             title="New Group"
           >
             <MessageSquarePlus size={18} />
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors"><MoreVertical size={18} /></button>
+          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+            <MoreVertical size={18} />
+          </button>
         </div>
       </div>
 
       {/* B. Search Bar */}
       <div className="p-3">
-        <div className={`relative flex items-center transition-all duration-200 ${isSearchFocused ? "ring-2 ring-blue-500/20" : ""}`}>
-          <Search className={`absolute left-3 transition-colors ${isSearchFocused ? "text-blue-500" : "text-gray-400"}`} size={16} />
+        <div
+          className={`relative flex items-center transition-all duration-200 ${
+            isSearchFocused ? "ring-2 ring-blue-500/20" : ""
+          }`}
+        >
+          <Search
+            className={`absolute left-3 transition-colors ${
+              isSearchFocused ? "text-blue-500" : "text-gray-400"
+            }`}
+            size={16}
+          />
           <input
             type="text"
             placeholder="Search messages or people..."
@@ -265,8 +333,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
             onFocus={() => setIsSearchFocused(true)}
           />
           {(globalSearchTerm || isSearchFocused) && (
-            <button 
-              onClick={() => { setGlobalSearchTerm(""); setIsSearchFocused(false); }}
+            <button
+              onClick={() => {
+                setGlobalSearchTerm("");
+                setIsSearchFocused(false);
+              }}
               className="absolute right-3 text-gray-400 hover:text-gray-600"
             >
               <X size={14} />
@@ -280,52 +351,115 @@ export const Sidebar: React.FC<SidebarProps> = ({
         {isSearchFocused && !globalSearchTerm ? (
           // MODE 1: Discovery (Klik Search tapi belum ngetik)
           <div className="animate-in fade-in slide-in-from-top-1 duration-200">
-            <h3 className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">Suggested People</h3>
+            <h3 className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
+              Suggested People
+            </h3>
             {suggestedUsers.length > 0 ? (
-              suggestedUsers.map(user => <UserListItem key={user.id} user={user} subtext="Available to chat" />)
+              suggestedUsers.map((user) => (
+                <UserListItem
+                  key={user.id}
+                  user={user}
+                  subtext="Available to chat"
+                />
+              ))
             ) : (
-              <p className="px-4 text-xs text-gray-400 italic">No suggestions yet</p>
+              <p className="px-4 text-xs text-gray-400 italic">
+                No suggestions yet
+              </p>
             )}
           </div>
         ) : globalSearchTerm ? (
           // MODE 2: Search Results (Lagi ngetik)
           <div>
             {isSearching ? (
-              <div className="p-8 text-center text-gray-400 text-xs italic">Searching...</div>
+              <div className="p-8 text-center text-gray-400 text-xs italic">
+                Searching...
+              </div>
             ) : (
               <>
                 {/* 1. Chats (Existing) */}
-                {globalSearchResults?.rooms && globalSearchResults.rooms.length > 0 && (
-                  <div className="mb-2">
-                    <h3 className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">Existing Chats</h3>
-                    {globalSearchResults.rooms.map(chat => <ChatListItem key={chat.roomId} chat={chat} />)}
-                  </div>
-                )}
-                {/* 2. People (Global) */}
-                {globalSearchResults?.users && globalSearchResults.users.length > 0 && (
-                  <div className="mb-2">
-                    <h3 className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">Global Search</h3>
-                    {globalSearchResults.users.map(user => <UserListItem key={user.id} user={user} />)}
-                  </div>
-                )}
-                {!globalSearchResults?.rooms?.length && !globalSearchResults?.users?.length && (
-                  <div className="p-8 text-center text-gray-400 text-xs italic">No results found</div>
-                )}
+                {globalSearchResults?.rooms &&
+                  globalSearchResults.rooms.length > 0 && (
+                    <div className="mb-2">
+                      <h3 className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">
+                        Existing Chats
+                      </h3>
+                      {globalSearchResults.rooms.map((chat) => (
+                        <ChatListItem key={chat.roomId} chat={chat} />
+                      ))}
+                    </div>
+                  )}
+                {/* Bagian 2: User baru dari Database */}
+                {globalSearchResults?.users &&
+                  globalSearchResults.users.length > 0 && (
+                    <div className="mb-2">
+                      <h3 className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">
+                        Global Search
+                      </h3>
+                      {globalSearchResults.users.map((user) => (
+                        <UserListItem key={user.id} user={user} />
+                      ))}
+                    </div>
+                  )}
+
+                {/* Bagian 3: Isi Pesan (Messages) */}
+                {globalSearchResults?.messages &&
+                  globalSearchResults.messages.length > 0 && (
+                    <div className="mb-2">
+                      <h3 className="px-4 py-2 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50">
+                        Messages
+                      </h3>
+                      {globalSearchResults.messages
+                        .filter(
+                          (msg) =>
+                            msg.text !== "[This message was unsent]" &&
+                            msg.text !== "This message was unsent"
+                        )
+                        .map((msg) => (
+                          <div
+                            key={msg.textId}
+                            onClick={() =>
+                              onSelectRoom && onSelectRoom(msg.roomId)
+                            }
+                            className="px-4 py-3 border-b border-gray-50 hover:bg-gray-50 cursor-pointer transition-colors"
+                          >
+                            <div className="flex justify-between items-baseline mb-1">
+                              <span className="text-xs font-bold text-blue-600">
+                                {msg.roomName || "Unknown"}
+                              </span>
+                              <span className="text-[10px] text-gray-400">
+                                {formatRelativeTime(msg.createdAt)}
+                              </span>
+                            </div>
+                            <p className="text-sm text-gray-700">{msg.text}</p>
+                          </div>
+                        ))}
+                    </div>
+                  )}
+
+                {/* Empty State */}
+                {!globalSearchResults?.rooms?.length &&
+                  !globalSearchResults?.users?.length &&
+                  !globalSearchResults?.messages?.length && (
+                    <div className="p-8 text-center text-gray-400 text-xs italic">
+                      No results found for "{globalSearchTerm}"
+                    </div>
+                  )}
               </>
             )}
           </div>
+        ) : // MODE 3: Normal (Daftar Chat Inbox)
+        rooms?.length ? (
+          rooms.map((chat) => <ChatListItem key={chat.roomId} chat={chat} />)
         ) : (
-          // MODE 3: Normal (Daftar Chat Inbox)
-          rooms?.length ? (
-            rooms.map(chat => <ChatListItem key={chat.roomId} chat={chat} />)
-          ) : (
-            <div className="p-8 text-center text-gray-400 text-xs italic mt-10">No chats yet.</div>
-          )
+          <div className="p-8 text-center text-gray-400 text-xs italic mt-10">
+            No chats yet.
+          </div>
         )}
       </div>
 
       {/* D. Modular Create Group Modal */}
-      <CreateGroupModal 
+      <CreateGroupModal
         isOpen={isGroupModalOpen}
         onClose={() => setIsGroupModalOpen(false)}
         users={contactUsers}
