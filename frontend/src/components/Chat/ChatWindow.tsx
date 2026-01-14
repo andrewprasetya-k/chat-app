@@ -10,6 +10,7 @@ import {
   CheckCheck,
   Trash,
   CircleAlert,
+  SendHorizonal,
 } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
@@ -371,7 +372,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
       {/* Header */}
-      <div className="p-4 h-18.25 shrink-0 border-b border-gray-100 flex items-center justify-between bg-white sticky top-0 z-10">
+      <div className="p-4 h-18.25 shrink-0  flex items-center justify-between bg-white sticky top-0 z-10">
         <div
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
           onClick={() => setIsDrawerOpen(true)}
@@ -522,7 +523,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-10 py-2 bg-gray-100 border-none rounded-xl text-sm focus:ring-1 focus:ring-blue-500 transition-all"
+              className="w-full pl-4 pr-10 py-2 border-b border-gray-300 focus:ring-0 focus:outline-none focus:border-blue-500 text-sm transition-all"
             />
           </div>
           <button
@@ -530,7 +531,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             disabled={!inputText.trim()}
             className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50"
           >
-            <Send size={20} />
+            <SendHorizonal size={20} />
           </button>
         </div>
       </div>
