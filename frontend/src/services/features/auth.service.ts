@@ -36,6 +36,11 @@ export const authService = {
     return response.data;
   },
 
+  async getAllUsers(): Promise<User[]> {
+    const response = await api.get<User[]>("/user/get-all");
+    return response.data;
+  },
+
   //untuk logout
   async logout() {
     try {
