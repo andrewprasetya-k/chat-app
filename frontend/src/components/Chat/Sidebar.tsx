@@ -5,6 +5,7 @@ import {
   MessageSquarePlus,
   UserCircle,
   X,
+  CheckCheckIcon,
 } from "lucide-react";
 
 import { ChatRoom, GlobalSearchResults, User } from "@/services/types";
@@ -233,20 +234,51 @@ export const Sidebar: React.FC<SidebarProps> = ({
               : ""}
           </span>
         </div>
-        <div className="flex justify-between items-center">
-          <p
-            className={`text-xs truncate ${
+        <div className="flex justify-between items-center gap-2">
+          <div
+            className={`text-xs truncate flex items-center gap-1 ${
               chat.lastMessage === "This message was unsent"
                 ? "italic text-gray-400"
                 : "text-gray-500"
             }`}
           >
-            {typingStatus[chat.roomId]?.length > 0
-              ? "Typing..."
-              : chat.lastMessage || "Start a conversation"}
-          </p>
+            {typingStatus[chat.roomId]?.length > 0 ? (
+              <span className="text-blue-500 font-medium">Typing...</span>
+            ) : chat.lastMessage ? (
+              <>
+                {/* 1. Status: You + Read Receipt */}
+                {chat.senderId === myUserId && (
+                  <div className="flex items-center gap-0.5 shrink-0">
+                    {chat.lastMessage === "This message was unsent" ? null : (
+                      <span
+                        className={`${
+                          chat.isLastMessageRead
+                            ? "text-blue-500"
+                            : "text-gray-400"
+                        }`}
+                      >
+                        ({chat.isLastMessageRead ? "Read" : "Sent"})
+                      </span>
+                    )}
+                  </div>
+                )}
+
+                {/* 2. Sender Name (untuk grup) */}
+                {chat.isGroup && chat.senderId !== myUserId && (
+                  <span className="font-medium text-gray-600 shrink-0">
+                    {chat.senderName?.split(" ")[0]}:
+                  </span>
+                )}
+
+                {/* 3. Pesan Terakhir */}
+                <span className="truncate">{chat.lastMessage}</span>
+              </>
+            ) : (
+              "Start a conversation"
+            )}
+          </div>
           {(chat.unreadCount ?? 0) > 0 && (
-            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
               {chat.unreadCount}
             </span>
           )}
@@ -294,7 +326,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             {userInfo?.fullName?.[0].toUpperCase() || <UserCircle size={20} />}
           </div>
           <span className="font-bold text-gray-800 text-sm tracking-tight">
-            Chats
+            {userInfo?.fullName || "User"}
           </span>
         </div>
         <div className="flex gap-1 text-gray-400">

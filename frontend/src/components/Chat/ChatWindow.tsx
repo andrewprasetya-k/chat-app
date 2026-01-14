@@ -471,9 +471,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           : "bg-white text-gray-900"
                       }`}
                     >
-                      {msg.text === "[This message was unsent]" ? (
+                      {msg.text === "This message was unsent" ||
+                      msg.text === "[This message was unsent]" ? (
                         <p className="text-sm italic opacity-80 flex items-center gap-1.5">
-                          <Trash size={12} />
+                          <CircleAlert size={12} />
                           This message was unsent
                         </p>
                       ) : (
