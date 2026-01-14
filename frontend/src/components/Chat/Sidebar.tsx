@@ -9,21 +9,22 @@ import {
 
 import { useState, useEffect } from "react";
 
-import { ChatRoom } from "@/services/types";
+import {
+  ChatMessage,
+  ChatRoom,
+  GlobalSearchResults,
+  User,
+} from "@/services/types";
 import { socketClient } from "@/services/api/socket.client";
 import { authService } from "@/services/features/auth.service";
 import { formatRelativeTime } from "@/utils/date.util";
+import { chatService } from "@/services/features/chat.service";
 
 interface SidebarProps {
   rooms?: ChatRoom[];
   selectedRoomId?: string | null;
   onSelectRoom?: (roomId: string) => void;
   onlineUsers: Set<string>;
-}
-interface UserInfo {
-  id?: string;
-  fullName?: string;
-  [key: string]: any;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -37,8 +38,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
     {}
   );
   const [myUserId, setMyUserId] = useState<string>("");
-  const [userInfo, setUserInfo] = useState<UserInfo>({});
+  const [userInfo, setUserInfo] = useState<User>();
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({});
+  const [globalSearchTerm, setGlobalSearchTerm] = useState<string>("");
+  const [globalSearchResults, setGlobalSearchResults] =
+    useState<GlobalSearchResults | null>(null);
+  const [isSearching, setIsSearching] = useState<boolean>(false);
 
   // Ambil profil user untuk mendapatkan ID sendiri agar bisa memfilter di sidebar
   useEffect(() => {
@@ -123,13 +128,122 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [myUserId]); // Tambahkan myUserId ke dependensi agar filter berfungsi logicnya
 
+  const handleCreatePersonalChat = async (targetUserId: string) => {
+    try {
+      const newRoom = await chatService.createPersonalChat(targetUserId);
+      if (onSelectRoom) {
+        onSelectRoom(newRoom.roomId);
+      }
+
+      setGlobalSearchTerm("");
+      setGlobalSearchResults(null);
+    } catch (error) {
+      console.error("Failed to create personal chat:", error);
+    }
+  };
+
+  // Effect untuk pencarian global
+  useEffect(() => {
+    if (globalSearchTerm.trim() === "") {
+      setIsSearching(false);
+      setGlobalSearchResults(null);
+      return;
+    }
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        // Panggil API pencarian global di sini
+        const results: any = await chatService.globalSearchQuery(
+          globalSearchTerm
+        );
+        setGlobalSearchResults(results);
+      } catch (error) {
+        console.error("Global search failed:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300); // Debounce 300ms
+    return () => clearTimeout(timer);
+  }, [globalSearchTerm]);
+
+  // --- Helper Component: Chat List Item ---
+  const ChatListItem = ({ chat }: { chat: ChatRoom }) => (
+    <div
+      key={chat.roomId}
+      className={`p-4 flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100 last:border-0 group ${
+        onSelectRoom && selectedRoomId === chat.roomId
+          ? "bg-gray-100"
+          : "bg-gray-50"
+      }`}
+      onClick={() =>
+        selectedRoomId && onSelectRoom && onSelectRoom(chat.roomId)
+      }
+    >
+      <div className="relative">
+        <div
+          className={`w-12 h-12 flex items-center justify-center font-bold ${
+            chat.isGroup
+              ? "rounded-xl bg-indigo-100 text-indigo-600" // Group: Rounded Square
+              : "rounded-full bg-gray-200 text-gray-600" // Personal: Circle
+          }`}
+        >
+          {chat.roomName.split(" ").length > 1
+            ? `${chat.roomName.split(" ")[0][0]}${
+                chat.roomName.split(" ").slice(-1)[0][0]
+              }`.toUpperCase()
+            : chat.roomName.substring(0, 2).toUpperCase()}
+        </div>
+        {/* Indikator Online (Hanya untuk personal chat dan bukan room "Me") */}
+        {!chat.isGroup && chat.roomName !== "Me" && (
+          <div
+            className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
+              chat.otherUserId && onlineUsers.has(chat.otherUserId)
+                ? "bg-green-500" // Online
+                : "bg-gray-400" // Offline
+            }`}
+          ></div>
+        )}
+      </div>
+
+      <div className="flex-1 min-w-0">
+        <div className="flex justify-between items-baseline mb-1">
+          <h3 className="text-sm font-semibold text-gray-900 truncate">
+            {chat.roomName}
+            {chat.isGroup && chat.memberCount && (
+              <span className="ml-2 text-[10px] font-normal text-gray-400">
+                ({chat.memberCount})
+              </span>
+            )}
+          </h3>
+          <span className="text-xs text-gray-500">
+            {chat.lastMessageTime
+              ? formatRelativeTime(chat.lastMessageTime)
+              : ""}
+          </span>
+        </div>
+        <div className="flex justify-between items-center">
+          <p className="text-xs text-gray-500 truncate">
+            {typingStatus[chat.roomId] && typingStatus[chat.roomId].length > 0
+              ? `${typingStatus[chat.roomId].join(", ")} is typing...`
+              : chat.lastMessage || "No messages yet."}
+          </p>
+          {(chat.unreadCount ?? 0) > 0 && (
+            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
+              {chat.unreadCount}
+            </span>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+
   return (
     <div className="w-1/4 h-full border-gray-200 flex flex-col bg-gray-50">
       {/* Header */}
       <div className="p-4 h-18.25 shrink-0 bg-white border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
-            {userInfo.fullName ? (
+            {userInfo?.fullName ? (
               userInfo.fullName
                 .split(" ")
                 .map((n: string) => n[0])
@@ -140,7 +254,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
           <span className="font-semibold text-gray-800">
-            {userInfo.fullName}
+            {userInfo?.fullName}
           </span>
         </div>
         <div className="flex gap-2 text-gray-500">
@@ -162,84 +276,81 @@ export const Sidebar: React.FC<SidebarProps> = ({
           />
           <input
             type="text"
-            placeholder="Search messages..."
+            placeholder="Search messages or people..."
             className="w-full pl-10 pr-4 py-2 bg-gray-100 border-none rounded-lg text-sm focus:ring-2 focus:ring-blue-500 transition-all"
+            value={globalSearchTerm}
+            onChange={(e) => setGlobalSearchTerm(e.target.value)}
           />
         </div>
       </div>
 
-      {/* Chat List */}
+      {/* Main Content Area */}
       <div className="flex-1 overflow-y-auto">
-        {rooms?.map((chat) => (
-          <div
-            key={chat.roomId}
-            className={`p-4 flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100 last:border-0 group ${
-              onSelectRoom && selectedRoomId === chat.roomId
-                ? "bg-gray-100"
-                : "bg-gray-50"
-            }`}
-            onClick={() =>
-              selectedRoomId && onSelectRoom && onSelectRoom(chat.roomId)
-            }
-          >
-            <div className="relative">
-              <div
-                className={`w-12 h-12 flex items-center justify-center font-bold ${
-                  chat.isGroup
-                    ? "rounded-xl bg-indigo-100 text-indigo-600" // Group: Rounded Square
-                    : "rounded-full bg-gray-200 text-gray-600" // Personal: Circle
-                }`}
-              >
-                {chat.roomName.split(" ").length > 1
-                  ? `${chat.roomName.split(" ")[0][0]}${
-                      chat.roomName.split(" ").slice(-1)[0][0]
-                    }`.toUpperCase()
-                  : chat.roomName.substring(0, 2).toUpperCase()}
+        {globalSearchTerm ? (
+          // --- SEARCH MODE ---
+          <div className="pb-4">
+            {isSearching ? (
+              <div className="p-8 text-center text-gray-400 text-sm">
+                Searching...
               </div>
-              {/* Indikator Online (Hanya untuk personal chat dan bukan room "Me") */}
-              {!chat.isGroup && chat.roomName !== "Me" && (
-                <div
-                  className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
-                    chat.otherUserId && onlineUsers.has(chat.otherUserId)
-                      ? "bg-green-500" // Online
-                      : "bg-gray-400" // Offline
-                  }`}
-                ></div>
-              )}
-            </div>
-
-            <div className="flex-1 min-w-0">
-              <div className="flex justify-between items-baseline mb-1">
-                <h3 className="text-sm font-semibold text-gray-900 truncate">
-                  {chat.roomName}
-                  {chat.isGroup && chat.memberCount && (
-                    <span className="ml-2 text-[10px] font-normal text-gray-400">
-                      ({chat.memberCount})
-                    </span>
+            ) : (
+              <>
+                {/* 1. Chats Section */}
+                {globalSearchResults?.rooms &&
+                  globalSearchResults.rooms.length > 0 && (
+                    <div className="mb-2">
+                      <h3 className="px-4 py-2 mt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        Existing Chats
+                      </h3>
+                      {globalSearchResults.rooms.map((chat) => (
+                        <ChatListItem key={chat.roomId} chat={chat} />
+                      ))}
+                    </div>
                   )}
-                </h3>
-                <span className="text-xs text-gray-500">
-                  {chat.lastMessageTime
-                    ? formatRelativeTime(chat.lastMessageTime)
-                    : ""}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <p className="text-xs text-gray-500 truncate">
-                  {typingStatus[chat.roomId] &&
-                  typingStatus[chat.roomId].length > 0
-                    ? `${typingStatus[chat.roomId].join(", ")} is typing...`
-                    : chat.lastMessage || "No messages yet."}
-                </p>
-                {(chat.unreadCount ?? 0) > 0 && (
-                  <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full">
-                    {chat.unreadCount}
-                  </span>
+
+                {/* 2. People Section */}
+                {globalSearchResults?.users &&
+                  globalSearchResults.users.length > 0 && (
+                    <div className="mb-2">
+                      <h3 className="px-4 py-2 mt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
+                        People
+                      </h3>
+                      {globalSearchResults.users.map((user) => (
+                        <div
+                          key={user.id}
+                          onClick={() => handleCreatePersonalChat(user.id)}
+                          className="px-4 py-3 flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors"
+                        >
+                          <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold">
+                            {user.fullName ? user.fullName[0].toUpperCase() : "?"}
+                          </div>
+                          <div>
+                            <p className="font-medium text-gray-900">
+                              {user.fullName}
+                            </p>
+                            <p className="text-xs text-gray-500">
+                              Click to start chat
+                            </p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                {/* Empty State */}
+                {(!globalSearchResults?.rooms?.length &&
+                  !globalSearchResults?.users?.length) && (
+                  <div className="p-8 text-center text-gray-400 text-sm">
+                    No results found for "{globalSearchTerm}"
+                  </div>
                 )}
-              </div>
-            </div>
+              </>
+            )}
           </div>
-        ))}
+        ) : (
+          // --- NORMAL MODE (Chat List) ---
+          rooms?.map((chat) => <ChatListItem key={chat.roomId} chat={chat} />)
+        )}
       </div>
     </div>
   );
