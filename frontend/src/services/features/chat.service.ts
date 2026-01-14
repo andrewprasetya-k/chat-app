@@ -1,6 +1,13 @@
 import api from "../api/axios.instance";
 import { socketClient } from "../api/socket.client";
-import { ChatRoom, ChatMessage, MessageParams, ChatRoomInfo } from "../types";
+import {
+  ChatRoom,
+  ChatMessage,
+  MessageParams,
+  ChatRoomInfo,
+  User,
+  GlobalSearchResults,
+} from "../types";
 
 export const chatService = {
   // untuk mendapatkan daftar ruang chat aktif
@@ -46,6 +53,28 @@ export const chatService = {
   async markAsRead(roomId: string, messageIds: string[]): Promise<void> {
     if (messageIds.length === 0) return;
     await api.post(`/chat/read/${roomId}`, { messageIds });
+  },
+
+  async globalSearchQuery(query: string): Promise<GlobalSearchResults> {
+    const response = await api.get<GlobalSearchResults>(
+      `/search/${encodeURIComponent(query)}`
+    );
+    return response.data;
+  },
+
+  async globalSearchUser(query: string): Promise<User[]> {
+    const response = await api.get<User[]>(`user/search/name/${query}`);
+    return response.data;
+  },
+
+  async createPersonalChat(targetUserId: string): Promise<ChatRoom> {
+    const payload = {
+      groupName: "",
+      isGroup: false,
+      groupMembers: [targetUserId],
+    };
+    const response = await api.post<ChatRoom>(`/room/create`, payload);
+    return response.data;
   },
 
   // == web socket ==
