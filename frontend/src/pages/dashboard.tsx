@@ -75,7 +75,7 @@ export default function DashboardPage() {
     };
 
     // Handler: User Offline
-    const handleUserOffline = (data: { userId: string }) => {
+    const handleUserOffline = (data: { userId: string; lastSeen: string }) => {
       setOnlineUsers((prev) => {
         const updated = new Set(prev);
         updated.delete(data.userId);
@@ -84,7 +84,9 @@ export default function DashboardPage() {
 
       setRooms((prevRooms) =>
         prevRooms.map((room) =>
-          room.otherUserId === data.userId ? { ...room, isOnline: false } : room
+          room.otherUserId === data.userId
+            ? { ...room, isOnline: false, lastSeen: data.lastSeen }
+            : room
         )
       );
     };
