@@ -1,3 +1,0 @@
-cari user lain (fitur search user untuk memulai chat baru)
-unsend message (tambahkan ui/tombol untuk menarik pesan)
-fix personal chat realtime (implementasi event 'added_to_room' agar user otomatis join socket room saat chat personal baru dibuat)
