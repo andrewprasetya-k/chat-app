@@ -8,6 +8,7 @@ import {
   Info,
   Check,
   CheckCheck,
+  Trash,
 } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
@@ -189,10 +190,23 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     socketClient.on("user_typing", handleTypingStart);
     socketClient.on("user_stopped_typing", handleTypingStop);
 
+    //handle unsend message realtime
+    const handleUnsendMessage = (data: {
+      messageId: string;
+      roomId: string;
+    }) => {
+      if (data.roomId !== roomId) return;
+      setMessages((prevMessages) =>
+        prevMessages.filter((msg) => msg.textId !== data.messageId)
+      );
+    };
+    socketClient.on("message_unsent", handleUnsendMessage);
+
     // --- E. Cleanup ---
     return () => {
       setMessages([]); // Reset messages UI
       setTypingUsers([]); // Reset typing indicator
+      socketClient.off("message_unsent", handleUnsendMessage);
       socketClient.off("messages_read_update", handleReadMessageRealtime);
       socketClient.off("new_message", handleNewMessage);
       socketClient.off("user_typing", handleTypingStart);
@@ -392,12 +406,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             return (
               <div
                 key={msg.textId}
-                className={`flex ${isMe ? "justify-end" : "justify-start"}`}
+                className={`flex group ${
+                  isMe ? "justify-end" : "justify-start"
+                }`}
                 style={{ marginBottom: "12px" }}
               >
                 <div
-                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit ${
-                    isMe ? "ml-auto" : "mr-auto"
+                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit flex flex-col ${
+                    isMe ? "items-end" : "items-start"
                   }`}
                 >
                   {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
@@ -405,13 +421,37 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       {msg.sender.senderName}
                     </span>
                   )}
-                  <div
-                    className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
-                      isMe ? "bg-blue-500 text-white" : "bg-white text-gray-900"
-                    }`}
-                  >
-                    <p className="text-sm wrap-break-word">{msg.text}</p>
+
+                  <div className="relative flex items-end gap-2">
+                    {/* Tombol Delete untuk Pesan Sendiri */}
+                    {isMe && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Unsend this message?")) {
+                            chatService.unsendMessage(
+                              msg.textId,
+                              activeRoom.roomId
+                            );
+                          }
+                        }}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
+                        title="Unsend"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    )}
+
+                    <div
+                      className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
+                        isMe
+                          ? "bg-blue-500 text-white"
+                          : "bg-white text-gray-900"
+                      }`}
+                    >
+                      <p className="text-sm wrap-break-word">{msg.text}</p>
+                    </div>
                   </div>
+
                   <span
                     className={`text-[10px] mt-1 block ${
                       isMe
