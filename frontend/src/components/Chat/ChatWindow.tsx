@@ -197,7 +197,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }) => {
       if (data.roomId !== roomId) return;
       setMessages((prevMessages) =>
-        prevMessages.filter((msg) => msg.textId !== data.messageId)
+        prevMessages.map((msg) => {
+          if (msg.textId === data.messageId) {
+            return {
+              ...msg,
+              text: "[This message was unsent]", // Hardcoded to match backend DB update
+            };
+          }
+          return msg;
+        })
       );
     };
     socketClient.on("message_unsent", handleUnsendMessage);
