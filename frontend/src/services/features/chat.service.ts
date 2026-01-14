@@ -55,6 +55,7 @@ export const chatService = {
     await api.post(`/chat/read/${roomId}`, { messageIds });
   },
 
+  // --- 5. Global Search ---
   async globalSearchQuery(query: string): Promise<GlobalSearchResults> {
     const response = await api.get<GlobalSearchResults>(
       `/search/${encodeURIComponent(query)}`
@@ -62,11 +63,18 @@ export const chatService = {
     return response.data;
   },
 
+  //unsend chat message
+  async unsendMessage(messageId: string, chatRoomId: string): Promise<void> {
+    await api.patch(`/chat/unsend/${chatRoomId}/${messageId}`);
+  },
+
+  // mencari user berdasarkan nama
   async globalSearchUser(query: string): Promise<User[]> {
     const response = await api.get<User[]>(`user/search/name/${query}`);
     return response.data;
   },
 
+  // membuat personal chat baru
   async createPersonalChat(targetUserId: string): Promise<ChatRoom> {
     const payload = {
       groupName: "",
