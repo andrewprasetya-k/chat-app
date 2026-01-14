@@ -412,6 +412,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         ) : (
           messages.map((msg) => {
             const isMe = msg.sender?.senderId === myUserId;
+            const isSystem = msg.type === "system";
+
+            // --- 1. RENDER PESAN SISTEM (Timeline Event) ---
+            if (isSystem) {
+              return (
+                <div key={msg.textId} className="flex justify-center my-2">
+                  <div className="bg-gray-200/50 text-gray-500 text-[10px] px-3 py-1 rounded-full font-medium uppercase tracking-tight">
+                    {msg.text}
+                  </div>
+                </div>
+              );
+            }
+
+            // --- 2. RENDER BUBBLE CHAT BIASA ---
             return (
               <div
                 key={msg.textId}
@@ -432,8 +446,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   )}
 
                   <div className="relative flex items-end gap-2">
-                    {/* Tombol Unsend untuk Pesan Sendiri */}
-                    {isMe && (
+                    {/* Tombol Delete untuk Pesan Sendiri */}
+                    {isMe && msg.text !== "[This message was unsent]" && (
                       <button
                         onClick={() => {
                           if (window.confirm("Unsend this message?")) {
@@ -457,8 +471,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           : "bg-white text-gray-900"
                       }`}
                     >
-                      {msg.text === "This message was unsent" ? (
+                      {msg.text === "[This message was unsent]" ? (
                         <p className="text-sm italic opacity-80 flex items-center gap-1.5">
+                          <Trash size={12} />
                           This message was unsent
                         </p>
                       ) : (

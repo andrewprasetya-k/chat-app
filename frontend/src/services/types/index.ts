@@ -55,6 +55,7 @@ export interface ChatMessage {
   textId: string;
   roomId: string;
   text: string;
+  type: string;
   createdAt: string;
   sender: {
     senderId: string;

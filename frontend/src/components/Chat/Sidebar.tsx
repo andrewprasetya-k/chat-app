@@ -231,7 +231,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // 5. MAIN RENDER
   // ==================================================================================
   return (
-    <div className="w-1/4 h-full border-r border-gray-200 flex flex-col bg-white">
+    <div className="w-1/4 h-full border-gray-200 flex flex-col bg-white">
       {/* A. Header Sidebar */}
       <div className="p-4 flex items-center justify-between border-b border-gray-50 bg-white">
         <div className="flex items-center gap-3">

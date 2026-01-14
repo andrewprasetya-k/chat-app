@@ -341,6 +341,7 @@ export class ChatRoomService {
           `
           cm_id,
           message_text,
+          cm_type,
           created_at,
           sender:cm_usr_id (
             usr_id,
@@ -439,6 +440,7 @@ export class ChatRoomService {
         return {
           textId: msg.cm_id,
           text: msg.message_text,
+          type: msg.cm_type,
           createdAt: msg.created_at,
           sender: sender
             ? {

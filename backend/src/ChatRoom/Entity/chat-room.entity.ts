@@ -66,6 +66,9 @@ export class MessageDetailEntity {
   text: string;
 
   @Expose()
+  type: string;
+
+  @Expose()
   createdAt: string;
 
   @Expose()
