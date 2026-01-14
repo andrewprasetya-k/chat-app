@@ -229,7 +229,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
    */
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages.length, activeRoom?.roomId]);
 
   /**
    * Menangani perubahan input teks dan mengirim sinyal typing ke server.
@@ -304,7 +304,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
       // Tambahkan ke state jika belum ada (antisipasi broadcast socket)
       setMessages((prev) => {
-        if (prev.some((m) => m.textId === newMessage.textId)) return prev;
+        if (prev.map((m) => m.textId === newMessage.textId)) return prev;
         return [...prev, newMessage];
       });
     } catch (error) {
