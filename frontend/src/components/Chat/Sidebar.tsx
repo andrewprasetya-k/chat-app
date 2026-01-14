@@ -5,8 +5,7 @@ import {
   MessageSquarePlus,
   UserCircle,
   X,
-  Circle,
-  CircleAlert,
+  Check,
 } from "lucide-react";
 
 import { useState, useEffect } from "react";
@@ -50,28 +49,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
 
+  // Timer Heartbeat (Untuk update otomatis tulisan "1m ago", dst)
+  const [, setTick] = useState(0);
+
+  // Group Creation States
+  const [isGroupModalOpen, setIsGroupModalOpen] = useState(false);
+  const [newGroupName, setNewGroupName] = useState("");
+  const [selectedMembers, setSelectedMembers] = useState<string[]>([]);
+
   // ==================================================================================
   // 2. EFFECTS (Logic Otomatis)
   // ==================================================================================
 
-  // A. Inisialisasi: Ambil Profil & Daftar User (untuk saran)
+  // A. Heartbeat: Trigger re-render setiap 60 detik agar label waktu selalu akurat
+  useEffect(() => {
+    const interval = setInterval(() => setTick((t) => t + 1), 60000);
+    return () => clearInterval(interval);
+  }, []);
+
+  // B. Inisialisasi: Ambil Profil & Daftar User (untuk saran & grup)
   useEffect(() => {
     const initSidebar = async () => {
       try {
-        // Ambil profil diri sendiri
         const user: any = await authService.getProfile();
         const userData = user[0] || user;
         setUserInfo(userData);
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
         if (actualId) setMyUserId(actualId);
 
-        // Ambil daftar user untuk "Suggested People"
         const allUsers = await authService.getAllUsers();
-        // Filter agar tidak menyertakan diri sendiri dan ambil 8 orang saja
-        const filtered = allUsers
-          .filter((u: User) => u.id !== actualId)
-          .slice(0, 8);
-        setSuggestedUsers(filtered);
+        setSuggestedUsers(allUsers.filter((u: User) => u.id !== actualId));
       } catch (error) {
         console.error("Sidebar initialization failed:", error);
       }
@@ -79,7 +86,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     initSidebar();
   }, []);
 
-  // B. Socket Listeners (Typing Indicator)
+  // C. Socket Listeners (Typing Indicator)
   useEffect(() => {
     const handleStopTypingStatus = ({
       userName,
@@ -127,7 +134,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     };
   }, [myUserId]);
 
-  // C. Search Logic (Debounce 300ms)
+  // D. Search Logic (Debounce 300ms)
   useEffect(() => {
     if (globalSearchTerm.trim() === "") {
       setIsSearching(false);
@@ -156,19 +163,45 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // 3. ACTION HANDLERS (Fungsi Interaksi)
   // ==================================================================================
 
-  // Mulai Chat Baru dengan User
+  // Mulai Chat Personal Baru
   const handleCreatePersonalChat = async (targetUserId: string) => {
     try {
       const newRoom = await chatService.createPersonalChat(targetUserId);
       if (onSelectRoom) onSelectRoom(newRoom.roomId);
-
-      // Reset search state agar kembali ke inbox normal
       setGlobalSearchTerm("");
       setGlobalSearchResults(null);
       setIsSearchFocused(false);
     } catch (error) {
       console.error("Failed to create personal chat:", error);
     }
+  };
+
+  // Buat Grup Chat Baru
+  const handleCreateGroup = async () => {
+    if (!newGroupName.trim() || selectedMembers.length === 0) return;
+    try {
+      const newRoom = await chatService.createGroupChat(
+        newGroupName,
+        selectedMembers
+      );
+      if (onSelectRoom) onSelectRoom(newRoom.roomId);
+
+      // Reset state & Tutup Modal
+      setIsGroupModalOpen(false);
+      setNewGroupName("");
+      setSelectedMembers([]);
+    } catch (error) {
+      console.error("Failed to create group:", error);
+    }
+  };
+
+  // Toggle pilihan member untuk grup
+  const toggleMemberSelection = (userId: string) => {
+    setSelectedMembers((prev) =>
+      prev.includes(userId)
+        ? prev.filter((id) => id !== userId)
+        : [...prev, userId]
+    );
   };
 
   // ==================================================================================
@@ -215,10 +248,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
               : ""}
           </span>
         </div>
-        <div className="flex items-center gap-1">
+        <div className="flex justify-between items-center">
           <p
             className={`text-xs truncate ${
-              chat.lastMessage === "This message was unsent"
+              chat.lastMessage === "[This message was unsent]"
                 ? "italic text-gray-400"
                 : "text-gray-500"
             }`}
@@ -237,21 +270,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 
-  // Komponen Kartu User (Hasil Search / Suggested)
+  // Komponen Kartu User (Hasil Search / Suggested / Selection)
   const UserListItem = ({
     user,
     subtext,
+    isSelectable,
   }: {
     user: User;
     subtext?: string;
+    isSelectable?: boolean;
   }) => (
     <div
       key={user.id}
-      onClick={() => handleCreatePersonalChat(user.id)}
-      className="px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors"
+      onClick={() =>
+        isSelectable
+          ? toggleMemberSelection(user.id)
+          : handleCreatePersonalChat(user.id)
+      }
+      className={`px-4 py-3 flex items-center gap-3 hover:bg-gray-50 cursor-pointer transition-colors ${
+        isSelectable && selectedMembers.includes(user.id) ? "bg-blue-50" : ""
+      }`}
     >
-      <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-sm">
-        {user.fullName[0].toUpperCase()}
+      <div className="relative">
+        <div className="w-10 h-10 rounded-full bg-indigo-500 text-white flex items-center justify-center font-bold text-sm">
+          {user.fullName[0].toUpperCase()}
+        </div>
+        {isSelectable && selectedMembers.includes(user.id) && (
+          <div className="absolute -top-1 -right-1 w-5 h-5 bg-blue-600 rounded-full flex items-center justify-center border-2 border-white animate-in zoom-in duration-200">
+            <Check size={12} className="text-white" />
+          </div>
+        )}
       </div>
       <div className="flex-1 min-w-0">
         <p className="text-sm font-medium text-gray-900 truncate">
@@ -268,19 +316,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // 5. MAIN RENDER
   // ==================================================================================
   return (
-    <div className="w-1/4 h-full border-gray-100 flex flex-col bg-white">
-      {/* Sidebar Header */}
+    <div className="w-1/4 h-full border-r border-gray-200 flex flex-col bg-white">
+      {/* A. Header Sidebar */}
       <div className="p-4 flex items-center justify-between border-b border-gray-50 bg-white">
         <div className="flex items-center gap-3">
           <div className="w-9 h-9 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold text-sm">
             {userInfo?.fullName?.[0].toUpperCase() || <UserCircle size={20} />}
           </div>
           <span className="font-bold text-gray-800 text-sm tracking-tight">
-            {userInfo?.fullName || "User"}
+            Chats
           </span>
         </div>
         <div className="flex gap-1 text-gray-400">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button
+            onClick={() => setIsGroupModalOpen(true)}
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            title="New Group"
+          >
             <MessageSquarePlus size={18} />
           </button>
           <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
@@ -289,10 +341,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Search Bar Section */}
+      {/* B. Search Bar */}
       <div className="p-3">
         <div
-          className={`relative flex items-center rounded-xl transition-all duration-200 ${
+          className={`relative flex items-center transition-all duration-200 ${
             isSearchFocused ? "ring-2 ring-blue-500/20" : ""
           }`}
         >
@@ -324,10 +376,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Content List Area */}
-      <div className="flex-1 overflow-y-auto">
+      {/* C. List Area */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar">
         {isSearchFocused && !globalSearchTerm ? (
-          // --- MODE 1: DISCOVERY (Klik Search tapi kosong) ---
+          // MODE 1: Discovery (Klik Search tapi kosong)
           <div className="animate-in fade-in slide-in-from-top-1 duration-200">
             <h3 className="px-4 py-3 text-[11px] font-bold text-gray-400 uppercase tracking-widest">
               Suggested People
@@ -347,7 +399,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         ) : globalSearchTerm ? (
-          // --- MODE 2: SEARCH RESULTS (Mengetik) ---
+          // MODE 2: Search Results (Mengetik)
           <div>
             {isSearching ? (
               <div className="p-8 text-center text-gray-400 text-xs italic">
@@ -355,7 +407,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <>
-                {/* Bagian 1: Chats yang sudah ada */}
                 {globalSearchResults?.rooms &&
                   globalSearchResults.rooms.length > 0 && (
                     <div className="mb-2">
@@ -367,7 +418,6 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ))}
                     </div>
                   )}
-                {/* Bagian 2: User baru dari Database */}
                 {globalSearchResults?.users &&
                   globalSearchResults.users.length > 0 && (
                     <div className="mb-2">
@@ -379,25 +429,81 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       ))}
                     </div>
                   )}
-                {/* Empty State */}
                 {!globalSearchResults?.rooms?.length &&
                   !globalSearchResults?.users?.length && (
                     <div className="p-8 text-center text-gray-400 text-xs italic">
-                      No results found for "{globalSearchTerm}"
+                      No results found
                     </div>
                   )}
               </>
             )}
           </div>
-        ) : // --- MODE 3: NORMAL (Daftar Inbox) ---
+        ) : // MODE 3: Normal (Inbox)
         rooms?.length ? (
           rooms.map((chat) => <ChatListItem key={chat.roomId} chat={chat} />)
         ) : (
           <div className="p-8 text-center text-gray-400 text-xs italic mt-10">
-            No chats yet. Try searching for someone!
+            No chats yet.
           </div>
         )}
       </div>
+
+      {/* D. Create Group Modal */}
+      {isGroupModalOpen && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-100 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl overflow-hidden animate-in zoom-in-95 duration-200">
+            <div className="p-4 border-b flex justify-between items-center bg-gray-50">
+              <h3 className="font-bold text-gray-800">New Group</h3>
+              <button
+                onClick={() => setIsGroupModalOpen(false)}
+                className="p-1 hover:bg-gray-200 rounded-full"
+              >
+                <X size={18} />
+              </button>
+            </div>
+
+            <div className="p-4">
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">
+                Group Name
+              </label>
+              <input
+                type="text"
+                placeholder="Enter group name..."
+                className="w-full p-2.5 bg-gray-100 rounded-xl text-sm outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                value={newGroupName}
+                onChange={(e) => setNewGroupName(e.target.value)}
+              />
+            </div>
+
+            <div className="px-4 pb-2">
+              <label className="block text-xs font-bold text-gray-400 uppercase mb-2 tracking-wider">
+                Select Members ({selectedMembers.length})
+              </label>
+              <div className="max-h-60 overflow-y-auto space-y-1 rounded-xl border border-gray-100">
+                {suggestedUsers.map((user) => (
+                  <UserListItem key={user.id} user={user} isSelectable />
+                ))}
+              </div>
+            </div>
+
+            <div className="p-4 bg-gray-50 flex gap-3">
+              <button
+                onClick={() => setIsGroupModalOpen(false)}
+                className="flex-1 py-2.5 text-sm font-semibold text-gray-600 hover:bg-gray-200 rounded-xl transition-all"
+              >
+                Cancel
+              </button>
+              <button
+                disabled={!newGroupName.trim() || selectedMembers.length === 0}
+                onClick={handleCreateGroup}
+                className="flex-1 py-2.5 text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed rounded-xl shadow-lg shadow-blue-500/30 transition-all"
+              >
+                Create Group
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

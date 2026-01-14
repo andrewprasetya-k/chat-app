@@ -85,6 +85,20 @@ export const chatService = {
     return response.data;
   },
 
+  // membuat grup chat baru
+  async createGroupChat(
+    groupName: string,
+    groupMembers: string[]
+  ): Promise<ChatRoom> {
+    const payload = {
+      groupName,
+      isGroup: true,
+      groupMembers,
+    };
+    const response = await api.post<ChatRoom>(`/room/create`, payload);
+    return response.data;
+  },
+
   // == web socket ==
   // tandai masuk ke room tertentu (backend expect string roomId)
   joinRoom(roomId: string) {
