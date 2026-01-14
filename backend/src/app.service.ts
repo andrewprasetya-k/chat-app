@@ -51,15 +51,11 @@ export class AppService {
 
       const filteredUsers = users.filter((u) => u.id !== userId);
 
-      return plainToInstance(
-        SearchResponseEntity,
-        {
-          rooms: filteredRooms,
-          users: filteredUsers,
-          messages: messages,
-        },
-        { excludeExtraneousValues: true, enableImplicitConversion: true },
-      );
+      return {
+        rooms: filteredRooms,
+        messages: messages,
+        users: filteredUsers,
+      };
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to search',
