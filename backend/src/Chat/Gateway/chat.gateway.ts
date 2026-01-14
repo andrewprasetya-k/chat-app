@@ -16,6 +16,8 @@ import { UserService } from 'src/User/Service/user.service';
 @WebSocketGateway({
   cors: {
     origin: '*', // Di production sebaiknya di-lock ke domain frontend
+    pingTimeout: 60000 * 30, // 30 menit
+    pingInterval: 25000,
   },
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {

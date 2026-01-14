@@ -34,6 +34,25 @@ export default function DashboardPage() {
     myIdRef.current = isMeMyId;
   }, [isMeMyId]);
 
+  // Anticipate browser sleep mode & keep connection alive
+  useEffect(() => {
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === "visible") {
+        // Bangunkan socket jika terputus saat tab tidak aktif
+        console.log("Tab is visible, ensuring socket connection...");
+        socketClient.connect();
+      }
+      // Kita tidak memanggil disconnect() saat hidden agar pesan tetap bisa masuk 
+      // di background selama diizinkan oleh browser.
+    };
+
+    document.addEventListener("visibilitychange", handleVisibilityChange);
+
+    return () => {
+      document.removeEventListener("visibilitychange", handleVisibilityChange);
+    };
+  }, []);
+
   // Connect to web socket & Listeners
   useEffect(() => {
     socketClient.connect();
