@@ -33,87 +33,68 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onSelectRoom,
   onlineUsers,
 }) => {
-  // Format: { "id_room_1": ["Nama A", "Nama B"], "id_room_2": ["Nama C"] }
-  const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>(
-    {}
-  );
-  const [myUserId, setMyUserId] = useState<string>("");
+  // ==================================================================================
+  // 1. STATE & CONFIGURATION
+  // ==================================================================================
+  
+  // Data User & Typing
   const [userInfo, setUserInfo] = useState<User>();
+  const [myUserId, setMyUserId] = useState<string>("");
+  const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>({});
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({});
+
+  // Data Search (Unified Search)
   const [globalSearchTerm, setGlobalSearchTerm] = useState<string>("");
-  const [globalSearchResults, setGlobalSearchResults] =
-    useState<GlobalSearchResults | null>(null);
+  const [globalSearchResults, setGlobalSearchResults] = useState<GlobalSearchResults | null>(null);
   const [isSearching, setIsSearching] = useState<boolean>(false);
 
-  // Ambil profil user untuk mendapatkan ID sendiri agar bisa memfilter di sidebar
+  // ==================================================================================
+  // 2. EFFECTS (Logic Otomatis)
+  // ==================================================================================
+
+  // A. Fetch Profile saat mount (untuk tahu 'Siapa Saya')
   useEffect(() => {
     const fetchProfile = async () => {
       try {
         const user: any = await authService.getProfile();
-        setUserInfo(user[0] || user); // Sesuaikan dengan struktur data yang diterima
+        setUserInfo(user[0] || user);
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
         if (actualId) setMyUserId(actualId);
       } catch (error) {
         console.error("Failed to fetch profile in sidebar:", error);
       }
     };
-
     fetchProfile();
-
-    return () => {};
   }, []);
 
-  // Dengarkan event typing dan stop typing
+  // B. Socket Listeners (Typing Indicator)
   useEffect(() => {
-    const handleStopTypingStatus = ({
-      userId,
-      userName,
-      roomId,
-    }: {
-      userId: string;
-      userName: string;
-      roomId: string;
-    }) => {
-      setTypingStatus((prevStatus) => {
-        const currentTypers = prevStatus[roomId] || [];
-        return {
-          ...prevStatus,
-          [roomId]: currentTypers.filter((name) => name !== userName),
-        };
-      });
+    // Fungsi untuk menghapus status typing
+    const handleStopTypingStatus = ({ userName, roomId }: { userName: string; roomId: string }) => {
+      setTypingStatus((prev) => ({
+        ...prev,
+        [roomId]: (prev[roomId] || []).filter((name) => name !== userName),
+      }));
     };
 
-    const handleTypingStatus = ({
-      userId,
-      userName,
-      roomId,
-    }: {
-      userId: string;
-      userName: string;
-      roomId: string;
-    }) => {
-      // JANGAN tampilkan jika yang mengetik adalah DIRI SENDIRI
-      if (userId === myUserId) return;
+    // Fungsi saat ada yang mengetik
+    const handleTypingStatus = ({ userId, userName, roomId }: { userId: string; userName: string; roomId: string }) => {
+      if (userId === myUserId) return; // Hiraukan diri sendiri
 
-      setTypingStatus((prevStatus) => {
-        const currentTypers = prevStatus[roomId] || [];
+      setTypingStatus((prev) => {
+        const currentTypers = prev[roomId] || [];
         if (!currentTypers.includes(userName)) {
-          return {
-            ...prevStatus,
-            [roomId]: [...currentTypers, userName],
-          };
+          return { ...prev, [roomId]: [...currentTypers, userName] };
         }
-        return prevStatus;
+        return prev;
       });
 
-      // --- Logic Timeout Otomatis ---
+      // Auto-remove status typing setelah 5 detik (Fail-safe)
       const timeoutKey = `${roomId}-${userName}`;
-      if (typingTimeoutsRef.current[timeoutKey]) {
-        clearTimeout(typingTimeoutsRef.current[timeoutKey]);
-      }
-
+      if (typingTimeoutsRef.current[timeoutKey]) clearTimeout(typingTimeoutsRef.current[timeoutKey]);
+      
       typingTimeoutsRef.current[timeoutKey] = setTimeout(() => {
-        handleStopTypingStatus({ userId, userName, roomId });
+        handleStopTypingStatus({ userName, roomId });
       }, 5000);
     };
 
@@ -123,18 +104,54 @@ export const Sidebar: React.FC<SidebarProps> = ({
     return () => {
       socketClient.off("user_typing", handleTypingStatus);
       socketClient.off("user_stopped_typing", handleStopTypingStatus);
-      // Cleanup all timeouts on unmount
       Object.values(typingTimeoutsRef.current).forEach(clearTimeout);
     };
-  }, [myUserId]); // Tambahkan myUserId ke dependensi agar filter berfungsi logicnya
+  }, [myUserId]);
 
+  // C. Search Logic (Debounce)
+  // Menunggu 300ms setelah user berhenti mengetik sebelum memanggil API
+  useEffect(() => {
+    if (globalSearchTerm.trim() === "") {
+      setIsSearching(false);
+      setGlobalSearchResults(null);
+      return;
+    }
+
+    const timer = setTimeout(async () => {
+      setIsSearching(true);
+      try {
+        // Panggil endpoint gabungan (Rooms + Users + Messages)
+        const results: any = await chatService.globalSearchQuery(globalSearchTerm);
+        setGlobalSearchResults(results);
+      } catch (error) {
+        console.error("Global search failed:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 300);
+
+    return () => clearTimeout(timer); // Cleanup timer sebelumnya jika user mengetik lagi
+  }, [globalSearchTerm]);
+
+  // ==================================================================================
+  // 3. ACTION HANDLERS (Fungsi Interaksi)
+  // ==================================================================================
+
+  /**
+   * Menangani klik pada hasil search "People".
+   * Membuat room baru (atau membuka yang lama) secara otomatis.
+   */
   const handleCreatePersonalChat = async (targetUserId: string) => {
     try {
+      // Backend akan otomatis cek: jika chat sudah ada, return ID lama. Jika belum, buat baru.
       const newRoom = await chatService.createPersonalChat(targetUserId);
+      
+      // Pindah ke room tersebut
       if (onSelectRoom) {
         onSelectRoom(newRoom.roomId);
       }
 
+      // Reset tampilan search ke normal
       setGlobalSearchTerm("");
       setGlobalSearchResults(null);
     } catch (error) {
@@ -142,31 +159,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     }
   };
 
-  // Effect untuk pencarian global
-  useEffect(() => {
-    if (globalSearchTerm.trim() === "") {
-      setIsSearching(false);
-      setGlobalSearchResults(null);
-      return;
-    }
-    const timer = setTimeout(async () => {
-      setIsSearching(true);
-      try {
-        // Panggil API pencarian global di sini
-        const results: any = await chatService.globalSearchQuery(
-          globalSearchTerm
-        );
-        setGlobalSearchResults(results);
-      } catch (error) {
-        console.error("Global search failed:", error);
-      } finally {
-        setIsSearching(false);
-      }
-    }, 300); // Debounce 300ms
-    return () => clearTimeout(timer);
-  }, [globalSearchTerm]);
+  // ==================================================================================
+  // 4. HELPER COMPONENTS (Sub-komponen untuk tampilan berulang)
+  // ==================================================================================
 
-  // --- Helper Component: Chat List Item ---
+  /**
+   * Card Component untuk menampilkan item chat.
+   * Dipakai di mode normal DAN mode search (Existing Chats).
+   */
   const ChatListItem = ({ chat }: { chat: ChatRoom }) => (
     <div
       key={chat.roomId}
@@ -180,11 +180,12 @@ export const Sidebar: React.FC<SidebarProps> = ({
       }
     >
       <div className="relative">
+        {/* Avatar Logic: Kotak untuk Group, Bulat untuk Personal */}
         <div
           className={`w-12 h-12 flex items-center justify-center font-bold ${
             chat.isGroup
-              ? "rounded-xl bg-indigo-100 text-indigo-600" // Group: Rounded Square
-              : "rounded-full bg-gray-200 text-gray-600" // Personal: Circle
+              ? "rounded-xl bg-indigo-100 text-indigo-600" 
+              : "rounded-full bg-gray-200 text-gray-600"
           }`}
         >
           {chat.roomName.split(" ").length > 1
@@ -193,7 +194,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               }`.toUpperCase()
             : chat.roomName.substring(0, 2).toUpperCase()}
         </div>
-        {/* Indikator Online (Hanya untuk personal chat dan bukan room "Me") */}
+        
+        {/* Indikator Online (Dot Hijau) */}
         {!chat.isGroup && chat.roomName !== "Me" && (
           <div
             className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
@@ -223,6 +225,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
         <div className="flex justify-between items-center">
           <p className="text-xs text-gray-500 truncate">
+            {/* Tampilkan status typing JIKA ada, kalau tidak tampilkan last message */}
             {typingStatus[chat.roomId] && typingStatus[chat.roomId].length > 0
               ? `${typingStatus[chat.roomId].join(", ")} is typing...`
               : chat.lastMessage || "No messages yet."}
@@ -237,18 +240,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
   );
 
+  // ==================================================================================
+  // 5. MAIN RENDER
+  // ==================================================================================
   return (
     <div className="w-1/4 h-full border-gray-200 flex flex-col bg-gray-50">
-      {/* Header */}
+      {/* A. Header Sidebar (User Info & Actions) */}
       <div className="p-4 h-18.25 shrink-0 bg-white border-gray-200 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold">
             {userInfo?.fullName ? (
-              userInfo.fullName
-                .split(" ")
-                .map((n: string) => n[0])
-                .join("")
-                .toUpperCase()
+              userInfo.fullName.split(" ").map((n: string) => n[0]).join("").toUpperCase()
             ) : (
               <UserCircle size={24} />
             )}
@@ -267,7 +269,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Search */}
+      {/* B. Search Input */}
       <div className="p-4 bg-white">
         <div className="relative">
           <Search
@@ -284,10 +286,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Main Content Area */}
+      {/* C. Content List (Scrollable) */}
       <div className="flex-1 overflow-y-auto">
         {globalSearchTerm ? (
-          // --- SEARCH MODE ---
+          // --- MODE 1: SEARCH RESULTS ---
           <div className="pb-4">
             {isSearching ? (
               <div className="p-8 text-center text-gray-400 text-sm">
@@ -295,9 +297,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </div>
             ) : (
               <>
-                {/* 1. Chats Section */}
-                {globalSearchResults?.rooms &&
-                  globalSearchResults.rooms.length > 0 && (
+                {/* 1. Kategori: Existing Chats (Room yang sudah ada) */}
+                {globalSearchResults?.rooms && globalSearchResults.rooms.length > 0 && (
                     <div className="mb-2">
                       <h3 className="px-4 py-2 mt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                         Existing Chats
@@ -308,9 +309,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   )}
 
-                {/* 2. People Section */}
-                {globalSearchResults?.users &&
-                  globalSearchResults.users.length > 0 && (
+                {/* 2. Kategori: People (User baru dari database) */}
+                {globalSearchResults?.users && globalSearchResults.users.length > 0 && (
                     <div className="mb-2">
                       <h3 className="px-4 py-2 mt-2 text-xs font-bold text-gray-400 uppercase tracking-wider">
                         People
@@ -337,9 +337,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     </div>
                   )}
 
-                {/* Empty State */}
-                {(!globalSearchResults?.rooms?.length &&
-                  !globalSearchResults?.users?.length) && (
+                {/* Empty State: Jika tidak ada hasil sama sekali */}
+                {(!globalSearchResults?.rooms?.length && !globalSearchResults?.users?.length) && (
                   <div className="p-8 text-center text-gray-400 text-sm">
                     No results found for "{globalSearchTerm}"
                   </div>
@@ -348,7 +347,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         ) : (
-          // --- NORMAL MODE (Chat List) ---
+          // --- MODE 2: NORMAL CHAT LIST (Inbox) ---
           rooms?.map((chat) => <ChatListItem key={chat.roomId} chat={chat} />)
         )}
       </div>
