@@ -337,10 +337,10 @@ export class ChatService {
         );
       }
 
-      const unsendText = '[This message was unsent]';
+      // const unsendText = '[This message was unsent]';
       const { error: deleteError } = await client
         .from('chat_message')
-        .update({ message_text: unsendText })
+        .update({ message_text: '[This message was unsent]' })
         .eq('cm_id', messageId);
 
       if (deleteError) throw deleteError;
@@ -349,7 +349,6 @@ export class ChatService {
       this.chatGateway.server.to(`room_${roomId}`).emit('message_unsent', {
         roomId,
         messageId,
-        unsendText,
         unsendBy: userId,
       });
 
