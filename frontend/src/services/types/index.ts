@@ -88,9 +88,17 @@ export interface TypingPayload {
   roomId: string;
 }
 
+// Payload untuk event "read_receipt"
 export interface ReadReceiptPayload {
   roomId: string;
   readerId: string;
   messageIds: string[];
   readAt: string;
+}
+
+// --- 6. Search Results ---
+export interface GlobalSearchResults {
+  rooms: ChatRoom[];
+  messages: ChatMessage[];
+  users: User[];
 }
