@@ -48,6 +48,11 @@ export default function DashboardPage() {
     // Handler: User Online
     const handleUserOnline = (data: { userId: string }) => {
       setOnlineUsers((prev) => new Set(prev).add(data.userId));
+      setRooms((prevRooms) =>
+        prevRooms.map((room) =>
+          room.otherUserId === data.userId ? { ...room, isOnline: true } : room
+        )
+      );
     };
 
     // Handler: User Offline
@@ -57,6 +62,12 @@ export default function DashboardPage() {
         updated.delete(data.userId);
         return updated;
       });
+
+      setRooms((prevRooms) =>
+        prevRooms.map((room) =>
+          room.otherUserId === data.userId ? { ...room, isOnline: false } : room
+        )
+      );
     };
 
     const handleNewRoom = (newRoom: ChatRoom) => {
@@ -133,7 +144,26 @@ export default function DashboardPage() {
       }
     };
 
+    const handleUnsentMessage = (data: {
+      roomId: string;
+      messageId: string;
+      unsendText?: string;
+    }) => {
+      // Update pesan di dalam activeRoom jika sedang dibuka
+      setRooms((prevRooms) =>
+        prevRooms.map((room) => {
+          if (room.roomId === data.roomId) {
+            return {
+              ...room,
+              lastMessage: data.unsendText || "This message was unsend",
+            };
+          }
+          return room;
+        })
+      );
+    };
     // Register Listeners
+    socketClient.on("message_unsent", handleUnsentMessage);
     socketClient.on("new_message", handleNewMessageSidebar);
     socketClient.on("messages_read_update", handleReadMessage);
     socketClient.on("user_online", handleUserOnline);
@@ -141,6 +171,7 @@ export default function DashboardPage() {
 
     // Cleanup
     return () => {
+      socketClient.off("message_unsent", handleUnsentMessage);
       socketClient.off("new_room_created", handleNewRoom);
       socketClient.off("connect");
       socketClient.off("new_message", handleNewMessageSidebar);

@@ -203,7 +203,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           if (msg.textId === data.messageId) {
             return {
               ...msg,
-              text: "[This message was unsent]", // Hardcoded to match backend DB update
+              text: "This message was unsend", // Hardcoded to match backend DB update
             };
           }
           return msg;
@@ -432,7 +432,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   )}
 
                   <div className="relative flex items-end gap-2">
-                    {/* Tombol Delete untuk Pesan Sendiri */}
+                    {/* Tombol Unsend untuk Pesan Sendiri */}
                     {isMe && (
                       <button
                         onClick={() => {
@@ -457,8 +457,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           : "bg-white text-gray-900"
                       }`}
                     >
+                      {/* Handle Unsent Message Display */}
                       {msg.text.includes("This message was unsent") ? (
-                        <span className="flex items-center gap-2 text-blue-100 italic text-sm wrap-break-word">
+                        <span className="flex items-center gap-2 italic text-sm wrap-break-word">
                           <CircleAlert className="w-4 h-4 text-blue" />
                           This message was unsent
                         </span>
