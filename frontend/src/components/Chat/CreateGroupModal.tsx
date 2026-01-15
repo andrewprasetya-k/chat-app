@@ -51,7 +51,7 @@ export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
       setSelectedMembers([]);
       onClose();
     } catch (error) {
-      console.error("Failed to create group:", error);
+      // console.error("Failed to create group:", error);
       alert("Failed to create group. Please try again.");
     } finally {
       setIsLoading(false);

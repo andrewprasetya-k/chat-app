@@ -39,7 +39,7 @@ export default function DashboardPage() {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
         // Bangunkan socket jika terputus saat tab tidak aktif
-        console.log("Tab is visible, ensuring socket connection...");
+        // console.log("Tab is visible, ensuring socket connection...");
         socketClient.connect();
       }
       // Kita tidak memanggil disconnect() saat hidden agar pesan tetap bisa masuk
@@ -57,11 +57,11 @@ export default function DashboardPage() {
   useEffect(() => {
     socketClient.connect();
     socketClient.on("connect", () => {
-      console.log("Reconnected with socket ID, rejoining rooms...");
+      // console.log("Reconnected with socket ID, rejoining rooms...");
       roomsRef.current.forEach((room) => {
         socketClient.emit("join_room", room.roomId);
       });
-      console.log("Rejoined all rooms after reconnecting: ", roomsRef.current);
+      // console.log("Rejoined all rooms after reconnecting: ", roomsRef.current);
     });
 
     // Handler: User Online

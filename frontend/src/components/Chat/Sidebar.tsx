@@ -96,7 +96,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         const allUsers = await authService.getAllUsers();
         setSuggestedUsers(allUsers.filter((u: User) => u.id !== actualId));
       } catch (error) {
-        console.error("Sidebar initialization failed:", error);
+        // console.error("Sidebar initialization failed:", error);
       }
     };
     initSidebar();
@@ -166,7 +166,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         );
         setGlobalSearchResults(results);
       } catch (error) {
-        console.error("Global search failed:", error);
+        // console.error("Global search failed:", error);
       } finally {
         setIsSearching(false);
       }
@@ -188,7 +188,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       setGlobalSearchResults(null);
       setIsSearchFocused(false);
     } catch (error) {
-      console.error("Failed to create personal chat:", error);
+      // console.error("Failed to create personal chat:", error);
     }
   };
 

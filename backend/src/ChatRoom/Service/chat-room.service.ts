@@ -182,10 +182,6 @@ export class ChatRoomService {
         return timeB - timeA;
       });
 
-      console.log(
-        'DEBUG TRANSFORMED DATA:',
-        JSON.stringify(transformedData[0], null, 2),
-      );
       return transformedData;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -1532,7 +1528,7 @@ export class ChatRoomService {
       });
     } catch (error: any) {
       // Log error but return empty array to avoid breaking the whole search
-      console.error('Search messages error:', error);
+      // console.error('Search messages error:', error);
       return [];
     }
   }

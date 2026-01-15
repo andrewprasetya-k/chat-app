@@ -219,7 +219,7 @@ export class ChatService {
       }
       return true;
     } catch (error: any) {
-      console.error('Failed to send system message:', error.message);
+      // console.error('Failed to send system message:', error.message);
       return false;
     }
   }

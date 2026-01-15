@@ -26,7 +26,7 @@ export const authService = {
     try {
       await this.login(email, password); // Auto-login setelah registrasi
     } catch (error) {
-      console.warn("Auto-login failed after registration:", error);
+      // console.warn("Auto-login failed after registration:", error);
     }
     return response.data;
   },
@@ -46,7 +46,7 @@ export const authService = {
     try {
       await api.post("/auth/logout"); // Clear cookies on server
     } catch (error) {
-      console.error("Logout failed", error);
+      // console.error("Logout failed", error);
     } finally {
       // localStorage.removeItem("accessToken"); // Not used anymore
       if (typeof window !== "undefined") {

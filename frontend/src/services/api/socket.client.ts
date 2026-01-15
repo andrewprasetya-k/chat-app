@@ -18,7 +18,7 @@ class SocketClient {
   //inisialisasi koneksi socket.io
   constructor() {
     this.socket.on("connect", () => {
-      console.log("Socket connected with ID:", this.socket.id);
+      // console.log("Socket connected with ID:", this.socket.id);
     });
   }
 
@@ -27,7 +27,7 @@ class SocketClient {
     //cek apakah sudah connected
     if (!this.socket.connected) {
       this.socket.connect();
-      console.log("Socket connecting...");
+      // console.log("Socket connecting...");
     } else {
       console.warn("Socket is already connected.");
     }
@@ -37,7 +37,7 @@ class SocketClient {
   disconnect() {
     if (this.socket && this.socket.connected) {
       this.socket.disconnect();
-      console.log("Socket disconnected");
+      // console.log("Socket disconnected");
     } else {
       console.warn("Socket is not connected. Cannot disconnect.");
     }

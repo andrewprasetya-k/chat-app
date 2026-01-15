@@ -25,7 +25,7 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
           const info = await chatService.getRoomInfo(roomId);
           setRoomInfo(info);
         } catch (error) {
-          console.error("Failed to fetch room info:", error);
+          // console.error("Failed to fetch room info:", error);
         } finally {
           setLoading(false);
         }

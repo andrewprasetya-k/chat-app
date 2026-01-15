@@ -68,7 +68,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       client.data.userId = payload.sub;
 
       client.join(`user_${payload.sub}`); // Room untuk user ini
-      console.log(`User ${payload.sub} joined room`);
+      // console.log(`User ${payload.sub} joined room`);
 
       // Ambil data user untuk mendapatkan nama
       const user = await this.userService.findByIdForAuth(payload.sub);
@@ -76,9 +76,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         client.data.userName = user.usr_nama_lengkap;
       }
 
-      console.log(
-        `Client connected: ${client.id} (User: ${payload.sub}, Name: ${client.data.userName})`,
-      );
+      // console.log(
+      //   `Client connected: ${client.id} (User: ${payload.sub}, Name: ${client.data.userName})`,
+      // );
 
       // Supaya real-time sidebar jalan (untuk last message)
       const { data: userRooms } = await this.chatSharedService['supabase']
@@ -92,21 +92,21 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userRooms.forEach((room) => {
           client.join(`room_${room.crm_cr_id}`);
         });
-        console.log(
-          `User ${payload.sub} auto-joined ${userRooms.length} rooms`,
-        );
+        // console.log(
+        //   `User ${payload.sub} auto-joined ${userRooms.length} rooms`,
+        // );
       }
 
       await this.userService.updateOnlineStatus(payload.sub, true);
       this.server.emit('user_online', { userId: payload.sub });
     } catch (e) {
-      console.log('Connection rejected:', e.message);
+      // console.log('Connection rejected:', e.message);
       client.disconnect();
     }
   }
 
   async handleDisconnect(client: Socket) {
-    console.log(`Client disconnected: ${client.id}`);
+    // console.log(`Client disconnected: ${client.id}`);
     const userId = client.data.userId;
     if (userId) {
       const lastSeen = new Date().toISOString();
@@ -152,7 +152,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
 
       // Jika valid, baru boleh join
       client.join(`room_${roomId}`);
-      console.log(`User ${userId} joined room_${roomId}`);
+      // console.log(`User ${userId} joined room_${roomId}`);
       return { event: 'joined_room', data: roomId };
     } catch (error) {
       // Return error structure to client

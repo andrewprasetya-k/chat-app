@@ -68,7 +68,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
         if (actualId) setMyUserId(actualId);
       } catch (error) {
-        console.error("Initialization failed:", error);
+        // console.error("Initialization failed:", error);
       }
     };
     initProfile();
@@ -94,7 +94,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         const fetched = await chatService.getMessages(roomId);
         setMessages(fetched);
       } catch (err) {
-        console.error("Load messages failed:", err);
+        // console.error("Load messages failed:", err);
       } finally {
         setLoading(false);
       }
@@ -275,7 +275,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     // panggil API mark as read
     chatService
       .markAsRead(activeRoom.roomId, unreadMessageIdsStrings)
-      .catch((err) => console.error("Mark as read failed:", err));
+      // .catch((err) => console.error("Mark as read failed:", err));
 
     // update state lokal untuk menandai pesan sudah dibaca
     setMessages((prevMessages) => {
@@ -310,7 +310,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         return [...prev, newMessage];
       });
     } catch (error) {
-      console.error("Send failed:", error);
+      // console.error("Send failed:", error);
     }
   };
 
