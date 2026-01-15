@@ -31,19 +31,24 @@ export class AuthController {
   ) {
     const tokens = await this.authService.login(loginDto);
 
+    // COOKIE POLICY: Cross-Site Authentication
+    // httpOnly: Mencegah akses JavaScript (aman dari XSS).
+    // secure: true: WAJIB aktif saat SameSite=None agar Cookie dikirim lewat HTTPS.
+    // sameSite: 'none': Mengizinkan Cookie dikirim antar domain yang berbeda (Cross-Site).
+
     // 1. Set Refresh Token (Long Lived)
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
     });
 
     // 2. Set Access Token (Short Lived)
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 15 * 60 * 1000, // 15 minutes
     });
 
@@ -78,19 +83,21 @@ export class AuthController {
 
     const tokens = await this.authService.refreshTokens(refreshToken);
 
+    // COOKIE POLICY: Cross-Site Authentication (Consistent with Login)
+    
     // Rotate Refresh Token
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 14 * 24 * 60 * 60 * 1000,
     });
 
     // Update Access Token
     res.cookie('access_token', tokens.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
-      sameSite: 'strict',
+      secure: true,
+      sameSite: 'none',
       maxAge: 15 * 60 * 1000,
     });
 
