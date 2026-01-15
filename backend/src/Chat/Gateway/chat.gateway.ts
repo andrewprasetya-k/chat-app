@@ -15,7 +15,7 @@ import { UserService } from 'src/User/Service/user.service';
 
 @WebSocketGateway({
   cors: {
-    origin: '*', // Di production sebaiknya di-lock ke domain frontend
+    origin: 'https://chat-app-fawn-one-16.vercel.app/', // Di production sebaiknya di-lock ke domain frontend
     pingTimeout: 60000 * 30, // 30 menit
     pingInterval: 25000,
   },

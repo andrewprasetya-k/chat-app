@@ -12,6 +12,7 @@ async function bootstrap() {
     origin: [
       'http://localhost:3001',
       'https://c8sfg3vs-3001.asse.devtunnels.ms',
+      'https://chat-app-fawn-one-16.vercel.app/',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
     credentials: true,
