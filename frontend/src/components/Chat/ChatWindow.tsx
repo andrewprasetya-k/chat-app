@@ -388,12 +388,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-1 text-gray-400">
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <Phone size={20} />
-          </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          </button> */}
+          {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
             <Video size={20} />
-          </button>
+          </button> */}
           <button
             onClick={() => setIsDrawerOpen(true)}
             className="p-2 hover:bg-gray-100 rounded-full transition-colors text-blue-600"
