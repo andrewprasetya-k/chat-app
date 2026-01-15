@@ -42,7 +42,7 @@ export default function DashboardPage() {
         console.log("Tab is visible, ensuring socket connection...");
         socketClient.connect();
       }
-      // Kita tidak memanggil disconnect() saat hidden agar pesan tetap bisa masuk 
+      // Kita tidak memanggil disconnect() saat hidden agar pesan tetap bisa masuk
       // di background selama diizinkan oleh browser.
     };
 
@@ -124,8 +124,10 @@ export default function DashboardPage() {
 
             return {
               ...room,
+              lastMessageId: msg.textId,
               lastMessage: msg.text,
               lastMessageTime: msg.createdAt,
+              senderId: msg.sender?.senderId || null,
               senderName: msg.sender?.senderName || null,
               isLastMessageRead: false,
               unreadCount: newCount,
@@ -148,18 +150,37 @@ export default function DashboardPage() {
     };
 
     // Handler: Read Receipt (Reset Unread Count & Update Status)
-    const handleReadMessage = (data: { roomId: string; readerId: string }) => {
+    const handleReadMessage = (data: {
+      roomId: string;
+      readerId: string;
+      messageIds: string[];
+    }) => {
       setRooms((prevRooms) =>
         prevRooms.map((room) => {
           if (room.roomId === data.roomId) {
             const isMeReading = data.readerId === myIdRef.current;
-            
+
+            // Status pesan terakhir hanya berubah jadi READ jika:
+            // 1. Yang baca BUKAN saya
+            // 2. ID pesan terakhir ada di dalam daftar pesan yang baru dibaca (data.messageIds)
+            // 3. ATAU statusnya memang sudah 'Read' sebelumnya (jangan diubah jadi false)
+
+            let shouldMarkAsRead = room.isLastMessageRead;
+            // Jika ORANG LAIN yang baca, tandai pesan terakhir SAYA sudah dibaca
+            if (
+              !isMeReading &&
+              room.lastMessageId &&
+              data.messageIds?.includes(room.lastMessageId)
+            ) {
+              shouldMarkAsRead = true;
+            }
+
             return {
               ...room,
               // Jika SAYA yang baca, reset unread count
               unreadCount: isMeReading ? 0 : room.unreadCount,
               // Jika ORANG LAIN yang baca, tandai pesan terakhir SAYA sudah dibaca
-              isLastMessageRead: !isMeReading ? true : room.isLastMessageRead,
+              isLastMessageRead: shouldMarkAsRead,
             };
           }
           return room;

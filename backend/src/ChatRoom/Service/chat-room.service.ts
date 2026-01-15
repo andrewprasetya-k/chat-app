@@ -126,9 +126,10 @@ export class ChatRoomService {
             roomId: room?.cr_id,
             roomName: roomName,
             isGroup: room?.cr_is_group,
+            lastMessageId: lastMessage?.cm_id ?? null,
             lastMessage: lastMessage?.message_text ?? null,
             lastMessageTime: (() => {
-              const val = lastMessage?.created_at || room?.created_at;
+            const val = lastMessage?.created_at || room?.created_at;
               if (!val) return null;
               if (
                 typeof val === 'string' &&

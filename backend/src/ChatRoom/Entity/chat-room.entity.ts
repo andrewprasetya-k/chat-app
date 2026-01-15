@@ -21,6 +21,9 @@ export class ChatRoomListEntity {
   memberCount: number = 0;
 
   @Expose()
+  lastMessageId: string | null;
+
+  @Expose()
   lastMessage: string | null;
 
   @Expose()

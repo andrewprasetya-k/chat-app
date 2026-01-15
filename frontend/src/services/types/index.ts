@@ -14,6 +14,7 @@ export interface ChatRoom {
   roomId: string;
   roomName: string;
   isGroup: boolean;
+  lastMessageId?: string | null;
   lastMessage: string | null;
   lastMessageTime: string | null;
   senderId: string | null;
