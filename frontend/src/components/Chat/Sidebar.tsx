@@ -6,6 +6,7 @@ import {
   UserCircle,
   X,
   CheckCheckIcon,
+  LogOut,
 } from "lucide-react";
 
 import { ChatRoom, GlobalSearchResults, User } from "@/services/types";
@@ -47,6 +48,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isSearching, setIsSearching] = useState<boolean>(false);
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
+  const [showMenu, setShowMenu] = useState<boolean>(false);
 
   // Timer Heartbeat (Untuk update otomatis tulisan "1m ago", dst)
   const [, setTick] = useState(0);
@@ -337,11 +339,32 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <MessageSquarePlus size={18} />
           </button>
-          <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
+          <button
+            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+            onClick={() => setShowMenu(true)}
+          >
             <MoreVertical size={18} />
           </button>
         </div>
       </div>
+
+      {showMenu && (
+        <div
+          className="absolute top-16 right-4 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
+          onMouseLeave={() => setShowMenu(false)}
+        >
+          <button
+            className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-100 flex items-center gap-2"
+            onClick={() => {
+              authService.logout();
+              window.location.reload();
+            }}
+          >
+            <LogOut size={16} />
+            Logout
+          </button>
+        </div>
+      )}
 
       {/* B. Search Bar */}
       <div className="p-3">
