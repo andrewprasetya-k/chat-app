@@ -1,226 +1,182 @@
-# Chat Application (Still under development)
+# 💬 Real-Time Chat Application
 
-A full-stack real-time chat application with WhatsApp/Teams-like features built with NestJS (Backend) and Next.js (Frontend).
+A modern, full-stack messaging platform engineered for performance and real-time interaction. Built with **NestJS** for a robust backend and **Next.js 16** for a responsive frontend, powered by **Supabase** and **Socket.io**.
 
-## 🚀 Features
+---
 
-### Backend (✅ Completed)
-- **Authentication & Authorization**
-  - JWT-based authentication
-  - User registration and login
-  - Protected routes with guards
+## ✨ Features
 
-- **Real-time Chat**
-  - WebSocket connection using Socket.io
-  - Instant message delivery
-  - Typing indicators
-  - Online/Offline status
-  - Last seen timestamp
+### 🚀 Core Experience
 
-- **Chat Rooms**
-  - Personal (1-on-1) and Group chat
-  - Room member management
-  - Group icon upload
-  - Leave group functionality
+- **Secure Authentication:** JWT-based secure login and registration system.
+- **Rich Messaging:** Send text messages with support for replies and unsending messages.
+- **Message History:** Persistent chat history with optimized loading.
+- **Global Search:** Unified search bar to find people, groups, and specific messages instantly.
 
-- **Message Features**
-  - Send text messages
-  - Reply to messages
-  - Unsend messages
-  - Read receipts (Blue checkmarks)
-  - Unread message count
-  - Message pagination
+### ⚡ Real-Time Interactions
 
-- **User Profile**
-  - Profile picture upload
-  - Edit profile information
-  - User search by email
+- **Instant Delivery:** WebSocket-powered messaging for zero-latency communication.
+- **Live Status:**
+  - **Online/Offline Indicators:** See when friends are active.
+  - **Last Seen:** Accurate timestamps for offline users.
+- **Typing Indicators:** Real-time visual feedback when someone is typing.
+- **Read Receipts:** WhatsApp-style blue double-checks to know exactly when your message is read.
 
-### Frontend (🚧 In Progress)
-- Basic Next.js setup with TypeScript
-- Tailwind CSS configured
-- Ready for development
+### 👥 Group & Room Management
+
+- **Personal Chats:** Seamless 1-on-1 private messaging.
+- **Group Chats:** Create groups, add/remove members, and manage admins.
+- **Room Info:** Detailed sidebar drawer showing members, roles, and group settings.
+- **Real-time Updates:** Group changes (name, icon, members) reflect instantly for all participants.
+
+---
 
 ## 🛠️ Tech Stack
 
-### Backend
-- **Framework:** NestJS
-- **Database:** Supabase (PostgreSQL)
-- **Real-time:** Socket.io
-- **Authentication:** JWT + Passport
-- **File Storage:** Supabase Storage
-- **Validation:** class-validator & class-transformer
-- **Password Hashing:** bcrypt
+### **Backend (NestJS)**
 
-### Frontend
-- **Framework:** Next.js 16 (Pages Router)
+- **Framework:** NestJS (Node.js)
 - **Language:** TypeScript
-- **Styling:** Tailwind CSS 4
-- **UI Library:** React 19
+- **Database:** Supabase (PostgreSQL)
+- **Real-time Engine:** Socket.io
+- **Auth:** Passport JWT strategy
+- **Architecture:** Modular Service-Repository pattern
 
-## 📦 Project Structure
+### **Frontend (Next.js)**
 
-```
+- **Framework:** Next.js 16 (Pages Router)
+- **Library:** React 19
+- **Styling:** Tailwind CSS 4 + Lucide React Icons
+- **State Management:** React Hooks & Context
+- **API Client:** Axios (HTTP) & Socket.io-client (WebSocket)
+
+---
+
+## 📂 Project Structure
+
+The project is structured as a monorepo containing both client and server applications:
+
+```bash
 chat-app/
-├── backend/           # NestJS backend application
+├── backend/           # NestJS Server Application
 │   ├── src/
-│   │   ├── Auth/      # Authentication module
-│   │   ├── Chat/      # Chat & WebSocket gateway
-│   │   ├── ChatRoom/  # Chat room management
-│   │   ├── User/      # User profile & management
-│   │   ├── Supabase/  # Supabase service
-│   │   └── shared/    # Shared utilities & guards
-│   ├── API_REFERENCE.md
-│   └── WEBSOCKET_ARCHITECTURE.md
-├── frontend/          # Next.js frontend application
+│   │   ├── Auth/      # JWT Authentication & Guards
+│   │   ├── Chat/      # Message Handling & Gateway
+│   │   ├── ChatRoom/  # Room & Member Management
+│   │   └── User/      # User Profile Logic
+│   └── ...
+│
+├── frontend/          # Next.js Client Application
 │   ├── src/
-│   │   ├── pages/     # Next.js pages
-│   │   └── styles/    # Global styles
-│   └── public/        # Static assets
-└── README.md
+│   │   ├── components/ # Reusable UI Components (ChatWindow, Sidebar, etc.)
+│   │   ├── pages/      # Application Routes
+│   │   └── services/   # API Integration & Socket Logic
+│   └── ...
 ```
+
+---
 
 ## 🚦 Getting Started
 
+Follow these steps to set up the project locally.
+
 ### Prerequisites
-- Node.js >= 18.x
-- npm or pnpm
-- Supabase account (for database & storage)
 
-### Installation
+- **Node.js** (v18 or higher)
+- **npm** or **pnpm**
+- **Supabase Account** (for PostgreSQL database)
 
-1. **Clone the repository**
-   ```bash
-   git clone https://github.com/andrewprasetya-k/chat-app.git
-   cd chat-app
-   ```
+### 1. Clone the Repository
 
-2. **Install dependencies**
-   ```bash
-   # Install root dependencies (if any)
-   npm install
+```bash
+git clone https://github.com/andrewprasetya-k/chat-app.git
+cd chat-app
+```
 
-   # Install backend dependencies
-   cd backend
-   npm install
+### 2. Backend Setup
 
-   # Install frontend dependencies
-   cd ../frontend
-   npm install
-   ```
+Navigate to the backend directory and install dependencies:
 
-3. **Setup Environment Variables**
+```bash
+cd backend
+npm install
+```
 
-   Create `.env` file in `/backend/` directory:
-   ```env
-   # Supabase Configuration
-   SUPABASE_URL=your_supabase_url
-   SUPABASE_KEY=your_supabase_anon_key
-   SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
+Create a `.env` file in `backend/` based on your Supabase credentials:
 
-   # JWT Configuration
-   JWT_SECRET=your_jwt_secret_key
-   JWT_EXPIRES_IN=7d
+```env
+SUPABASE_URL=your_supabase_url
+SUPABASE_KEY=your_supabase_anon_key
+SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-   # Server Configuration
-   PORT=3000
-   ```
+JWT_SECRET=your_super_secret_jwt_key
+JWT_EXPIRES_IN=7d
 
-4. **Run the applications**
+PORT=3000
+```
 
-   **Backend (Terminal 1):**
-   ```bash
-   cd backend
-   npm run start:dev
-   ```
-   Backend will run on `http://localhost:3000`
+Start the backend server:
 
-   **Frontend (Terminal 2):**
-   ```bash
-   cd frontend
-   npm run dev
-   ```
-   Frontend will run on `http://localhost:3001` (or next available port)
+```bash
+npm run start:dev
+```
+
+_The server will start on `http://localhost:3000`_
+
+### 3. Frontend Setup
+
+Open a new terminal, navigate to the frontend directory, and install dependencies:
+
+```bash
+cd ../frontend
+npm install
+```
+
+Configure the environment in `frontend/.env.local` (optional, defaults are usually set in code):
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3000
+NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
+```
+
+Start the frontend application:
+
+```bash
+npm run dev
+```
+
+_The application will be accessible at `http://localhost:3001`_
+
+---
 
 ## 📚 Documentation
 
-### API Reference
-Complete REST API documentation is available in [`backend/API_REFERENCE.md`](./backend/API_REFERENCE.md)
+For deeper dive into the implementation details, check the internal documentation:
 
-Key endpoints:
-- `POST /auth/register` - Register new user
-- `POST /auth/login` - Login user
-- `POST /chat/send/:roomId` - Send message
-- `POST /room/create` - Create new chat room
-- `GET /room/active` - Get user's active chat rooms
-- `POST /chat/read/:roomId` - Mark messages as read
+- **[API Reference](./backend/API_REFERENCE.md):** Comprehensive list of REST endpoints.
+- **[WebSocket Architecture](./backend/WEBSOCKET_ARCHITECTURE.md):** Details on socket events (`join_room`, `new_message`, `messages_read_update`) and payloads.
+- **[WebSocket Events](./backend/WEBSOCKET_EVENTS.md):** Specific event definitions and trigger scenarios.
 
-### WebSocket Architecture
-Detailed WebSocket implementation guide is in [`backend/WEBSOCKET_ARCHITECTURE.md`](./backend/WEBSOCKET_ARCHITECTURE.md)
+---
 
-Key events:
-- `join_room` - Join a chat room
-- `new_message` - Receive new message
-- `typing_start/stop` - Typing indicators
-- `user_online/offline` - User status updates
-- `messages_read_update` - Read receipt updates
+## 🤝 Contributing
 
-## 🔧 Development
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-### Backend Scripts
-```bash
-# Development mode with hot reload
-npm run start:dev
+1. Fork the project
+2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
+3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
+4. Push to the Branch (`git push origin feature/AmazingFeature`)
+5. Open a Pull Request
 
-# Build for production
-npm run build
-
-# Run production build
-npm run start:prod
-
-# Run tests
-npm run test
-
-# Lint and fix
-npm run lint
-```
-
-### Frontend Scripts
-```bash
-# Development mode
-npm run dev
-
-# Build for production
-npm run build
-
-# Start production server
-npm run start
-
-# Lint
-npm run lint
-```
-
-## 🎯 Roadmap
-
-- [ ] Complete frontend UI/UX
-- [ ] Implement chat interface
-- [ ] WebSocket integration on frontend
-- [ ] Message pagination UI
-- [ ] File/Image sharing
-- [ ] Voice messages
-- [ ] Video calls
-- [ ] Push notifications
-- [ ] Mobile responsive design
-
-## 📝 License
-
-This project is private and unlicensed.
+---
 
 ## 👤 Author
 
 **Andrew Prasetya**
+
 - GitHub: [@andrewprasetya-k](https://github.com/andrewprasetya-k)
 
 ---
 
-**Note:** Backend is production-ready. Frontend is currently under development.
+_Built with TypeScript._
