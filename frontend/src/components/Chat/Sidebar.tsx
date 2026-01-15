@@ -339,32 +339,31 @@ export const Sidebar: React.FC<SidebarProps> = ({
           >
             <MessageSquarePlus size={18} />
           </button>
-          <button
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors"
-            onClick={() => setShowMenu(true)}
-          >
-            <MoreVertical size={18} />
-          </button>
+          <div className="relative">
+            <button
+              className="p-2 hover:bg-gray-100 rounded-full transition-colors"
+              onClick={() => setShowMenu(!showMenu)}
+            >
+              <MoreVertical size={18} />
+            </button>
+
+            {showMenu && (
+              <div
+                className="absolute right-0 mt-2 w-48 bg-white border border-gray-200 rounded-lg shadow-xl z-50 py-1 overflow-hidden animate-in fade-in zoom-in duration-200"
+                onMouseLeave={() => setShowMenu(false)}
+              >
+                <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
+                  onClick={() => authService.logout()}
+                >
+                  <LogOut size={16} />
+                  <span className="font-medium">Logout</span>
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       </div>
-
-      {showMenu && (
-        <div
-          className="absolute top-16 right-4 w-48 bg-white border border-gray-200 rounded-md shadow-lg z-50"
-          onMouseLeave={() => setShowMenu(false)}
-        >
-          <button
-            className="w-full text-left px-4 py-2 text-sm text-red-700 hover:bg-red-100 flex items-center gap-2"
-            onClick={() => {
-              authService.logout();
-              window.location.reload();
-            }}
-          >
-            <LogOut size={16} />
-            Logout
-          </button>
-        </div>
-      )}
 
       {/* B. Search Bar */}
       <div className="p-3">
