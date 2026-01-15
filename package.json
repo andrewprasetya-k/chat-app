@@ -7,11 +7,9 @@
     "frontend"
   ],
   "scripts": {
-    "install:all": "npm install",
+    "build": "npm run build --workspace=backend",
+    "start": "npm run start:prod --workspace=backend",
     "dev:backend": "npm run start:dev --workspace=backend",
-    "dev:frontend": "npm run dev --workspace=frontend",
-    "build:backend": "npm run build --workspace=backend",
-    "build:frontend": "npm run build --workspace=frontend",
-    "start": "echo 'This is a monorepo. Please specify the root directory (backend/frontend) in your deployment settings or run specific workspace scripts.' && exit 1"
+    "dev:frontend": "npm run dev --workspace=frontend"
   }
 }
