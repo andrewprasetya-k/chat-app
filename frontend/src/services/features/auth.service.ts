@@ -36,6 +36,10 @@ export const authService = {
     return response.data;
   },
 
+  async updateProfile(fullName: string, email: string): Promise<void> {
+    await api.patch("/user/profile", { fullName, email });
+  },
+
   async getAllUsers(): Promise<User[]> {
     const response = await api.get<User[]>("/user/get-all");
     return response.data;
