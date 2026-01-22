@@ -1,5 +1,16 @@
 import React, { useEffect, useState } from "react";
-import { X, User, LogOut, Trash2, Calendar, MoreVertical, UserPlus, ShieldCheck, ShieldAlert, UserMinus } from "lucide-react";
+import {
+  X,
+  User,
+  LogOut,
+  Trash2,
+  Calendar,
+  MoreVertical,
+  UserPlus,
+  ShieldCheck,
+  ShieldAlert,
+  UserMinus,
+} from "lucide-react";
 import { chatService } from "@/services/features/chat.service";
 import { ChatRoomInfo } from "@/services/types";
 import { AddMemberModal } from "./AddMemberModal";
@@ -45,7 +56,7 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
       setActionLoading(true);
       await chatService.leaveGroup(roomId);
       onClose();
-      window.location.reload(); 
+      window.location.reload();
     } catch (error) {
       alert("Failed to leave group");
     } finally {
@@ -54,7 +65,12 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
   };
 
   const handleDeleteGroup = async () => {
-    if (!window.confirm("Are you sure you want to delete this group? This action cannot be undone.")) return;
+    if (
+      !window.confirm(
+        "Are you sure you want to delete this group? This action cannot be undone.",
+      )
+    )
+      return;
     try {
       setActionLoading(true);
       await chatService.deleteGroup(roomId);
@@ -70,8 +86,10 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
   const handleMemberAction = async (action: string, targetUserId: string) => {
     try {
       setActionLoading(true);
-      if (action === "promote") await chatService.promoteMember(roomId, targetUserId);
-      else if (action === "demote") await chatService.demoteMember(roomId, targetUserId);
+      if (action === "promote")
+        await chatService.promoteMember(roomId, targetUserId);
+      else if (action === "demote")
+        await chatService.demoteMember(roomId, targetUserId);
       else if (action === "remove") {
         if (!window.confirm("Remove this member?")) return;
         await chatService.removeMembers(roomId, [targetUserId]);
@@ -86,8 +104,9 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
   };
 
   if (!isOpen) return null;
-
-  const isAdmin = roomInfo?.isGroup && roomInfo.activeMembers.find((m) => m.isMe && m.role === "admin");
+  const isAdmin =
+    roomInfo?.isGroup &&
+    roomInfo.activeMembers.find((m) => m.isMe && m.role === "admin");
 
   return (
     <>
@@ -140,7 +159,8 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
                   <div className="flex items-center gap-3 text-sm text-gray-600">
                     <Calendar size={16} className="text-gray-400" />
                     <span>
-                      Created {new Date(roomInfo.createdAt).toLocaleDateString()}
+                      Created{" "}
+                      {new Date(roomInfo.createdAt).toLocaleDateString()}
                     </span>
                   </div>
                   {roomInfo.isGroup && (
@@ -150,7 +170,7 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
                         <span>{roomInfo.totalMembers} members</span>
                       </div>
                       {isAdmin && (
-                        <button 
+                        <button
                           onClick={() => setIsAddModalOpen(true)}
                           className="p-1 hover:bg-gray-100 rounded text-blue-600 transition-colors"
                           title="Add Member"
@@ -195,31 +215,52 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
                           {isAdmin && !member.isMe && (
                             <div className="relative">
                               <button
-                                onClick={() => setActiveMenu(activeMenu === member.userId ? null : member.userId)}
+                                onClick={() =>
+                                  setActiveMenu(
+                                    activeMenu === member.userId
+                                      ? null
+                                      : member.userId,
+                                  )
+                                }
                                 className="p-1 hover:bg-gray-100 rounded-full text-gray-400 hover:text-gray-600"
                               >
                                 <MoreVertical size={16} />
                               </button>
-                              
+
                               {activeMenu === member.userId && (
                                 <div className="absolute right-0 mt-1 w-48 bg-white border border-gray-100 rounded-lg shadow-lg z-60 py-1">
                                   {member.role === "admin" ? (
                                     <button
-                                      onClick={() => handleMemberAction("demote", member.userId)}
+                                      onClick={() =>
+                                        handleMemberAction(
+                                          "demote",
+                                          member.userId,
+                                        )
+                                      }
                                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                                     >
                                       <ShieldAlert size={14} /> Demote to Member
                                     </button>
                                   ) : (
                                     <button
-                                      onClick={() => handleMemberAction("promote", member.userId)}
+                                      onClick={() =>
+                                        handleMemberAction(
+                                          "promote",
+                                          member.userId,
+                                        )
+                                      }
                                       className="w-full flex items-center gap-2 px-3 py-2 text-xs text-gray-700 hover:bg-gray-50"
                                     >
                                       <ShieldCheck size={14} /> Promote to Admin
                                     </button>
                                   )}
                                   <button
-                                    onClick={() => handleMemberAction("remove", member.userId)}
+                                    onClick={() =>
+                                      handleMemberAction(
+                                        "remove",
+                                        member.userId,
+                                      )
+                                    }
                                     className="w-full flex items-center gap-2 px-3 py-2 text-xs text-red-600 hover:bg-red-50"
                                   >
                                     <UserMinus size={14} /> Remove from Group
@@ -237,7 +278,7 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
                 {/* Actions */}
                 <div className="px-6 py-5 space-y-2">
                   {roomInfo.isGroup && (
-                    <button 
+                    <button
                       onClick={handleLeaveGroup}
                       disabled={actionLoading}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
@@ -252,9 +293,9 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
                       <span>Block Contact</span>
                     </button>
                   )}
-                  
+
                   {isAdmin && (
-                    <button 
+                    <button
                       onClick={handleDeleteGroup}
                       disabled={actionLoading}
                       className="w-full flex items-center justify-center gap-2 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
@@ -274,11 +315,11 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
         </div>
       </div>
 
-      <AddMemberModal 
+      <AddMemberModal
         isOpen={isAddModalOpen}
         onClose={() => setIsAddModalOpen(false)}
         roomId={roomId}
-        existingMemberIds={roomInfo?.activeMembers.map(m => m.userId) || []}
+        existingMemberIds={roomInfo?.activeMembers.map((m) => m.userId) || []}
         onSuccess={() => {
           fetchInfo();
         }}
