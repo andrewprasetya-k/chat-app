@@ -124,27 +124,33 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
           ) : filteredContacts.length > 0 ? (
             <div className="space-y-1">
               {filteredContacts.map((user) => (
-                <div key={user.id} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
-                      {user.fullName.substring(0, 1).toUpperCase()}
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={() => handleAddMember(user.id)}
-                    disabled={addingIds.includes(user.id)}
-                    className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
-                  >
-                    {addingIds.includes(user.id) ? (
-                      <Loader2 className="animate-spin" size={18} />
-                    ) : (
-                      <UserPlus size={18} />
-                    )}
-                  </button>
-                </div>
+          <div
+            key={user.id}
+            className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-xl transition-colors"
+          >
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-medium">
+                {user.fullName.substring(0, 1).toUpperCase()}
+              </div>
+              <div>
+                <p className="text-sm font-medium text-gray-900">{user.fullName}</p>
+                {user.email && (
+            <p className="text-xs text-gray-500">{user.email}</p>
+                )}
+              </div>
+            </div>
+            <button
+              onClick={() => handleAddMember(user.id)}
+              disabled={addingIds.includes(user.id)}
+              className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors disabled:opacity-50"
+            >
+              {addingIds.includes(user.id) ? (
+                <Loader2 className="animate-spin" size={18} />
+              ) : (
+                <UserPlus size={18} />
+              )}
+            </button>
+          </div>
               ))}
             </div>
           ) : (
