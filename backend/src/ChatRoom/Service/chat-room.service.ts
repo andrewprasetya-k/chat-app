@@ -45,6 +45,7 @@ export class ChatRoomService {
               user:crm_usr_id (
                 usr_id,
                 usr_nama_lengkap,
+                usr_email,
                 usr_is_online,
                 usr_last_seen
               )
@@ -129,7 +130,7 @@ export class ChatRoomService {
             lastMessageId: lastMessage?.cm_id ?? null,
             lastMessage: lastMessage?.message_text ?? null,
             lastMessageTime: (() => {
-            const val = lastMessage?.created_at || room?.created_at;
+              const val = lastMessage?.created_at || room?.created_at;
               if (!val) return null;
               if (
                 typeof val === 'string' &&
@@ -146,6 +147,7 @@ export class ChatRoomService {
             deletedAt: room?.deleted_at ?? null,
             memberCount: members.length,
             otherUserId: otherMember?.usr_id ?? null,
+            otherUserEmail: otherMember?.usr_email ?? null,
             isOnline: otherMember?.usr_is_online ?? null,
             lastSeen: (() => {
               const val = otherMember?.usr_last_seen;

@@ -37,7 +37,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
             .map((room) => ({
               id: room.otherUserId as string,
               fullName: room.roomName,
-              email: "", // Tidak tersedia di list room, biarkan kosong
+              email: room.otherUserEmail, // Tidak tersedia di list room, biarkan kosong
             } as User));
           
           setContacts(contactList);

@@ -24,6 +24,7 @@ export interface ChatRoom {
   isOnline?: boolean;
   lastSeen?: string | null;
   otherUserId?: string | null;
+  otherUserEmail?: string | null;
   memberCount?: number;
   deletedAt?: string | null;
 }

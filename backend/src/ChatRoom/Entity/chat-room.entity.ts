@@ -42,6 +42,9 @@ export class ChatRoomListEntity {
   otherUserId: string | null;
 
   @Expose()
+  otherUserEmail: string | null;
+
+  @Expose()
   isOnline: boolean | null;
 
   @Expose()
