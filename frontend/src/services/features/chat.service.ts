@@ -99,6 +99,30 @@ export const chatService = {
     return response.data;
   },
 
+  async leaveGroup(roomId: string): Promise<void> {
+    await api.post(`/room/leave/${roomId}`);
+  },
+
+  async deleteGroup(roomId: string): Promise<void> {
+    await api.delete(`/room/${roomId}`);
+  },
+
+  async addMembers(roomId: string, members: string[]): Promise<void> {
+    await api.post(`/room/add-members/${roomId}`, { members });
+  },
+
+  async removeMembers(roomId: string, members: string[]): Promise<void> {
+    await api.post(`/room/remove-members/${roomId}`, { members });
+  },
+
+  async promoteMember(roomId: string, userId: string): Promise<void> {
+    await api.post(`/room/promote/${roomId}/${userId}`);
+  },
+
+  async demoteMember(roomId: string, userId: string): Promise<void> {
+    await api.post(`/room/demote/${roomId}/${userId}`);
+  },
+
   // == web socket ==
   // tandai masuk ke room tertentu (backend expect string roomId)
   joinRoom(roomId: string) {
