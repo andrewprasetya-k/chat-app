@@ -24,7 +24,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
   const [loading, setLoading] = useState(false);
   const [addingIds, setAddingIds] = useState<string[]>([]);
 
-  // 1. Fetch Contacts (People I have chatted with)
+  // 1. ambil daftar kontak dari chat rooms
   useEffect(() => {
     if (isOpen) {
       const fetchContacts = async () => {
@@ -58,7 +58,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
 
     let result = contacts;
 
-    // Filter by Search Query
+    // Search Filter
     if (searchQuery.trim()) {
       const lowerQuery = searchQuery.toLowerCase();
       result = result.filter(user => 
@@ -66,7 +66,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       );
     }
 
-    // Filter out existing members
+    // filter member yang sudah ada di grup
     result = result.filter(user => !existingMemberIds.includes(user.id));
 
     setFilteredContacts(result);
@@ -77,7 +77,7 @@ export const AddMemberModal: React.FC<AddMemberModalProps> = ({
       setAddingIds(prev => [...prev, userId]);
       await chatService.addMembers(roomId, [userId]);
       onSuccess();
-      // Remove from results locally
+      // Hapus dari variabel daftar kontak setelah kontak berhasil ditambahkan
       setContacts(prev => prev.filter(c => c.id !== userId));
     } catch (error) {
       alert("Failed to add member");
