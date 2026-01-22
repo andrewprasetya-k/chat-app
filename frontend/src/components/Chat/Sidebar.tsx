@@ -15,6 +15,7 @@ import { authService } from "@/services/features/auth.service";
 import { formatRelativeTime } from "@/utils/date.util";
 import { chatService } from "@/services/features/chat.service";
 import { CreateGroupModal } from "./CreateGroupModal";
+import { ProfileModal } from "./ProfileModal";
 
 interface SidebarProps {
   rooms?: ChatRoom[];
@@ -49,6 +50,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [isSearchFocused, setIsSearchFocused] = useState<boolean>(false);
   const [suggestedUsers, setSuggestedUsers] = useState<User[]>([]);
   const [showMenu, setShowMenu] = useState<boolean>(false);
+  const [isProfileModalOpen, setIsProfileModalOpen] = useState(false);
 
   // Timer Heartbeat (Untuk update otomatis tulisan "1m ago", dst)
   const [, setTick] = useState(0);
@@ -84,22 +86,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   }, []);
 
   // B. Inisialisasi: Ambil Profil & Daftar User (untuk saran & grup)
-  useEffect(() => {
-    const initSidebar = async () => {
-      try {
-        const user: any = await authService.getProfile();
-        const userData = user[0] || user;
-        setUserInfo(userData);
-        const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
-        if (actualId) setMyUserId(actualId);
+  const fetchProfile = async () => {
+    try {
+      const user: any = await authService.getProfile();
+      const userData = user[0] || user;
+      setUserInfo(userData);
+      const actualId = Array.isArray(user) ? user[0]?.id : user?.id;
+      if (actualId) setMyUserId(actualId);
 
-        const allUsers = await authService.getAllUsers();
-        setSuggestedUsers(allUsers.filter((u: User) => u.id !== actualId));
-      } catch (error) {
-        // console.error("Sidebar initialization failed:", error);
-      }
-    };
-    initSidebar();
+      const allUsers = await authService.getAllUsers();
+      setSuggestedUsers(allUsers.filter((u: User) => u.id !== actualId));
+    } catch (error) {
+      // console.error("Sidebar initialization failed:", error);
+    }
+  };
+
+  useEffect(() => {
+    fetchProfile();
   }, []);
 
   // C. Socket Listeners (Typing Indicator)
@@ -353,6 +356,17 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 onMouseLeave={() => setShowMenu(false)}
               >
                 <button
+                  className="w-full text-left px-4 py-2.5 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2 transition-colors"
+                  onClick={() => {
+                    setShowMenu(false);
+                    setIsProfileModalOpen(true);
+                  }}
+                >
+                  <UserCircle size={16} />
+                  <span className="font-medium">Profile</span>
+                </button>
+                <div className="h-px bg-gray-100 my-1" />
+                <button
                   className="w-full text-left px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 flex items-center gap-2 transition-colors"
                   onClick={() => authService.logout()}
                 >
@@ -518,6 +532,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onClose={() => setIsGroupModalOpen(false)}
         users={contactUsers}
         onGroupCreated={(roomId) => onSelectRoom && onSelectRoom(roomId)}
+      />
+
+      <ProfileModal 
+        isOpen={isProfileModalOpen}
+        onClose={() => setIsProfileModalOpen(false)}
+        user={userInfo || null}
+        onUpdate={fetchProfile}
       />
     </div>
   );
