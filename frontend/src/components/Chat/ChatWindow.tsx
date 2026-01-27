@@ -234,26 +234,63 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   }, [activeRoom, myUserId]);
 
   /**
-   * EFFECT 3: Auto-scroll
-   * Memastikan window selalu scroll ke bawah setiap ada pesan baru.
+   * EFFECT 3: Smart Auto-scroll
+   * Menangani perpindahan layar ke pesan terbaru dengan mempertimbangkan konteks:
+   * 1. Jika pindah room: Paksa scroll ke paling bawah secara instan.
+   * 2. Jika ada pesan baru & user di posisi bawah: Scroll halus (smooth) mengikuti pesan.
+   * 3. Jika ada pesan baru tapi user sedang scroll di atas: Diam (jangan ganggu user membaca).
    */
+  const prevRoomId = React.useRef<string | null>(null);
+
   useEffect(() => {
-    if (messages.length > 0 && !loadingMore) {
-      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    // Jangan scroll jika data sedang dimuat (initial load/pagination)
+    if (messages.length === 0 || loadingMore || loading) return;
+
+    const container = scrollContainerRef.current;
+    if (!container) return;
+
+    // Deteksi apakah ini perpindahan room baru atau hanya penambahan pesan
+    const isRoomChange = prevRoomId.current !== activeRoom?.roomId;
+    
+    // Cek apakah user sedang berada di "area aktif" pesan terbaru (threshold 150px dari bawah)
+    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
+
+    if (isRoomChange || isAtBottom) {
+      setTimeout(() => {
+        messagesEndRef.current?.scrollIntoView({ 
+          behavior: isRoomChange ? "auto" : "smooth" 
+        });
+      }, 50);
     }
-  }, [messages.length, activeRoom?.roomId, loadingMore]);
+    
+    prevRoomId.current = activeRoom?.roomId || null;
+  }, [messages.length, activeRoom?.roomId, loading, loadingMore]);
 
+  /**
+   * LOGIC: Infinite Scroll (Pagination ke Atas)
+   * Terpicu saat user melakukan scroll pada container pesan.
+   */
   const handleScroll = async () => {
-    if (!scrollContainerRef.current || loadingMore || !hasMore || !activeRoom)
-      return;
+    if (!scrollContainerRef.current || loadingMore || !hasMore || !activeRoom || loading) return;
 
-    const { scrollTop } = scrollContainerRef.current;
-
-    // Jika scroll menyentuh atas (0)
-    if (scrollTop === 0) {
+    const { scrollTop, scrollHeight } = scrollContainerRef.current;
+    
+    /**
+     * THRESHOLD TRIGGER (100px):
+     * Kita memicu loading saat user hampir menyentuh atas (sisa 100px),
+     * bukan saat benar-benar mentok (0), agar transisi terasa lebih seamless.
+     */
+    if (scrollTop < 100) {
       setLoadingMore(true);
+      
+      // KURSOR: Menggunakan timestamp pesan tertua sebagai referensi pengambilan data berikutnya
       const oldestMessage = messages[0];
-      const beforeAt = oldestMessage?.createdAt;
+      if (!oldestMessage) {
+        setLoadingMore(false);
+        return;
+      }
+
+      const beforeAt = oldestMessage.createdAt;
 
       try {
         const moreMessages = await chatService.getMessages(activeRoom.roomId, {
@@ -262,23 +299,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         });
 
         if (moreMessages.length < 20) {
-          setHasMore(false);
+          setHasMore(false); // Sinyal bahwa tidak ada pesan lagi yang bisa dimuat
         }
 
         if (moreMessages.length > 0) {
-          // Simpan scroll height sebelum update data
-          const currentScrollHeight = scrollContainerRef.current.scrollHeight;
+          /**
+           * ANTI-JUMP LOGIC (Scroll Anchoring):
+           * Saat data baru dimasukkan ke awal array (prepend), tinggi container akan bertambah.
+           * Tanpa logic ini, layar akan tetap di posisi scrollTop 0 (menampilkan pesan paling lama).
+           * Kita menghitung selisih tinggi baru vs lama, lalu mengembalikan posisi scroll
+           * agar user tetap melihat pesan yang sama sebelum loading.
+           */
+          const prevScrollHeight = scrollContainerRef.current.scrollHeight;
+          const prevScrollTop = scrollContainerRef.current.scrollTop;
 
           setMessages((prev) => [...moreMessages, ...prev]);
 
-          // Setelah state update, kembalikan scroll position agar tidak melompat ke atas
-          setTimeout(() => {
+          requestAnimationFrame(() => {
             if (scrollContainerRef.current) {
               const newScrollHeight = scrollContainerRef.current.scrollHeight;
-              scrollContainerRef.current.scrollTop =
-                newScrollHeight - currentScrollHeight;
+              const heightDifference = newScrollHeight - prevScrollHeight;
+              // Kembalikan posisi scroll relatif terhadap data yang baru masuk
+              scrollContainerRef.current.scrollTop = prevScrollTop + heightDifference;
             }
-          }, 0);
+          });
         }
       } catch (error) {
         // console.error("Load more messages failed:", error);
