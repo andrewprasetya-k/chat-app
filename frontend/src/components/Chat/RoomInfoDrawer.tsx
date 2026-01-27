@@ -112,7 +112,7 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
     <>
       <div>
         {/* Overlay */}
-        <div className="fixed inset-0 bg-black/5 z-40" onClick={onClose} />
+        <div className="fixed inset-0 bg-black/10 z-40" onClick={onClose} />
 
         {/* Drawer */}
         <div
