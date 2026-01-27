@@ -93,6 +93,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       try {
         const fetched = await chatService.getMessages(roomId);
         setMessages(fetched);
+        
+        // Mark all messages as read in the backend (to clear zombie unread counts)
+        await chatService.markAllAsRead(roomId);
       } catch (err) {
         // console.error("Load messages failed:", err);
       } finally {
@@ -254,28 +257,46 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   //effect 4: auto-mark as read messages
   useEffect(() => {
+    console.log("[DEBUG] Checking unread logic. Room:", activeRoom?.roomId, "Messages:", messages.length, "MyID:", myUserId);
+
     // pastikan room aktif dan ada pesan
     if (!activeRoom || messages.length === 0 || !myUserId) return;
 
     // cari pesan yang belum dibaca dan bukan dari diri sendiri
     const unreadMessageIds = messages.filter((msg) => {
       const isMyMessage = msg.sender?.senderId === myUserId; //pesan dari diri sendiri
+      
+      // Log detail untuk pesan orang lain
+      if (!isMyMessage) {
+         // console.log(`[DEBUG] Check Msg ${msg.textId}. IsMyMessage: ${isMyMessage}. ReadBy:`, msg.readBy);
+      }
+
       const isReadByMe = msg.readBy.some(
         (reader) => reader.userId === myUserId
       ); //sudah dibaca oleh diri sendiri
+      
       return !isMyMessage && !isReadByMe;
     });
+
+    console.log("[DEBUG] Unread IDs Found:", unreadMessageIds.length);
 
     //kalau tidak ada pesan yang belum dibaca, hentikan proses
     if (unreadMessageIds.length === 0) return;
 
     // ambil ID pesan saja
     const unreadMessageIdsStrings = unreadMessageIds.map((msg) => msg.textId);
+    
+    console.log(`[DEBUG] Found ${unreadMessageIdsStrings.length} unread messages in room ${activeRoom.roomId}:`, unreadMessageIdsStrings);
 
     // panggil API mark as read
     chatService
       .markAsRead(activeRoom.roomId, unreadMessageIdsStrings)
-      // .catch((err) => console.error("Mark as read failed:", err));
+      .then(() => {
+        console.log("[DEBUG] Successfully marked messages as read in backend");
+      })
+      .catch((err) => {
+        console.error("[DEBUG] Failed to mark messages as read:", err);
+      });
 
     // update state lokal untuk menandai pesan sudah dibaca
     setMessages((prevMessages) => {

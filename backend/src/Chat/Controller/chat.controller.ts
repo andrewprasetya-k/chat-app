@@ -38,6 +38,15 @@ export class ChatController {
     return await this.chatService.markMessagesAsRead(roomId, messageIds, userId);
   }
 
+  @Post('read-all/:roomId')
+  @UseGuards(AuthGuard, RoomActiveGuard, RoomMemberGuard)
+  async markAllAsRead(
+    @Param('roomId') roomId: string,
+    @User('sub') userId: string,
+  ) {
+    return await this.chatService.markRoomAsRead(roomId, userId);
+  }
+
   @Get('unread-count/:roomId')
   @UseGuards(AuthGuard, RoomActiveGuard, RoomMemberGuard)
   async getUnreadCount(

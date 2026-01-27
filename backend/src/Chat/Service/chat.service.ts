@@ -277,9 +277,74 @@ export class ChatService {
     }
   }
 
+  async markRoomAsRead(roomId: string, userId: string) {
+    const client = this.supabase.getClient();
+    try {
+      // 1. Ambil semua ID pesan di room ini yang BUKAN dikirim oleh saya
+      const { data: messages, error: fetchError } = await client
+        .from('chat_message')
+        .select('cm_id')
+        .eq('cm_cr_id', roomId)
+        .neq('cm_usr_id', userId);
+
+      if (fetchError) throw fetchError;
+      if (!messages || messages.length === 0) return { success: true };
+
+      const allMessageIds = messages.map((m) => m.cm_id);
+
+      // 2. Cek mana yang sudah ada di read_receipts
+      const { data: existingReceipts } = await client
+        .from('read_receipts')
+        .select('rr_cm_id')
+        .eq('rr_usr_id', userId)
+        .in('rr_cm_id', allMessageIds);
+
+      const readIds = new Set((existingReceipts || []).map((r) => r.rr_cm_id));
+      
+      // 3. Filter ID yang BENAR-BENAR belum dibaca
+      const unreadIds = allMessageIds.filter((id) => !readIds.has(id));
+
+      if (unreadIds.length === 0) return { success: true };
+
+      // 4. Insert ke read_receipts
+      const toInsert = unreadIds.map((id) => ({
+        rr_cm_id: id,
+        rr_usr_id: userId,
+        read_at: new Date().toISOString(),
+      }));
+
+      const { error: insertError } = await client
+        .from('read_receipts')
+        .upsert(toInsert);
+
+      if (insertError) throw insertError;
+
+      // 5. Broadcast via Socket agar UI di device lain update
+      const { data: userData } = await client
+        .from('user')
+        .select('usr_nama_lengkap')
+        .eq('usr_id', userId)
+        .single();
+
+      this.chatGateway.server.to(`room_${roomId}`).emit('messages_read_update', {
+        roomId,
+        readerId: userId,
+        readerName: userData?.usr_nama_lengkap || 'Someone',
+        messageIds: unreadIds,
+        readAt: new Date().toISOString(),
+      });
+
+      return { success: true, count: unreadIds.length };
+    } catch (error: any) {
+      throw new InternalServerErrorException(error.message);
+    }
+  }
+
   async countUnreadMessages(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
+      console.log(`[DEBUG_BACKEND] Counting unread for Room: ${roomId}, User: ${userId}`);
+
       const { data: readReceipts, error: readError } = await client
         .from('read_receipts')
         .select('rr_cm_id')
@@ -290,6 +355,7 @@ export class ChatService {
       }
 
       const readMessageIds = readReceipts.map((item) => item.rr_cm_id);
+      console.log(`[DEBUG_BACKEND] User has read ${readMessageIds.length} messages globally.`);
 
       if (readMessageIds.length === 0) {
         const { count, error: totalError } = await client
@@ -299,6 +365,7 @@ export class ChatService {
           .neq('cm_usr_id', userId); // Exclude own messages
 
         if (totalError) throw totalError;
+        console.log(`[DEBUG_BACKEND] No receipts found. Total unread (excluding own): ${count}`);
         return { success: true, unreadCount: count };
       }
 
@@ -312,6 +379,8 @@ export class ChatService {
       if (countError) {
         throw new InternalServerErrorException(countError.message);
       }
+      
+      console.log(`[DEBUG_BACKEND] Final Unread Count for room ${roomId}: ${count}`);
 
       return { unreadCount: count };
     } catch (error: any) {

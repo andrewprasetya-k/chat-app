@@ -55,6 +55,10 @@ export const chatService = {
     await api.post(`/chat/read/${roomId}`, { messageIds });
   },
 
+  async markAllAsRead(roomId: string): Promise<void> {
+    await api.post(`/chat/read-all/${roomId}`);
+  },
+
   // --- 5. Global Search ---
   async globalSearchQuery(query: string): Promise<GlobalSearchResults> {
     const response = await api.get<GlobalSearchResults>(
