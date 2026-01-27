@@ -15,6 +15,9 @@ export class ChatRoomListEntity {
   isGroup: boolean;
 
   @Expose()
+  unreadCount: number;
+
+  @Expose()
   deletedAt: string | null; // Added field
 
   @Expose()
@@ -25,6 +28,9 @@ export class ChatRoomListEntity {
 
   @Expose()
   lastMessage: string | null;
+
+  @Expose()
+  lastMessageType: string | null;
 
   @Expose()
   lastMessageTime: string | null;

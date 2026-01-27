@@ -53,6 +53,7 @@ export class ChatRoomService {
             chat_message (
               cm_id,
               message_text,
+              cm_type,
               created_at,
               sender:cm_usr_id (
                 usr_id,
@@ -129,6 +130,7 @@ export class ChatRoomService {
             isGroup: room?.cr_is_group,
             lastMessageId: lastMessage?.cm_id ?? null,
             lastMessage: lastMessage?.message_text ?? null,
+            lastMessageType: lastMessage?.cm_type ?? 'user',
             lastMessageTime: (() => {
               const val = lastMessage?.created_at || room?.created_at;
               if (!val) return null;
@@ -184,7 +186,23 @@ export class ChatRoomService {
         return timeB - timeA;
       });
 
-      return transformedData;
+      // Populate unreadCount for each room
+      const roomsWithUnread = await Promise.all(
+        transformedData.map(async (room) => {
+          try {
+            const { unreadCount } = await this.chatService.countUnreadMessages(
+              room.roomId,
+              userId,
+            );
+            room.unreadCount = unreadCount ?? 0;
+          } catch (e) {
+            room.unreadCount = 0;
+          }
+          return room;
+        }),
+      );
+
+      return roomsWithUnread;
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch rooms',
@@ -318,7 +336,23 @@ export class ChatRoomService {
         return timeB - timeA;
       });
 
-      return transformedData;
+      // Populate unreadCount for each room
+      const roomsWithUnread = await Promise.all(
+        transformedData.map(async (room) => {
+          try {
+            const { unreadCount } = await this.chatService.countUnreadMessages(
+              room.roomId,
+              userId,
+            );
+            room.unreadCount = unreadCount ?? 0;
+          } catch (e) {
+            room.unreadCount = 0;
+          }
+          return room;
+        }),
+      );
+
+      return roomsWithUnread;
     } catch (error: any) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to fetch deactivated rooms',

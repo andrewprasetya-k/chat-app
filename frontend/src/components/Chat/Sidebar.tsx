@@ -269,11 +269,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
                 )}
 
                 {/* 2. Sender Name (untuk grup) */}
-                {chat.isGroup && chat.senderId !== myUserId && (
-                  <span className="font-medium text-gray-600 shrink-0">
-                    {chat.senderName?.split(" ")[0]}:
-                  </span>
-                )}
+                {chat.isGroup &&
+                  chat.senderId !== myUserId &&
+                  chat.lastMessageType !== "system" && (
+                    <span className="font-medium text-gray-600 shrink-0">
+                      {chat.senderName?.split(" ")[0]}:
+                    </span>
+                  )}
 
                 {/* 3. Pesan Terakhir */}
                 <span className="truncate">{chat.lastMessage}</span>
