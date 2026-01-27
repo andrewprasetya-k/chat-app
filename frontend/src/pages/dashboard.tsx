@@ -177,7 +177,7 @@ export default function DashboardPage() {
 
             return {
               ...room,
-              // Jika SAYA yang baca, reset unread count
+              // Jika SAYA yang baca, reset unread count jadi 0
               unreadCount: isMeReading ? 0 : room.unreadCount,
               // Jika ORANG LAIN yang baca, tandai pesan terakhir SAYA sudah dibaca
               isLastMessageRead: shouldMarkAsRead,
@@ -282,9 +282,15 @@ export default function DashboardPage() {
         rooms={rooms}
         selectedRoomId={activeRoom?.roomId} //mengirim roomId yang sedang aktif
         onSelectRoom={(roomId) => {
-          const selectedRoomId = rooms.find((room) => room.roomId === roomId);
-          if (selectedRoomId) {
-            setActiveRoom(selectedRoomId);
+          const selectedRoom = rooms.find((room) => room.roomId === roomId);
+          if (selectedRoom) {
+            setActiveRoom(selectedRoom);
+            // Optimistic Update: Reset unread count immediately
+            setRooms((prev) =>
+              prev.map((r) =>
+                r.roomId === roomId ? { ...r, unreadCount: 0 } : r
+              )
+            );
           }
         }}
         onlineUsers={onlineUsers}

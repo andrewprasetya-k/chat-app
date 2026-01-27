@@ -295,7 +295,8 @@ export class ChatService {
         const { count, error: totalError } = await client
           .from('chat_message')
           .select('cm_id, cm_cr_id', { count: 'exact', head: true })
-          .eq('cm_cr_id', roomId);
+          .eq('cm_cr_id', roomId)
+          .neq('cm_usr_id', userId); // Exclude own messages
 
         if (totalError) throw totalError;
         return { success: true, unreadCount: count };
@@ -305,6 +306,7 @@ export class ChatService {
         .from('chat_message')
         .select('cm_id, cm_cr_id', { count: 'exact', head: true })
         .eq('cm_cr_id', roomId)
+        .neq('cm_usr_id', userId) // Exclude own messages
         .not('cm_id', 'in', `(${readMessageIds.join(',')})`);
 
       if (countError) {
