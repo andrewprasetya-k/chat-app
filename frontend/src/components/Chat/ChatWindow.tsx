@@ -251,18 +251,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     // Deteksi apakah ini perpindahan room baru atau hanya penambahan pesan
     const isRoomChange = prevRoomId.current !== activeRoom?.roomId;
-    
+
     // Cek apakah user sedang berada di "area aktif" pesan terbaru (threshold 150px dari bawah)
-    const isAtBottom = container.scrollHeight - container.scrollTop <= container.clientHeight + 150;
+    const isAtBottom =
+      container.scrollHeight - container.scrollTop <=
+      container.clientHeight + 150;
 
     if (isRoomChange || isAtBottom) {
       setTimeout(() => {
-        messagesEndRef.current?.scrollIntoView({ 
-          behavior: isRoomChange ? "auto" : "smooth" 
+        messagesEndRef.current?.scrollIntoView({
+          behavior: isRoomChange ? "auto" : "smooth",
         });
       }, 50);
     }
-    
+
     prevRoomId.current = activeRoom?.roomId || null;
   }, [messages.length, activeRoom?.roomId, loading, loadingMore]);
 
@@ -271,10 +273,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
    * Terpicu saat user melakukan scroll pada container pesan.
    */
   const handleScroll = async () => {
-    if (!scrollContainerRef.current || loadingMore || !hasMore || !activeRoom || loading) return;
+    if (
+      !scrollContainerRef.current ||
+      loadingMore ||
+      !hasMore ||
+      !activeRoom ||
+      loading
+    )
+      return;
 
     const { scrollTop, scrollHeight } = scrollContainerRef.current;
-    
+
     /**
      * THRESHOLD TRIGGER (100px):
      * Kita memicu loading saat user hampir menyentuh atas (sisa 100px),
@@ -282,7 +291,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
      */
     if (scrollTop < 100) {
       setLoadingMore(true);
-      
+
       // KURSOR: Menggunakan timestamp pesan tertua sebagai referensi pengambilan data berikutnya
       const oldestMessage = messages[0];
       if (!oldestMessage) {
@@ -320,7 +329,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               const newScrollHeight = scrollContainerRef.current.scrollHeight;
               const heightDifference = newScrollHeight - prevScrollHeight;
               // Kembalikan posisi scroll relatif terhadap data yang baru masuk
-              scrollContainerRef.current.scrollTop = prevScrollTop + heightDifference;
+              scrollContainerRef.current.scrollTop =
+                prevScrollTop + heightDifference;
             }
           });
         }
@@ -379,9 +389,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     chatService
       .markAsRead(activeRoom.roomId, unreadMessageIdsStrings)
       .then(() => {})
-      .catch((err) => {
-        console.error("[DEBUG] Failed to mark messages as read:", err);
-      });
+      .catch((err) => {});
 
     // update state lokal untuk menandai pesan sudah dibaca
     setMessages((prevMessages) => {
