@@ -52,10 +52,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [isMeMyId, setIsMyId] = useState<boolean>(false);
   const [lastSeen, setLastSeen] = useState<string | null>(null);
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
+  const [hasMore, setHasMore] = useState<boolean>(true);
+  const [loadingMore, setLoadingMore] = useState<boolean>(false);
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
+  const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
 
   /**
    * EFFECT 1: Initial Setup
@@ -86,14 +89,16 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (!activeRoom) return;
 
     const roomId = activeRoom.roomId;
+    setHasMore(true); // Reset hasMore saat pindah room
 
     // --- A. Fetch Messages ---
     const fetchMessages = async () => {
       setLoading(true);
       try {
-        const fetched = await chatService.getMessages(roomId);
+        const fetched = await chatService.getMessages(roomId, { limit: 20 });
         setMessages(fetched);
-        
+        if (fetched.length < 20) setHasMore(false);
+
         // Mark all messages as read in the backend (to clear zombie unread counts)
         await chatService.markAllAsRead(roomId);
       } catch (err) {
@@ -121,7 +126,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           if (data.messageIds.includes(msg.textId)) {
             //cek apakah readerId sudah ada di readBy
             const alreadyRead = msg.readBy.some(
-              (reader) => reader.userId === data.readerId
+              (reader) => reader.userId === data.readerId,
             );
             if (alreadyRead) {
               return msg; //tidak perlu diupdate
@@ -135,7 +140,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             };
           }
           return msg;
-        })
+        }),
       );
     };
 
@@ -210,7 +215,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             };
           }
           return msg;
-        })
+        }),
       );
     };
     socketClient.on("message_unsent", handleUnsendMessage);
@@ -233,8 +238,55 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
    * Memastikan window selalu scroll ke bawah setiap ada pesan baru.
    */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages.length, activeRoom?.roomId]);
+    if (messages.length > 0 && !loadingMore) {
+      messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+    }
+  }, [messages.length, activeRoom?.roomId, loadingMore]);
+
+  const handleScroll = async () => {
+    if (!scrollContainerRef.current || loadingMore || !hasMore || !activeRoom)
+      return;
+
+    const { scrollTop } = scrollContainerRef.current;
+
+    // Jika scroll menyentuh atas (0)
+    if (scrollTop === 0) {
+      setLoadingMore(true);
+      const oldestMessage = messages[0];
+      const beforeAt = oldestMessage?.createdAt;
+
+      try {
+        const moreMessages = await chatService.getMessages(activeRoom.roomId, {
+          limit: 20,
+          beforeAt: beforeAt,
+        });
+
+        if (moreMessages.length < 20) {
+          setHasMore(false);
+        }
+
+        if (moreMessages.length > 0) {
+          // Simpan scroll height sebelum update data
+          const currentScrollHeight = scrollContainerRef.current.scrollHeight;
+
+          setMessages((prev) => [...moreMessages, ...prev]);
+
+          // Setelah state update, kembalikan scroll position agar tidak melompat ke atas
+          setTimeout(() => {
+            if (scrollContainerRef.current) {
+              const newScrollHeight = scrollContainerRef.current.scrollHeight;
+              scrollContainerRef.current.scrollTop =
+                newScrollHeight - currentScrollHeight;
+            }
+          }, 0);
+        }
+      } catch (error) {
+        // console.error("Load more messages failed:", error);
+      } finally {
+        setLoadingMore(false);
+      }
+    }
+  };
 
   /**
    * Menangani perubahan input teks dan mengirim sinyal typing ke server.
@@ -257,43 +309,32 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   //effect 4: auto-mark as read messages
   useEffect(() => {
-    console.log("[DEBUG] Checking unread logic. Room:", activeRoom?.roomId, "Messages:", messages.length, "MyID:", myUserId);
-
     // pastikan room aktif dan ada pesan
     if (!activeRoom || messages.length === 0 || !myUserId) return;
 
     // cari pesan yang belum dibaca dan bukan dari diri sendiri
     const unreadMessageIds = messages.filter((msg) => {
       const isMyMessage = msg.sender?.senderId === myUserId; //pesan dari diri sendiri
-      
+
       // Log detail untuk pesan orang lain
-      if (!isMyMessage) {
-         // console.log(`[DEBUG] Check Msg ${msg.textId}. IsMyMessage: ${isMyMessage}. ReadBy:`, msg.readBy);
-      }
 
       const isReadByMe = msg.readBy.some(
-        (reader) => reader.userId === myUserId
+        (reader) => reader.userId === myUserId,
       ); //sudah dibaca oleh diri sendiri
-      
+
       return !isMyMessage && !isReadByMe;
     });
-
-    console.log("[DEBUG] Unread IDs Found:", unreadMessageIds.length);
 
     //kalau tidak ada pesan yang belum dibaca, hentikan proses
     if (unreadMessageIds.length === 0) return;
 
     // ambil ID pesan saja
     const unreadMessageIdsStrings = unreadMessageIds.map((msg) => msg.textId);
-    
-    console.log(`[DEBUG] Found ${unreadMessageIdsStrings.length} unread messages in room ${activeRoom.roomId}:`, unreadMessageIdsStrings);
 
     // panggil API mark as read
     chatService
       .markAsRead(activeRoom.roomId, unreadMessageIdsStrings)
-      .then(() => {
-        console.log("[DEBUG] Successfully marked messages as read in backend");
-      })
+      .then(() => {})
       .catch((err) => {
         console.error("[DEBUG] Failed to mark messages as read:", err);
       });
@@ -383,8 +424,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           {isOtherUserOnline
             ? "Online"
             : lastSeen
-            ? `Last seen ${lastSeen}`
-            : "Offline"}
+              ? `Last seen ${lastSeen}`
+              : "Offline"}
         </span>
       );
     }
@@ -425,7 +466,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Messages List */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50">
+      <div
+        ref={scrollContainerRef}
+        onScroll={handleScroll}
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+      >
+        {loadingMore && (
+          <div className="flex justify-center py-2">
+            <div className="text-[10px] text-blue-500 font-medium animate-pulse bg-blue-50 px-3 py-1 rounded-full shadow-sm">
+              Loading older messages...
+            </div>
+          </div>
+        )}
+
         {loading ? (
           <div className="text-center text-gray-400 mt-10">
             Loading messages...
@@ -474,7 +527,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                           if (window.confirm("Unsend this message?")) {
                             chatService.unsendMessage(
                               msg.textId,
-                              activeRoom.roomId
+                              activeRoom.roomId,
                             );
                           }
                         }}
@@ -529,9 +582,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         {msg.createdAt
                           ? new Date(
                               msg.createdAt.endsWith("Z") ||
-                              msg.createdAt.includes("+")
+                                msg.createdAt.includes("+")
                                 ? msg.createdAt
-                                : msg.createdAt + "Z"
+                                : msg.createdAt + "Z",
                             ).toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
