@@ -545,16 +545,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     }
   };
 
-  // Mode Read-Only & Hide History: Berlaku untuk semua Inactive room
-  const isReadOnly = !!(
-    activeRoom.leaveAt ||
-    activeRoom.deletedAt ||
-    (activeRoom as any).deleted_at
-  );
-  const isHistoryHidden = isReadOnly;
+    // Mode Read-Only & Hide History: Berlaku jika room ditandai sebagai deactivated dari backend
 
-  return (
-    <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
+    const isReadOnly = !!activeRoom.isDeactivated;
+
+    const isHistoryHidden = isReadOnly;
+
+  
+
+    return (
+
+      <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
       {/* Header */}
       <div className="p-4 h-18.25 shrink-0 flex items-center justify-between bg-white border-b border-slate-100 sticky top-0 z-10">
         <div
@@ -589,22 +590,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         onScroll={handleScroll}
         className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"
       >
-        {isHistoryHidden ? (
-          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
-            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-              <CircleAlert size={40} className="text-gray-400" />
-            </div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-2">
-              {activeRoom.deletedAt ? "Room Deleted" : "You've left this room"}
-            </h3>
-            <p className="text-sm text-gray-500 max-w-xs">
-              {activeRoom.deletedAt
-                ? "This chat room has been permanently deleted by the administrator."
-                : "You are no longer a participant in this conversation. Message history is unavailable."}
-            </p>
-          </div>
-        ) : loading ? (
-          <div className="flex-1 flex items-center justify-center">
+                {isHistoryHidden ? (
+                  <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+                    <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+                      <CircleAlert size={40} className="text-gray-400" />
+                    </div>
+                    <h3 className="text-lg font-semibold text-gray-900 mb-2">
+                      Chat Inactive
+                    </h3>
+                    <p className="text-sm text-gray-500 max-w-xs">
+                      This chat room is no longer active. You might have left the room or it has been deleted by an administrator.
+                    </p>
+                  </div>
+                ) : loading ? (          <div className="flex-1 flex items-center justify-center">
             <div className="text-gray-400 animate-pulse">
               Loading messages...
             </div>
