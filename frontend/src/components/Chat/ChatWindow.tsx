@@ -68,6 +68,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
   const messagesEndRef = React.useRef<HTMLDivElement | null>(null);
   const scrollContainerRef = React.useRef<HTMLDivElement | null>(null);
+  const inputRef = React.useRef<HTMLInputElement | null>(null);
 
   /**
    * EFFECT 1: Initial Setup
@@ -517,7 +518,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
       {/* Header */}
-      <div className="p-4 h-18.25 shrink-0 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-slate-100 sticky top-0 z-10">
+      <div className="p-4 h-18.25 shrink-0 flex items-center justify-between bg-white border-b border-slate-100 sticky top-0 z-10">
         <div
           className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-all duration-200"
           onClick={() => setIsDrawerOpen(true)}
@@ -557,11 +558,12 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         )}
 
         {loading ? (
-          <div className="text-center text-slate-400 mt-10">
-            <div className="inline-flex items-center gap-2">
-              <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
-              Loading messages...
-            </div>
+          <div className="space-y-4">
+            <MessageSkeleton />
+            <MyMessageSkeleton />
+            <MessageSkeleton />
+            <MyMessageSkeleton />
+            <MessageSkeleton />
           </div>
         ) : (
           messages.map((msg) => {
@@ -584,47 +586,40 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               <div
                 key={msg.textId}
                 id={`msg-${msg.textId}`}
-                className={`flex group items-end gap-2 mb-3 ${
+                className={`flex group items-end gap-2 mb-4 ${
                   isMe ? "flex-row-reverse" : "flex-row"
                 }`}
               >
-                {/* Avatar Lawan Bicara ( bisa untuk grup) */}
-                {/* {!isMe && activeRoom.isGroup && (
-                  <div className="w-6 h-6 rounded-full bg-gray-300 shrink-0 flex items-center justify-center text-[10px] font-bold text-gray-600 mb-1">
-                    {msg.sender?.senderName?.[0] || "?"}
-                  </div>
-                )} */}
-
                 <div
-                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg flex flex-col ${
+                  className={`max-w-xs md:max-w-md lg:max-w-lg flex flex-col ${
                     isMe ? "items-end" : "items-start"
                   }`}
                 >
                   {/* Nama Pengirim di Grup */}
                   {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
-                    <span className="ml-1 mb-0.5 text-[10px] font-bold text-slate-500">
+                    <span className="ml-3 mb-1 text-xs font-medium text-slate-600">
                       {msg.sender.senderName}
                     </span>
                   )}
 
                   <div
-                    className={`relative px-3 py-2 rounded-2xl text-sm transition-all duration-500 ${
+                    className={`relative px-3 py-2 rounded-xl text-sm transition-all duration-300 border ${
                       highlightedMessageId === msg.textId
-                        ? "ring-2 ring-amber-300 scale-[1.02] z-10 shadow-lg"
+                        ? "ring-2 ring-amber-400 scale-[1.02] z-10 shadow-lg"
                         : ""
                     } ${
                       isMe
-                        ? "bg-blue-600 text-white rounded-br-none shadow-sm"
-                        : "bg-white text-slate-800 border border-slate-200/60 rounded-bl-none shadow-sm"
+                        ? "bg-blue-600 text-white rounded-br-sm border-blue-600"
+                        : "bg-white text-slate-800 border-slate-200 rounded-bl-sm"
                     }`}
                   >
                     {/* --- QUOTED MESSAGE (REPLY) --- */}
                     {msg.replyTo && (
                       <div
-                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-4 transition-colors ${
+                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-3 transition-colors ${
                           isMe
-                            ? "bg-white/20 border-blue-200 text-blue-50"
-                            : "bg-slate-50 border-blue-400 text-slate-600"
+                            ? "bg-white/15 border-white/40 text-blue-50"
+                            : "bg-slate-50 border-blue-500 text-slate-600"
                         }`}
                         onClick={() => {
                           const targetId = msg.replyTo?.id;
@@ -641,10 +636,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             });
                         }}
                       >
-                        <span className="block font-bold mb-0.5 opacity-90">
+                        <span className="block font-semibold mb-1 opacity-90">
                           {msg.replyTo.senderName}
                         </span>
-                        <p className="truncate opacity-80">
+                        <p className="truncate opacity-80 leading-snug">
                           {msg.replyTo.text}
                         </p>
                       </div>
@@ -653,17 +648,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     {/* --- MAIN MESSAGE TEXT --- */}
                     {msg.text === "This message was unsent" ||
                     msg.text === "[This message was unsent]" ? (
-                      <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
-                        <CircleAlert size={12} />
+                      <p className="italic opacity-70 flex items-center gap-2 text-xs">
+                        <CircleAlert size={14} />
                         Message unsent
                       </p>
                     ) : (
-                      <p className="wrap-break-word leading-snug">{msg.text}</p>
+                      <p className="leading-snug">{msg.text}</p>
                     )}
 
                     {/* --- TIMESTAMP & READ STATUS --- */}
                     <div
-                      className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${
+                      className={`text-xs mt-1 flex items-center justify-end gap-1 ${
                         isMe ? "text-blue-100/80" : "text-slate-400"
                       }`}
                     >
@@ -684,9 +679,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       {isMe && (
                         <span>
                           {msg.readBy.length > 0 ? (
-                            <CheckCheck size={12} strokeWidth={3} />
+                            <CheckCheck size={14} strokeWidth={2.5} />
                           ) : (
-                            <Check size={12} strokeWidth={3} />
+                            <Check size={14} strokeWidth={2.5} />
                           )}
                         </span>
                       )}
@@ -696,17 +691,20 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                 {/* ACTION BUTTONS (Hidden by default, visible on hover) */}
                 <div
-                  className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                  className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
                     isMe ? "flex-row-reverse" : "flex-row"
                   }`}
                 >
                   {/* Reply Button */}
                   <button
-                    onClick={() => setReplyToMessage(msg)}
-                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    onClick={() => {
+                      setReplyToMessage(msg);
+                      setTimeout(() => inputRef.current?.focus(), 100);
+                    }}
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                     title="Reply"
                   >
-                    <Reply size={14} />
+                    <Reply size={16} />
                   </button>
 
                   {/* Unsend Button (Only for Me) */}
@@ -722,10 +720,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             );
                           }
                         }}
-                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         title="Unsend"
                       >
-                        <Trash size={14} />
+                        <Trash size={16} />
                       </button>
                     )}
                 </div>
@@ -737,26 +735,26 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 pt-2 bg-white/80 backdrop-blur-sm border-t border-slate-100">
+      <div className="p-4 pt-2 bg-white border-t border-slate-100">
         {/* Reply Preview Panel */}
         {replyToMessage && (
-          <div className="flex items-center justify-between bg-blue-50/80 border-l-4 border-blue-500 p-2 mb-2 rounded-r-lg animate-in slide-in-from-bottom-2 fade-in duration-200 backdrop-blur-sm">
-            <div className="overflow-hidden">
-              <span className="block text-xs font-bold text-blue-700 mb-0.5">
+          <div className="flex items-center justify-between bg-blue-50 border border-blue-200 border-l-4 border-l-blue-500 p-2 mb-2 rounded-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
+            <div className="overflow-hidden flex-1">
+              <span className="block text-xs font-medium text-blue-700 mb-1">
                 Replying to{" "}
                 {replyToMessage.sender?.senderId === myUserId
                   ? "Yourself"
                   : replyToMessage.sender?.senderName || "Someone"}
               </span>
-              <p className="text-xs text-slate-600 truncate max-w-xs md:max-w-md">
+              <p className="text-xs text-slate-600 truncate leading-snug">
                 {replyToMessage.text}
               </p>
             </div>
             <button
               onClick={() => setReplyToMessage(null)}
-              className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-200/50 rounded-full transition-colors"
+              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors ml-2"
             >
-              <X size={14} />{" "}
+              <X size={14} />
             </button>
           </div>
         )}
@@ -764,12 +762,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <div className="flex items-center gap-3 mx-auto">
           <div className="flex-1 relative">
             <input
+              ref={inputRef}
               type="text"
               placeholder="Type a message..."
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-4 py-3 bg-slate-50/80 border border-slate-200 rounded-full focus:ring-2 focus:ring-blue-500/20 focus:outline-none focus:border-blue-400 focus:bg-white text-sm transition-all placeholder-slate-400"
+              className="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-blue-500/20 focus:outline-none focus:border-blue-400 focus:bg-white text-sm transition-all placeholder-slate-400"
             />
           </div>
           <button
