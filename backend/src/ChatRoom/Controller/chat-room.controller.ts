@@ -68,13 +68,13 @@ export class ChatRoomController {
   @Get('active')
   @UseGuards(AuthGuard)
   getActiveRooms(@User('sub') userId: string) {
-    return this.chatRoomService.getActiveRooms(userId);
+    return this.chatRoomService.getActiveRoomsNew(userId);
   }
 
   @Get('deactivated')
   @UseGuards(AuthGuard)
   getDeactivatedRooms(@User('sub') userId: string) {
-    return this.chatRoomService.getDeactivatedRooms(userId);
+    return this.chatRoomService.getDeactivatedRoomsNew(userId);
   }
 
   @Get('messages/:roomId')

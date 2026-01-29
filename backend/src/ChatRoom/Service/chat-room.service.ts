@@ -27,7 +27,11 @@ export class ChatRoomService {
     private readonly chatGateway: ChatGateway,
   ) {}
 
-  async getActiveRooms(userId: string) {
+  /**
+   * Mengambil SEMUA data room member tanpa filter status.
+   * Digunakan sebagai basis data untuk getActiveRooms dan getDeactivatedRooms.
+   */
+  private async getAllRoomsData(userId: string) {
     try {
       const client = this.supabase.getClient();
 
@@ -35,7 +39,8 @@ export class ChatRoomService {
         .from('chat_room_member')
         .select(
           `
-          chat_room:crm_cr_id!inner(
+          leave_at,
+          chat_room:crm_cr_id(
             cr_id,
             cr_name,
             cr_is_group,
@@ -67,8 +72,6 @@ export class ChatRoomService {
         `,
         )
         .eq('crm_usr_id', userId)
-        .is('leave_at', null)
-        .is('chat_room.deleted_at', null)
         .order('created_at', {
           foreignTable: 'chat_room.chat_message',
           ascending: false,
@@ -81,283 +84,113 @@ export class ChatRoomService {
         throw new InternalServerErrorException(error.message);
       }
 
-      const transformedData = (data ?? []).map((item) => {
-        const room = Array.isArray(item.chat_room)
-          ? item.chat_room[0]
-          : item.chat_room;
-        const messages = room?.chat_message ?? [];
-        const lastMessage = messages.length > 0 ? messages[0] : null;
-        const sender = lastMessage?.sender;
-        const senderId = Array.isArray(sender)
-          ? sender[0]?.usr_id
-          : (sender as any)?.usr_id;
-        const senderName = Array.isArray(sender)
-          ? sender[0]?.usr_nama_lengkap
-          : (sender as any)?.usr_nama_lengkap;
+      return (data ?? [])
+        .map((item) => {
+          const room = Array.isArray(item.chat_room)
+            ? item.chat_room[0]
+            : item.chat_room;
+          if (!room) return null;
 
-        const isLastMessageRead = lastMessage
-          ? (lastMessage.read_receipts ?? []).some(
-              (rr) => rr.rr_usr_id === userId,
-            )
-          : false;
+          const messages = room?.chat_message ?? [];
+          const lastMessage = messages.length > 0 ? messages[0] : null;
+          const sender = lastMessage?.sender;
+          const senderId = Array.isArray(sender)
+            ? sender[0]?.usr_id
+            : (sender as any)?.usr_id;
+          const senderName = Array.isArray(sender)
+            ? sender[0]?.usr_nama_lengkap
+            : (sender as any)?.usr_nama_lengkap;
 
-        let roomName = room?.cr_name;
-        if (!room?.cr_is_group) {
+          const isLastMessageRead = lastMessage
+            ? (lastMessage.read_receipts ?? []).some(
+                (rr) => rr.rr_usr_id === userId,
+              )
+            : false;
+
+          let roomName = room?.cr_name;
           const members = room?.members ?? [];
-          const otherUser = members
-            .flatMap((m) => m.user)
-            .find((u) => u?.usr_id !== userId);
-          roomName = otherUser?.usr_nama_lengkap ?? roomName;
-        }
+          const otherMemberRaw = members.find((m: any) => {
+            const user = Array.isArray(m.user) ? m.user[0] : m.user;
+            return user?.usr_id !== userId;
+          });
+          const otherMember = otherMemberRaw
+            ? Array.isArray(otherMemberRaw.user)
+              ? otherMemberRaw.user[0]
+              : otherMemberRaw.user
+            : null;
 
-        const members = room?.members ?? [];
-        const memberCount = members.length;
-        const otherMemberRaw = members.find((m: any) => {
-          const user = Array.isArray(m.user) ? m.user[0] : m.user;
-          return user?.usr_id !== userId;
-        });
-        const otherMember = otherMemberRaw
-          ? Array.isArray(otherMemberRaw.user)
-            ? otherMemberRaw.user[0]
-            : otherMemberRaw.user
-          : null;
+          if (!room?.cr_is_group && otherMember) {
+            roomName = otherMember.usr_nama_lengkap;
+          }
 
-        return plainToInstance(
-          ChatRoomListEntity,
-          {
+          return {
             roomId: room?.cr_id,
             roomName: roomName,
             isGroup: room?.cr_is_group,
             lastMessageId: lastMessage?.cm_id ?? null,
             lastMessage: lastMessage?.message_text ?? null,
             lastMessageType: lastMessage?.cm_type ?? 'user',
-            lastMessageTime: (() => {
-              const val = lastMessage?.created_at || room?.created_at;
-              if (!val) return null;
-              if (
-                typeof val === 'string' &&
-                !val.endsWith('Z') &&
-                !val.includes('+')
-              ) {
-                return new Date(val + 'Z').toISOString();
-              }
-              return new Date(val).toISOString();
-            })(),
+            lastMessageTime: lastMessage?.created_at || room?.created_at,
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
             deletedAt: room?.deleted_at ?? null,
+            leaveAt: item.leave_at ?? null, // Simpan status leave user
             memberCount: members.length,
             otherUserId: otherMember?.usr_id ?? null,
             otherUserEmail: otherMember?.usr_email ?? null,
             isOnline: otherMember?.usr_is_online ?? null,
-            lastSeen: (() => {
-              const val = otherMember?.usr_last_seen;
-              if (!val) return null;
-              if (
-                typeof val === 'string' &&
-                !val.endsWith('Z') &&
-                !val.includes('+')
-              ) {
-                return new Date(val + 'Z').toISOString();
-              }
-              return new Date(val).toISOString();
-            })(),
-          },
-          {
-            excludeExtraneousValues: true,
-            enableImplicitConversion: true,
-          },
-        );
-      });
-
-      if (transformedData.length === 1 && !transformedData[0].roomId) {
-        return [];
-      }
-
-      // Sort by lastMessageTime descending
-      transformedData.sort((a, b) => {
-        const timeA = a.lastMessageTime
-          ? new Date(a.lastMessageTime).getTime()
-          : 0;
-        const timeB = b.lastMessageTime
-          ? new Date(b.lastMessageTime).getTime()
-          : 0;
-        return timeB - timeA;
-      });
-
-      // Populate unreadCount for each room
-      const roomsWithUnread = await Promise.all(
-        transformedData.map(async (room) => {
-          try {
-            const { unreadCount } = await this.chatService.countUnreadMessages(
-              room.roomId,
-              userId,
-            );
-            room.unreadCount = unreadCount ?? 0;
-          } catch (e) {
-            room.unreadCount = 0;
-          }
-          return room;
-        }),
-      );
-
-      return roomsWithUnread;
+            lastSeen: otherMember?.usr_last_seen ?? null,
+          };
+        })
+        .filter(Boolean);
     } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to fetch rooms',
-      );
+      throw new InternalServerErrorException(error.message);
     }
   }
 
-  async getDeactivatedRooms(userId: string) {
-    try {
-      const client = this.supabase.getClient();
+  async getActiveRoomsNew(userId: string) {
+    const all = await this.getAllRoomsData(userId);
+    // Active if user HAS NOT left AND room is NOT deleted
+    const filtered = all.filter((r) => !r?.leaveAt && !r?.deletedAt);
+    return this.populateUnreadAndSort(filtered, userId);
+  }
 
-      const { data, error } = await client
-        .from('chat_room_member')
-        .select(
-          `
-          leave_at,
-          chat_room:crm_cr_id!inner(
-            cr_id,
-            cr_name,
-            cr_is_group,
-            created_at,
-            deleted_at,
-            members:chat_room_member (
-              user:crm_usr_id (
-                usr_id,
-                usr_nama_lengkap
-              )
-            ),
-            chat_message (
-              cm_id,
-              message_text,
-              created_at,
-              sender:cm_usr_id (
-                usr_id,
-                usr_nama_lengkap
-              ),
-              read_receipts (
-                rr_usr_id
-              )
-            )
-          )
-        `,
-        )
-        .eq('crm_usr_id', userId)
-        .or('leave_at.not.is.null,chat_room.deleted_at.not.is.null')
-        .order('created_at', {
-          foreignTable: 'chat_room.chat_message',
-          ascending: false,
-        })
-        .limit(1, {
-          foreignTable: 'chat_room.chat_message',
-        });
+  async getDeactivatedRoomsNew(userId: string) {
+    const all = await this.getAllRoomsData(userId);
+    // Inactive if user HAS left OR room IS deleted
+    const filtered = all.filter((r) => r?.leaveAt || r?.deletedAt);
+    return this.populateUnreadAndSort(filtered, userId);
+  }
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      const transformedData = (data ?? []).map((item) => {
-        const room = Array.isArray(item.chat_room)
-          ? item.chat_room[0]
-          : item.chat_room;
-        const messages = room?.chat_message ?? [];
-        const lastMessage = messages.length > 0 ? messages[0] : null;
-        const sender = lastMessage?.sender;
+  private async populateUnreadAndSort(rooms: any[], userId: string) {
+    const transformed = rooms.map((r) =>
+      plainToInstance(ChatRoomListEntity, r, {
+        excludeExtraneousValues: true,
+        enableImplicitConversion: true,
+      }),
+    );
 
-        const senderId = Array.isArray(sender)
-          ? sender[0]?.usr_id
-          : (sender as any)?.usr_id;
-        const senderName = Array.isArray(sender)
-          ? sender[0]?.usr_nama_lengkap
-          : (sender as any)?.usr_nama_lengkap;
-
-        const isLastMessageRead = lastMessage
-          ? (lastMessage.read_receipts ?? []).some(
-              (rr) => rr.rr_usr_id === userId,
-            )
-          : false;
-
-        let roomName = room?.cr_name;
-        if (!room?.cr_is_group) {
-          const members = room?.members ?? [];
-          const otherUser = members
-            .flatMap((m) => m.user)
-            .find((u) => u?.usr_id !== userId);
-          roomName = otherUser?.usr_nama_lengkap ?? roomName;
+    const result = await Promise.all(
+      transformed.map(async (room) => {
+        try {
+          const { unreadCount } = await this.chatService.countUnreadMessages(
+            room.roomId,
+            userId,
+          );
+          room.unreadCount = unreadCount ?? 0;
+        } catch {
+          room.unreadCount = 0;
         }
+        return room;
+      }),
+    );
 
-        return plainToInstance(
-          ChatRoomListEntity,
-          {
-            roomId: room?.cr_id,
-            roomName: roomName,
-            isGroup: room?.cr_is_group,
-            deletedAt: room?.deleted_at ?? null,
-            lastMessage: lastMessage?.message_text ?? null,
-            lastMessageTime: (() => {
-              const val = lastMessage?.created_at || room?.created_at;
-              if (!val) return null;
-              if (
-                typeof val === 'string' &&
-                !val.endsWith('Z') &&
-                !val.includes('+')
-              ) {
-                return new Date(val + 'Z').toISOString();
-              }
-              return new Date(val).toISOString();
-            })(),
-            senderId: senderId ?? null,
-            memberCount: room?.members ? room.members.length : 0,
-            senderName: senderName ?? null,
-            isLastMessageRead,
-          },
-          {
-            excludeExtraneousValues: true,
-            enableImplicitConversion: true,
-          },
-        );
-      });
-
-      if (transformedData.length === 1 && !transformedData[0].roomId) {
-        return [];
-      }
-
-      // Sort by lastMessageTime descending
-      transformedData.sort((a, b) => {
-        const timeA = a.lastMessageTime
-          ? new Date(a.lastMessageTime).getTime()
-          : 0;
-        const timeB = b.lastMessageTime
-          ? new Date(b.lastMessageTime).getTime()
-          : 0;
-        return timeB - timeA;
-      });
-
-      // Populate unreadCount for each room
-      const roomsWithUnread = await Promise.all(
-        transformedData.map(async (room) => {
-          try {
-            const { unreadCount } = await this.chatService.countUnreadMessages(
-              room.roomId,
-              userId,
-            );
-            room.unreadCount = unreadCount ?? 0;
-          } catch (e) {
-            room.unreadCount = 0;
-          }
-          return room;
-        }),
-      );
-
-      return roomsWithUnread;
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to fetch deactivated rooms',
-      );
-    }
+    return result.sort(
+      (a, b) =>
+        new Date(b.lastMessageTime || 0).getTime() -
+        new Date(a.lastMessageTime || 0).getTime(),
+    );
   }
 
   async getRoomMessages(
