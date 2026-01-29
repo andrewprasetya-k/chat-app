@@ -703,7 +703,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
                 {/* ACTION BUTTONS (Hidden by default, visible on hover) */}
                 <div
-                  className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                  className={`flex items-center gap-1 my-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
                     isMe ? "flex-row-reverse" : "flex-row"
                   }`}
                 >
