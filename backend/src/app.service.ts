@@ -24,10 +24,10 @@ export class AppService {
 
   async globalSearch(userId: string, query: string) {
     try {
-      const activeRoomsPromise = this.chatRoomService.getActiveRooms(userId);
+      const activeRoomsPromise = this.chatRoomService.getActiveRoomsNew(userId);
       const deactivatedRoomsPromise =
-        this.chatRoomService.getDeactivatedRooms(userId);
-      const usersPromise = this.userService.findByFullName(query);
+        this.chatRoomService.getDeactivatedRoomsNew(userId);
+      const usersPromise = this.userService.getAllUsers();
       const messagesPromise = this.chatRoomService.searchMessages(
         userId,
         query,

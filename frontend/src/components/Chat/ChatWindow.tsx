@@ -283,9 +283,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       setTimeout(() => {
         if (isRoomChange && scrollContainerRef.current) {
           // Paksa ke bawah instan saat pindah room
-          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+          scrollContainerRef.current.scrollTop =
+            scrollContainerRef.current.scrollHeight;
         }
-        
+
         messagesEndRef.current?.scrollIntoView({
           behavior: isRoomChange ? "auto" : "smooth",
         });
@@ -504,22 +505,34 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const renderRoomStatus = () => {
     if (typingUsers.length > 0) {
       return (
-        <span className="text-xs text-blue-600 font-medium animate-pulse">
+        <span className="text-xs text-blue-500 font-medium animate-pulse">
           {renderTypingText()}
         </span>
       );
     }
+
+    // Status untuk room yang sudah ditinggalkan/dihapus
+    if (
+      activeRoom.leaveAt ||
+      activeRoom.deletedAt ||
+      activeRoom.isDeactivated
+    ) {
+      return (
+        <span className="text-xs text-red-500 font-medium flex items-center gap-1">
+          <CircleAlert size={12} /> Inactive Room
+        </span>
+      );
+    }
+
     if (activeRoom.isGroup) {
       return (
-        <span className="text-xs text-slate-500">Click for group info</span>
+        <span className="text-xs text-gray-500">Click for group info</span>
       );
     } else {
       return (
         <span
           className={`text-xs ${
-            isOtherUserOnline
-              ? "text-emerald-500 font-medium"
-              : "text-slate-500"
+            isOtherUserOnline ? "text-blue-500 font-medium" : "text-gray-500"
           }`}
         >
           {isOtherUserOnline
@@ -531,6 +544,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       );
     }
   };
+
+  // Mode Read-Only & Hide History: Berlaku untuk semua Inactive room
+  const isReadOnly = !!(
+    activeRoom.leaveAt ||
+    activeRoom.deletedAt ||
+    (activeRoom as any).deleted_at
+  );
+  const isHistoryHidden = isReadOnly;
 
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
@@ -551,12 +572,14 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
           </div>
         </div>
         <div className="flex items-center gap-1 text-slate-400">
-          <button
-            onClick={() => setIsDrawerOpen(true)}
-            className="p-2 hover:bg-slate-100 rounded-md transition-colors text-blue-600"
-          >
-            <Info size={20} />
-          </button>
+          {!isReadOnly && (
+            <button
+              onClick={() => setIsDrawerOpen(true)}
+              className="p-2 hover:bg-slate-100 rounded-md transition-colors text-blue-600"
+            >
+              <Info size={20} />
+            </button>
+          )}
         </div>
       </div>
 
@@ -564,238 +587,268 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50 flex flex-col"
       >
-        {loadingMore && (
-          <div className="flex justify-center py-2">
-            <div className="text-[12px] text-blue-600 font-medium animate-pulse bg-blue-50 px-3 py-2 rounded-md shadow-sm border border-blue-100">
-              Loading older messages...
+        {isHistoryHidden ? (
+          <div className="flex-1 flex flex-col items-center justify-center text-center p-8">
+            <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
+              <CircleAlert size={40} className="text-gray-400" />
+            </div>
+            <h3 className="text-lg font-semibold text-gray-900 mb-2">
+              {activeRoom.deletedAt ? "Room Deleted" : "You've left this room"}
+            </h3>
+            <p className="text-sm text-gray-500 max-w-xs">
+              {activeRoom.deletedAt
+                ? "This chat room has been permanently deleted by the administrator."
+                : "You are no longer a participant in this conversation. Message history is unavailable."}
+            </p>
+          </div>
+        ) : loading ? (
+          <div className="flex-1 flex items-center justify-center">
+            <div className="text-gray-400 animate-pulse">
+              Loading messages...
             </div>
           </div>
-        )}
-
-        {loading ? (
-          <div className="space-y-4">
-            <MessageSkeleton />
-            <MyMessageSkeleton />
-            <MessageSkeleton />
-            <MyMessageSkeleton />
-            <MessageSkeleton />
-          </div>
         ) : (
-          messages.map((msg) => {
-            const isMe = msg.sender?.senderId === myUserId;
-            const isSystem = msg.type === "system";
-
-            // --- 1. RENDER PESAN SISTEM (Timeline Event) ---
-            if (isSystem) {
-              return (
-                <div key={msg.textId} className="flex justify-center my-2">
-                  <div className=" text-slate-500 text-[12px] px-4 py-2 rounded-md font-medium uppercase tracking-tight border-slate-200/50">
-                    {msg.text}
-                  </div>
+          <>
+            {loadingMore && (
+              <div className="flex justify-center py-2">
+                <div className="text-[10px] text-blue-500 font-medium animate-pulse bg-blue-50 px-3 py-1 rounded-full shadow-sm">
+                  Loading older messages...
                 </div>
-              );
-            }
+              </div>
+            )}
+            {messages.map((msg) => {
+              const isMe = msg.sender?.senderId === myUserId;
+              const isSystem = msg.type === "system";
 
-            // --- 2. RENDER BUBBLE CHAT BIASA ---
-            return (
-              <div
-                key={msg.textId}
-                id={`msg-${msg.textId}`}
-                className={`flex group items-end gap-2 mb-4 ${
-                  isMe ? "flex-row-reverse" : "flex-row"
-                }`}
-              >
-                <div
-                  className={`max-w-xs md:max-w-md lg:max-w-lg flex flex-col ${
-                    isMe ? "items-end" : "items-start"
-                  }`}
-                >
-                  {/* Nama Pengirim di Grup */}
-                  {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
-                    <span className="ml-3 mb-1 text-xs font-medium text-slate-600">
-                      {msg.sender.senderName}
-                    </span>
-                  )}
-
-                  <div
-                    className={`relative px-2 py-2 rounded-xl text-sm transition-all duration-300 border${
-                      highlightedMessageId === msg.textId
-                        ? "ring-2 ring-amber-400 scale-[1.02] z-10 shadow-lg"
-                        : ""
-                    } ${
-                      isMe
-                        ? "bg-blue-600 text-white rounded-br-sm border-blue-600"
-                        : "bg-white text-slate-800 border-slate-200 rounded-bl-sm"
-                    }`}
-                  >
-                    {/* --- QUOTED MESSAGE (REPLY) --- */}
-                    {msg.replyTo && (
-                      <div
-                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
-                          isMe
-                            ? "bg-black/10 border-white/40 text-blue-50"
-                            : "bg-gray-200 border-blue-500 text-gray-600"
-                        }`}
-                        onClick={() => {
-                          const targetId = msg.replyTo?.id;
-                          if (!targetId) return;
-
-                          setHighlightedMessageId(targetId);
-                          setTimeout(() => setHighlightedMessageId(null), 2000);
-
-                          const el = document.getElementById(`msg-${targetId}`);
-                          if (el)
-                            el.scrollIntoView({
-                              behavior: "smooth",
-                              block: "center",
-                            });
-                        }}
-                      >
-                        <span className="block font-semibold mb-1 opacity-90">
-                          {msg.replyTo.senderName}
-                        </span>
-                        <p className="truncate opacity-80 leading-snug">
-                          {msg.replyTo.text}
-                        </p>
-                      </div>
-                    )}
-
-                    {/* --- MAIN MESSAGE TEXT --- */}
-                    {msg.text === "This message was unsent" ||
-                    msg.text === "[This message was unsent]" ? (
-                      <p className="italic opacity-70 flex items-center gap-2 text-xs">
-                        <CircleAlert size={14} />
-                        Message unsent
-                      </p>
-                    ) : (
-                      <p className="leading-snug">{msg.text}</p>
-                    )}
-
-                    {/* --- TIMESTAMP & READ STATUS --- */}
-                    <div
-                      className={`text-xs mt-1 flex items-center justify-end gap-1 ${
-                        isMe ? "text-blue-100/80" : "text-slate-400"
-                      }`}
-                    >
-                      <span>
-                        {msg.createdAt
-                          ? new Date(
-                              msg.createdAt.endsWith("Z") ||
-                                msg.createdAt.includes("+")
-                                ? msg.createdAt
-                                : msg.createdAt + "Z",
-                            ).toLocaleTimeString("id-ID", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              hour12: false,
-                            })
-                          : ""}
-                      </span>
-                      {isMe && (
-                        <span>
-                          {msg.readBy.length > 0 ? (
-                            <CheckCheck size={14} strokeWidth={2.5} />
-                          ) : (
-                            <Check size={14} strokeWidth={2.5} />
-                          )}
-                        </span>
-                      )}
+              // --- 1. RENDER PESAN SISTEM (Timeline Event) ---
+              if (isSystem) {
+                return (
+                  <div key={msg.textId} className="flex justify-center my-2">
+                    <div className="bg-gray-200/50 text-gray-500 text-[10px] px-3 py-1 rounded-full font-medium uppercase tracking-tight">
+                      {msg.text}
                     </div>
                   </div>
-                </div>
+                );
+              }
 
-                {/* ACTION BUTTONS (Hidden by default, visible on hover) */}
+              // --- 2. RENDER BUBBLE CHAT BIASA ---
+              return (
                 <div
-                  className={`flex items-center gap-1 my-auto opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${
+                  key={msg.textId}
+                  id={`msg-${msg.textId}`}
+                  className={`flex group items-end gap-2 mb-4 ${
                     isMe ? "flex-row-reverse" : "flex-row"
                   }`}
                 >
-                  {/* Reply Button */}
-                  <button
-                    onClick={() => {
-                      setReplyToMessage(msg);
-                      setTimeout(() => inputRef.current?.focus(), 100);
-                    }}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
-                    title="Reply"
+                  <div
+                    className={`max-w-xs md:max-w-md lg:max-w-lg flex flex-col ${
+                      isMe ? "items-end" : "items-start"
+                    }`}
                   >
-                    <Reply size={16} />
-                  </button>
-
-                  {/* Unsend Button (Only for Me) */}
-                  {isMe &&
-                    msg.text !== "This message was unsent" &&
-                    msg.text !== "[This message was unsent]" && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm("Unsend this message?")) {
-                            chatService.unsendMessage(
-                              msg.textId,
-                              activeRoom.roomId,
-                            );
-                          }
-                        }}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
-                        title="Unsend"
-                      >
-                        <Trash size={16} />
-                      </button>
+                    {/* Nama Pengirim di Grup */}
+                    {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
+                      <span className="ml-3 mb-1 text-xs font-medium text-slate-600">
+                        {msg.sender.senderName}
+                      </span>
                     )}
+
+                    <div
+                      className={`relative px-2 py-2 rounded-xl text-sm transition-all duration-300 border ${
+                        highlightedMessageId === msg.textId
+                          ? "ring-2 ring-amber-400 scale-[1.02] z-10 shadow-lg"
+                          : ""
+                      } ${
+                        isMe
+                          ? "bg-blue-600 text-white rounded-br-sm border-blue-600"
+                          : "bg-white text-slate-800 border-slate-200 rounded-bl-sm"
+                      }`}
+                    >
+                      {/* --- QUOTED MESSAGE (REPLY) --- */}
+                      {msg.replyTo && (
+                        <div
+                          className={`mb-2 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
+                            isMe
+                              ? "bg-black/10 border-white/40 text-blue-50"
+                              : "bg-gray-200 border-blue-500 text-gray-600"
+                          }`}
+                          onClick={() => {
+                            const targetId = msg.replyTo?.id;
+                            if (!targetId) return;
+
+                            setHighlightedMessageId(targetId);
+                            setTimeout(
+                              () => setHighlightedMessageId(null),
+                              2000,
+                            );
+
+                            const el = document.getElementById(
+                              `msg-${targetId}`,
+                            );
+                            if (el)
+                              el.scrollIntoView({
+                                behavior: "smooth",
+                                block: "center",
+                              });
+                          }}
+                        >
+                          <span className="block font-bold mb-0.5 opacity-90">
+                            {msg.replyTo.senderName}
+                          </span>
+                          <p className="truncate opacity-80">
+                            {msg.replyTo.text}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* --- MAIN MESSAGE TEXT --- */}
+                      {msg.text === "This message was unsent" ||
+                      msg.text === "[This message was unsent]" ? (
+                        <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
+                          <CircleAlert size={12} />
+                          Message unsent
+                        </p>
+                      ) : (
+                        <p className="wrap-break-word leading-snug">
+                          {msg.text}
+                        </p>
+                      )}
+
+                      {/* --- TIMESTAMP & READ STATUS --- */}
+                      <div
+                        className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${
+                          isMe ? "text-blue-100" : "text-gray-400"
+                        }`}
+                      >
+                        <span>
+                          {msg.createdAt
+                            ? new Date(
+                                msg.createdAt.endsWith("Z") ||
+                                  msg.createdAt.includes("+")
+                                  ? msg.createdAt
+                                  : msg.createdAt + "Z",
+                              ).toLocaleTimeString("id-ID", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                hour12: false,
+                              })
+                            : ""}
+                        </span>
+                        {isMe && (
+                          <span>
+                            {msg.readBy.length > 0 ? (
+                              <CheckCheck size={14} strokeWidth={2.5} />
+                            ) : (
+                              <Check size={14} strokeWidth={2.5} />
+                            )}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* ACTION BUTTONS (Hidden by default, visible on hover) */}
+                  {!isReadOnly && (
+                    <div
+                      className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                        isMe ? "flex-row-reverse" : "flex-row"
+                      }`}
+                    >
+                      {/* Reply Button */}
+                      <button
+                        onClick={() => setReplyToMessage(msg)}
+                        className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors"
+                        title="Reply"
+                      >
+                        <Reply size={14} />
+                      </button>
+
+                      {/* Unsend Button (Only for Me) */}
+                      {isMe &&
+                        msg.text !== "This message was unsent" &&
+                        msg.text !== "[This message was unsent]" && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm("Unsend this message?")) {
+                                chatService.unsendMessage(
+                                  msg.textId,
+                                  activeRoom.roomId,
+                                );
+                              }
+                            }}
+                            className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                            title="Unsend"
+                          >
+                            <Trash size={14} />
+                          </button>
+                        )}
+                    </div>
+                  )}
                 </div>
-              </div>
-            );
-          })
+              );
+            })}
+            <div ref={messagesEndRef} />
+          </>
         )}
-        <div ref={messagesEndRef} />
       </div>
 
       {/* Input Area */}
-      <div className="p-4 pt-2 bg-white border-t border-slate-100">
-        {/* Reply Preview Panel */}
-        {replyToMessage && (
-          <div className="flex items-center justify-between bg-blue-100 pl-4 p-2 mb-2 rounded-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
-            <div className="overflow-hidden flex-1">
-              <span className="block text-xs font-medium text-blue-700 mb-1">
-                Replying to{" "}
-                {replyToMessage.sender?.senderId === myUserId
-                  ? "Yourself"
-                  : replyToMessage.sender?.senderName || "Someone"}
-              </span>
-              <p className="text-xs text-slate-600 truncate leading-snug">
-                {replyToMessage.text}
-              </p>
-            </div>
-            <button
-              onClick={() => setReplyToMessage(null)}
-              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors ml-2"
-            >
-              <X size={14} />
-            </button>
+      <div className="p-4 pt-2">
+        {isReadOnly ? (
+          <div className="bg-gray-100 border border-gray-200 p-3 rounded-xl flex items-center justify-center gap-2 text-gray-500 text-sm italic shadow-inner">
+            <CircleAlert size={16} />
+            {activeRoom.deletedAt
+              ? "This group has been deleted."
+              : "You left this group. You can no longer send messages."}
           </div>
-        )}
+        ) : (
+          <>
+            {/* Reply Preview Panel */}
+            {replyToMessage && (
+              <div className="flex items-center justify-between bg-gray-50 border-l-4 border-blue-500 p-2 mb-2 rounded-r-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
+                <div className="overflow-hidden">
+                  <span className="block text-xs font-bold text-blue-600 mb-0.5">
+                    Replying to{" "}
+                    {replyToMessage.sender?.senderId === myUserId
+                      ? "Yourself"
+                      : replyToMessage.sender?.senderName || "Someone"}
+                  </span>
+                  <p className="text-xs text-gray-500 truncate max-w-xs md:max-w-md">
+                    {replyToMessage.text}
+                  </p>
+                </div>
+                <button
+                  onClick={() => setReplyToMessage(null)}
+                  className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+                >
+                  <Trash size={14} className="rotate-45" />{" "}
+                  {/* Using Trash rotated as X */}
+                </button>
+              </div>
+            )}
 
-        <div className="flex items-center gap-3 mx-auto">
-          <div className="flex-1 relative">
-            <input
-              ref={inputRef}
-              type="text"
-              placeholder="Type a message..."
-              value={inputText}
-              onChange={handleInputChange}
-              onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-4 py-2 bg-slate-50 border-0 border-b-2 border-gray-200 focus:ring-0 focus:outline-none focus:border-blue-400 focus:bg-white text-sm transition-all placeholder-slate-400"
-            />
-          </div>
-          <button
-            onClick={handleSendMessage}
-            disabled={!inputText.trim()}
-            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none"
-          >
-            <SendHorizonal size={18} />
-          </button>
-        </div>
+            <div className="flex items-center gap-2 mx-auto">
+              <div className="flex-1 relative">
+                <input
+                  type="text"
+                  placeholder="Type a message..."
+                  value={inputText}
+                  onChange={handleInputChange}
+                  onKeyDown={handleInputKeyPress}
+                  className="w-full pl-4 pr-10 py-2 border-b border-gray-300 focus:ring-0 focus:outline-none focus:border-blue-500 text-sm transition-all"
+                />
+              </div>
+              <button
+                onClick={handleSendMessage}
+                disabled={!inputText.trim()}
+                className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50"
+              >
+                <SendHorizonal size={20} />
+              </button>
+            </div>
+          </>
+        )}
       </div>
 
       {/* Room Info Drawer */}

@@ -28,6 +28,8 @@ export interface ChatRoom {
   otherUserEmail?: string | null;
   memberCount?: number;
   deletedAt?: string | null;
+  leaveAt?: string | null;
+  isDeactivated?: boolean;
 }
 
 // --- 2a. Chat Room Details ---

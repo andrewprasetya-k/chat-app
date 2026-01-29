@@ -6,7 +6,7 @@ import { ChatMessageEntity } from '../../Chat/Entity/chat.entity';
 // --- 1. LIST ROOMS Entity ---
 export class ChatRoomListEntity {
   @Expose()
-  roomId: string;
+roomId: string;
 
   @Expose()
   roomName: string;
@@ -17,8 +17,11 @@ export class ChatRoomListEntity {
   @Expose()
   unreadCount: number;
 
+  @Expose({ name: 'deleted_at' })
+  deletedAt: string | null;
+
   @Expose()
-  deletedAt: string | null; // Added field
+  isDeactivated: boolean;
 
   @Expose()
   memberCount: number = 0;
@@ -137,8 +140,8 @@ export class ChatRoomInfoEntity {
   @Expose()
   createdAt: string;
 
-  @Expose()
-  deletedAt: string | null; // Added field
+  @Expose({ name: 'deleted_at' })
+  deletedAt: string | null;
 
   @Expose()
   totalMembers: number;

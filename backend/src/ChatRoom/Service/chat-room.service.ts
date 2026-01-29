@@ -153,14 +153,16 @@ export class ChatRoomService {
     const all = await this.getAllRoomsData(userId);
     // Active if user HAS NOT left AND room is NOT deleted
     const filtered = all.filter((r) => !r?.leaveAt && !r?.deletedAt);
-    return this.populateUnreadAndSort(filtered, userId);
+    const rooms = [{ ...filtered, isDeactivated: false }];
+    return this.populateUnreadAndSort(rooms, userId);
   }
 
   async getDeactivatedRoomsNew(userId: string) {
     const all = await this.getAllRoomsData(userId);
     // Inactive if user HAS left OR room IS deleted
     const filtered = all.filter((r) => r?.leaveAt || r?.deletedAt);
-    return this.populateUnreadAndSort(filtered, userId);
+    const rooms = [{ ...filtered, isDeactivated: true }];
+    return this.populateUnreadAndSort(rooms, userId);
   }
 
   private async populateUnreadAndSort(rooms: any[], userId: string) {
