@@ -160,7 +160,19 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       if (msg.roomId !== roomId) return;
 
       setMessages((prev) => {
-        if (prev.some((m) => m.textId === msg.textId)) return prev;
+        const existingIndex = prev.findIndex((m) => m.textId === msg.textId);
+
+        if (existingIndex !== -1) {
+          // Jika pesan sudah ada, cek apakah perlu diupdate (misal: data reply baru masuk)
+          const existingMsg = prev[existingIndex];
+          if (!existingMsg.replyTo && msg.replyTo) {
+            // Update pesan yang ada dengan data yang lebih lengkap
+            const newMessages = [...prev];
+            newMessages[existingIndex] = msg;
+            return newMessages;
+          }
+          return prev;
+        }
         return [...prev, msg];
       });
     };
@@ -619,7 +631,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         className={`mb-2 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
                           isMe
                             ? "bg-black/10 border-white/40 text-blue-50"
-                            : "bg-black/10 border-blue-500 text-slate-600"
+                            : "bg-gray-200 border-blue-500 text-gray-600"
                         }`}
                         onClick={() => {
                           const targetId = msg.replyTo?.id;

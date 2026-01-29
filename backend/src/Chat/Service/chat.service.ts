@@ -72,7 +72,7 @@ export class ChatService {
             usr_id, 
             usr_nama_lengkap
           ),
-          parent_message:chat_message!cm_reply_to_id (
+          replied_to:cm_reply_to_id (
             cm_id,
             message_text,
             sender:cm_usr_id (
@@ -97,6 +97,25 @@ export class ChatService {
         throw new InternalServerErrorException(
           `Database error: ${error.message}`,
         );
+      }
+
+      // --- FIX REAL-TIME REPLY ---
+      // Jika join otomatis gagal (parent_message kosong), fetch manual detailnya
+      if (
+        newMessage.cm_reply_to_id &&
+        (!newMessage.replied_to ||
+          (Array.isArray(newMessage.replied_to) &&
+            newMessage.replied_to.length === 0))
+      ) {
+        const { data: parentMsg } = await client
+          .from('chat_message')
+          .select('cm_id, message_text, sender:cm_usr_id(usr_nama_lengkap)')
+          .eq('cm_id', newMessage.cm_reply_to_id)
+          .single();
+
+        if (parentMsg) {
+          newMessage.replied_to = [parentMsg];
+        }
       }
 
       // Fix Room Name for Personal Chats
