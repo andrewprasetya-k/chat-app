@@ -11,6 +11,7 @@ import {
   Trash,
   CircleAlert,
   SendHorizonal,
+  Reply,
 } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
@@ -54,6 +55,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [isDrawerOpen, setIsDrawerOpen] = useState<boolean>(false);
   const [hasMore, setHasMore] = useState<boolean>(true);
   const [loadingMore, setLoadingMore] = useState<boolean>(false);
+  const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(
+    null,
+  );
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
@@ -415,12 +419,27 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     try {
       const text = inputText;
       setInputText(""); // Clear input segera (Optimistic UI)
+      const currentReply = replyToMessage; // Simpan referensi sebelum reset
+      setReplyToMessage(null); // Reset mode reply segera
 
-      const newMessage = await chatService.sendMessage(activeRoom.roomId, text);
+      const newMessage = await chatService.sendMessage(
+        activeRoom.roomId,
+        text,
+        currentReply?.textId // Kirim ID pesan yang dibalas
+      );
+
+      // Manual Injection untuk UI (jika backend response belum lengkap relasinya)
+      if (currentReply && !newMessage.replyTo) {
+        newMessage.replyTo = {
+          id: currentReply.textId,
+          text: currentReply.text,
+          senderName: currentReply.sender?.senderName || "Unknown",
+        };
+      }
 
       // Tambahkan ke state jika belum ada (antisipasi broadcast socket)
       setMessages((prev) => {
-        if (prev.map((m) => m.textId === newMessage.textId)) return prev;
+        if (prev.some((m) => m.textId === newMessage.textId)) return prev;
         return [...prev, newMessage];
       });
     } catch (error) {
@@ -553,81 +572,81 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             return (
               <div
                 key={msg.textId}
-                className={`flex group ${
-                  isMe ? "justify-end" : "justify-start"
+                id={`msg-${msg.textId}`}
+                className={`flex group items-end gap-2 mb-3 ${
+                  isMe ? "flex-row-reverse" : "flex-row"
                 }`}
-                style={{ marginBottom: "12px" }}
               >
+                {/* Avatar Lawan Bicara (Opsional, tapi bagus untuk grup) */}
+                {/* {!isMe && activeRoom.isGroup && (
+                  <div className="w-6 h-6 rounded-full bg-gray-300 shrink-0 flex items-center justify-center text-[10px] font-bold text-gray-600 mb-1">
+                    {msg.sender?.senderName?.[0] || "?"}
+                  </div>
+                )} */}
+
                 <div
-                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg w-fit flex flex-col ${
+                  className={`max-w-xs md:max-w-3/4 lg:max-w-lg flex flex-col ${
                     isMe ? "items-end" : "items-start"
                   }`}
                 >
+                  {/* Nama Pengirim di Grup */}
                   {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
-                    <span className="ml-2 text-xs font-light opacity-70">
+                    <span className="ml-1 mb-0.5 text-[10px] font-bold text-gray-500">
                       {msg.sender.senderName}
                     </span>
                   )}
 
-                  <div className="relative flex items-end gap-2">
-                    {/* Tombol Delete untuk Pesan Sendiri */}
-                    {isMe && msg.text !== "[This message was unsent]" && (
-                      <button
-                        onClick={() => {
-                          if (window.confirm("Unsend this message?")) {
-                            chatService.unsendMessage(
-                              msg.textId,
-                              activeRoom.roomId,
-                            );
-                          }
-                        }}
-                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-full"
-                        title="Unsend"
-                      >
-                        <Trash size={14} />
-                      </button>
-                    )}
-
-                    <div
-                      className={`px-4 py-2 rounded-lg relative shadow text-[14px] ${
-                        isMe
-                          ? "bg-blue-500 text-white"
-                          : "bg-white text-gray-900"
-                      }`}
-                    >
-                      {msg.text === "This message was unsent" ||
-                      msg.text === "[This message was unsent]" ? (
-                        <p className="text-sm italic opacity-80 flex items-center gap-1.5">
-                          <CircleAlert size={12} />
-                          This message was unsent
-                        </p>
-                      ) : (
-                        <p className="text-sm wrap-break-word">{msg.text}</p>
-                      )}
-                    </div>
-                  </div>
-
-                  <span
-                    className={`text-[10px] mt-1 block ${
+                  <div
+                    className={`relative px-3 py-2 rounded-2xl border-gray-200 text-sm ${
                       isMe
-                        ? "text-gray-800 text-right"
-                        : "text-gray-800 text-left"
+                        ? "bg-blue-600 text-white rounded-br-none"
+                        : "bg-white text-gray-900 border border-gray-100 rounded-bl-none"
                     }`}
                   >
-                    <span
-                      className={`flex items-center gap-1 ${
-                        isMe ? "justify-end" : "justify-start"
+                    {/* --- QUOTED MESSAGE (REPLY) --- */}
+                    {msg.replyTo && (
+                      <div
+                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-4 ${
+                          isMe
+                            ? "bg-blue-700/50 border-blue-300 text-blue-50"
+                            : "bg-gray-100 border-indigo-400 text-gray-600"
+                        }`}
+                        onClick={() => {
+                          // TODO: Scroll to original message
+                          const el = document.getElementById(
+                            `msg-${msg.replyTo?.id}`,
+                          );
+                          if (el)
+                            el.scrollIntoView({
+                              behavior: "smooth",
+                              block: "center",
+                            });
+                        }}
+                      >
+                        <span className="block font-bold mb-0.5 opacity-90">
+                          {msg.replyTo.senderName}
+                        </span>
+                        <p className="truncate opacity-80">{msg.replyTo.text}</p>
+                      </div>
+                    )}
+
+                    {/* --- MAIN MESSAGE TEXT --- */}
+                    {msg.text === "This message was unsent" ||
+                    msg.text === "[This message was unsent]" ? (
+                      <p className="italic opacity-70 flex items-center gap-1.5 text-xs">
+                        <CircleAlert size={12} />
+                        Message unsent
+                      </p>
+                    ) : (
+                      <p className="wrap-break-word leading-snug">{msg.text}</p>
+                    )}
+
+                    {/* --- TIMESTAMP & READ STATUS --- */}
+                    <div
+                      className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${
+                        isMe ? "text-blue-100" : "text-gray-400"
                       }`}
                     >
-                      {isMe && msg.readBy.length > 0 ? (
-                        <span className="text-blue-600">
-                          <p>Read </p>
-                        </span>
-                      ) : isMe && msg.readBy.length <= 0 ? (
-                        <span className="text-gray-600">
-                          <p>Sent </p>
-                        </span>
-                      ) : null}
                       <span>
                         {msg.createdAt
                           ? new Date(
@@ -642,8 +661,53 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             })
                           : ""}
                       </span>
-                    </span>
-                  </span>
+                      {isMe && (
+                        <span>
+                          {msg.readBy.length > 0 ? (
+                            <CheckCheck size={12} strokeWidth={3} />
+                          ) : (
+                            <Check size={12} strokeWidth={3} />
+                          )}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                </div>
+
+                {/* ACTION BUTTONS (Hidden by default, visible on hover) */}
+                <div
+                  className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity ${
+                    isMe ? "flex-row-reverse" : "flex-row"
+                  }`}
+                >
+                  {/* Reply Button */}
+                  <button
+                    onClick={() => setReplyToMessage(msg)}
+                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors"
+                    title="Reply"
+                  >
+                    <Reply size={14} />
+                  </button>
+
+                  {/* Unsend Button (Only for Me) */}
+                  {isMe &&
+                    msg.text !== "This message was unsent" &&
+                    msg.text !== "[This message was unsent]" && (
+                      <button
+                        onClick={() => {
+                          if (window.confirm("Unsend this message?")) {
+                            chatService.unsendMessage(
+                              msg.textId,
+                              activeRoom.roomId,
+                            );
+                          }
+                        }}
+                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                        title="Unsend"
+                      >
+                        <Trash size={14} />
+                      </button>
+                    )}
                 </div>
               </div>
             );
@@ -653,7 +717,30 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-4">
+      <div className="p-4 pt-2">
+        {/* Reply Preview Panel */}
+        {replyToMessage && (
+          <div className="flex items-center justify-between bg-gray-50 border-l-4 border-blue-500 p-2 mb-2 rounded-r-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
+            <div className="overflow-hidden">
+              <span className="block text-xs font-bold text-blue-600 mb-0.5">
+                Replying to{" "}
+                {replyToMessage.sender?.senderId === myUserId
+                  ? "Yourself"
+                  : replyToMessage.sender?.senderName || "Someone"}
+              </span>
+              <p className="text-xs text-gray-500 truncate max-w-xs md:max-w-md">
+                {replyToMessage.text}
+              </p>
+            </div>
+            <button
+              onClick={() => setReplyToMessage(null)}
+              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+            >
+              <Trash size={14} className="rotate-45" /> {/* Using Trash rotated as X */}
+            </button>
+          </div>
+        )}
+
         <div className="flex items-center gap-2 mx-auto">
           <div className="flex-1 relative">
             <input

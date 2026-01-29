@@ -24,13 +24,13 @@ export const chatService = {
   // untuk mendapatkan pesan dalam chat room
   async getMessages(
     roomId: string,
-    params?: MessageParams
+    params?: MessageParams,
   ): Promise<ChatMessage[]> {
     const response = await api.get<{ messages: ChatMessage[] }>(
       `/room/messages/${roomId}`,
       {
         params,
-      }
+      },
     );
     return response.data.messages;
   },
@@ -39,12 +39,12 @@ export const chatService = {
   async sendMessage(
     roomId: string,
     text: string,
-    replyTo?: string
+    replyTo?: string,
   ): Promise<ChatMessage> {
     const payload = { text, replyTo };
     const response = await api.post<ChatMessage>(
       `/chat/send/${roomId}`,
-      payload
+      payload,
     );
     return response.data;
   },
@@ -62,7 +62,7 @@ export const chatService = {
   // --- 5. Global Search ---
   async globalSearchQuery(query: string): Promise<GlobalSearchResults> {
     const response = await api.get<GlobalSearchResults>(
-      `/search/${encodeURIComponent(query)}`
+      `/search/${encodeURIComponent(query)}`,
     );
     return response.data;
   },
@@ -92,7 +92,7 @@ export const chatService = {
   // membuat grup chat baru
   async createGroupChat(
     groupName: string,
-    groupMembers: string[]
+    groupMembers: string[],
   ): Promise<ChatRoom> {
     const payload = {
       groupName,
