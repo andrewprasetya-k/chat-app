@@ -29,14 +29,14 @@ export const MyMessageSkeleton: React.FC = () => {
 
 export const ChatListSkeleton: React.FC = () => {
   return (
-    <div className="p-3 animate-pulse">
+    <div className="p-4 animate-pulse">
       <div className="flex items-center gap-3">
         <div className="w-12 h-12 rounded-full bg-slate-200"></div>
         <div className="flex-1">
           <div className="h-4 bg-slate-200 rounded mb-2"></div>
-          <div className="h-3 bg-slate-200 rounded w-3/4"></div>
+          <div className="h-4 bg-slate-200 rounded w-3/4"></div>
         </div>
-        <div className="h-3 bg-slate-200 rounded w-8"></div>
+        <div className="h-4 bg-slate-200 rounded w-8"></div>
       </div>
     </div>
   );

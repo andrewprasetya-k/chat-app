@@ -536,7 +536,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
         <div className="flex items-center gap-1 text-slate-400">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-blue-600"
+            className="p-2 hover:bg-slate-100 rounded-md transition-colors text-blue-600"
           >
             <Info size={20} />
           </button>
@@ -551,7 +551,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       >
         {loadingMore && (
           <div className="flex justify-center py-2">
-            <div className="text-[10px] text-blue-600 font-medium animate-pulse bg-blue-50 px-3 py-1 rounded-full shadow-sm border border-blue-100">
+            <div className="text-[12px] text-blue-600 font-medium animate-pulse bg-blue-50 px-3 py-2 rounded-md shadow-sm border border-blue-100">
               Loading older messages...
             </div>
           </div>
@@ -574,7 +574,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             if (isSystem) {
               return (
                 <div key={msg.textId} className="flex justify-center my-2">
-                  <div className="bg-slate-100/80 text-slate-500 text-[10px] px-3 py-1 rounded-full font-medium uppercase tracking-tight border border-slate-200/50">
+                  <div className=" text-slate-500 text-[12px] px-4 py-2 rounded-md font-medium uppercase tracking-tight border-slate-200/50">
                     {msg.text}
                   </div>
                 </div>
@@ -603,7 +603,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   )}
 
                   <div
-                    className={`relative px-3 py-2 rounded-xl text-sm transition-all duration-300 border ${
+                    className={`relative px-2 py-2 rounded-xl text-sm transition-all duration-300 border${
                       highlightedMessageId === msg.textId
                         ? "ring-2 ring-amber-400 scale-[1.02] z-10 shadow-lg"
                         : ""
@@ -616,10 +616,10 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     {/* --- QUOTED MESSAGE (REPLY) --- */}
                     {msg.replyTo && (
                       <div
-                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-3 transition-colors ${
+                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer transition-colors ${
                           isMe
-                            ? "bg-white/15 border-white/40 text-blue-50"
-                            : "bg-slate-50 border-blue-500 text-slate-600"
+                            ? "bg-black/10 border-white/40 text-blue-50"
+                            : "bg-black/10 border-blue-500 text-slate-600"
                         }`}
                         onClick={() => {
                           const targetId = msg.replyTo?.id;
@@ -701,7 +701,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       setReplyToMessage(msg);
                       setTimeout(() => inputRef.current?.focus(), 100);
                     }}
-                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
+                    className="p-2 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-md transition-colors"
                     title="Reply"
                   >
                     <Reply size={16} />
@@ -720,7 +720,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             );
                           }
                         }}
-                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
+                        className="p-2 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-md transition-colors"
                         title="Unsend"
                       >
                         <Trash size={16} />
@@ -738,7 +738,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div className="p-4 pt-2 bg-white border-t border-slate-100">
         {/* Reply Preview Panel */}
         {replyToMessage && (
-          <div className="flex items-center justify-between bg-blue-50 border border-blue-200 border-l-4 border-l-blue-500 p-2 mb-2 rounded-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <div className="flex items-center justify-between bg-blue-100 pl-4 p-2 mb-2 rounded-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
             <div className="overflow-hidden flex-1">
               <span className="block text-xs font-medium text-blue-700 mb-1">
                 Replying to{" "}
@@ -752,7 +752,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             </div>
             <button
               onClick={() => setReplyToMessage(null)}
-              className="p-1 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-full transition-colors ml-2"
+              className="p-1 text-slate-400 hover:text-red-600 hover:bg-red-100 rounded-md transition-colors ml-2"
             >
               <X size={14} />
             </button>
@@ -768,13 +768,13 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-4 py-3 bg-slate-50 border border-slate-200 rounded-full focus:ring-2 focus:ring-blue-500/20 focus:outline-none focus:border-blue-400 focus:bg-white text-sm transition-all placeholder-slate-400"
+              className="w-full pl-4 pr-4 py-2 bg-slate-50 border-0 border-b-2 border-gray-200 focus:ring-0 focus:outline-none focus:border-blue-400 focus:bg-white text-sm transition-all placeholder-slate-400"
             />
           </div>
           <button
             onClick={handleSendMessage}
             disabled={!inputText.trim()}
-            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none"
+            className="p-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none"
           >
             <SendHorizonal size={18} />
           </button>
