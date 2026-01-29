@@ -12,6 +12,7 @@ import {
   CircleAlert,
   SendHorizonal,
   Reply,
+  X,
 } from "lucide-react";
 import { ChatMessage, ChatRoom } from "@/services/types";
 import { chatService } from "@/services/features/chat.service";
@@ -19,6 +20,7 @@ import { authService } from "@/services/features/auth.service";
 import { socketClient } from "@/services/api/socket.client";
 import { formatRelativeTime } from "@/utils/date.util";
 import { RoomInfoDrawer } from "./RoomInfoDrawer";
+import { MessageSkeleton, MyMessageSkeleton } from "./SkeletonLoader";
 
 interface ChatWindowProps {
   activeRoom?: ChatRoom | null;
@@ -468,8 +470,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
   if (!activeRoom) {
     return (
-      <div className="flex-1 flex items-center justify-center h-full bg-white text-gray-500">
-        Select a chat room to start messaging!!
+      <div className="flex-1 flex items-center justify-center h-full  bg-blue-50/30 text-slate-400">
+        <div className="text-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-slate-100 flex items-center justify-center">
+            <Send className="w-8 h-8 text-slate-400" />
+          </div>
+          <p className="text-lg font-medium">
+            Select a chat to start messaging
+          </p>
+        </div>
       </div>
     );
   }
@@ -477,20 +486,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const renderRoomStatus = () => {
     if (typingUsers.length > 0) {
       return (
-        <span className="text-xs text-blue-500 font-medium animate-pulse">
+        <span className="text-xs text-blue-600 font-medium animate-pulse">
           {renderTypingText()}
         </span>
       );
     }
     if (activeRoom.isGroup) {
       return (
-        <span className="text-xs text-gray-500">Click for group info</span>
+        <span className="text-xs text-slate-500">Click for group info</span>
       );
     } else {
       return (
         <span
           className={`text-xs ${
-            isOtherUserOnline ? "text-blue-500 font-medium" : "text-gray-500"
+            isOtherUserOnline
+              ? "text-emerald-500 font-medium"
+              : "text-slate-500"
           }`}
         >
           {isOtherUserOnline
@@ -506,31 +517,25 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   return (
     <div className="flex-1 flex flex-col h-full bg-white relative overflow-hidden">
       {/* Header */}
-      <div className="p-4 h-18.25 shrink-0  flex items-center justify-between bg-white sticky top-0 z-10">
+      <div className="p-4 h-18.25 shrink-0 flex items-center justify-between bg-white/80 backdrop-blur-sm border-b border-slate-100 sticky top-0 z-10">
         <div
-          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-opacity"
+          className="flex items-center gap-3 cursor-pointer hover:opacity-80 transition-all duration-200"
           onClick={() => setIsDrawerOpen(true)}
         >
-          <div className="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 font-bold uppercase">
+          <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold uppercase shadow-sm">
             {activeRoom.roomName?.substring(0, 2) || "??"}
           </div>
           <div>
-            <h2 className="font-semibold text-gray-900 leading-tight">
+            <h2 className="font-semibold text-slate-800 leading-tight">
               {activeRoom.roomName || "Unknown Room"}
             </h2>
             {renderRoomStatus()}
           </div>
         </div>
-        <div className="flex items-center gap-1 text-gray-400">
-          {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Phone size={20} />
-          </button> */}
-          {/* <button className="p-2 hover:bg-gray-100 rounded-full transition-colors">
-            <Video size={20} />
-          </button> */}
+        <div className="flex items-center gap-1 text-slate-400">
           <button
             onClick={() => setIsDrawerOpen(true)}
-            className="p-2 hover:bg-gray-100 rounded-full transition-colors text-blue-600"
+            className="p-2 hover:bg-slate-100 rounded-full transition-colors text-blue-600"
           >
             <Info size={20} />
           </button>
@@ -541,19 +546,22 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       <div
         ref={scrollContainerRef}
         onScroll={handleScroll}
-        className="flex-1 overflow-y-auto p-4 space-y-4 bg-gray-50"
+        className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50"
       >
         {loadingMore && (
           <div className="flex justify-center py-2">
-            <div className="text-[10px] text-blue-500 font-medium animate-pulse bg-blue-50 px-3 py-1 rounded-full shadow-sm">
+            <div className="text-[10px] text-blue-600 font-medium animate-pulse bg-blue-50 px-3 py-1 rounded-full shadow-sm border border-blue-100">
               Loading older messages...
             </div>
           </div>
         )}
 
         {loading ? (
-          <div className="text-center text-gray-400 mt-10">
-            Loading messages...
+          <div className="text-center text-slate-400 mt-10">
+            <div className="inline-flex items-center gap-2">
+              <div className="w-4 h-4 border-2 border-slate-300 border-t-blue-500 rounded-full animate-spin"></div>
+              Loading messages...
+            </div>
           </div>
         ) : (
           messages.map((msg) => {
@@ -564,7 +572,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
             if (isSystem) {
               return (
                 <div key={msg.textId} className="flex justify-center my-2">
-                  <div className="bg-gray-200/50 text-gray-500 text-[10px] px-3 py-1 rounded-full font-medium uppercase tracking-tight">
+                  <div className="bg-slate-100/80 text-slate-500 text-[10px] px-3 py-1 rounded-full font-medium uppercase tracking-tight border border-slate-200/50">
                     {msg.text}
                   </div>
                 </div>
@@ -594,7 +602,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                 >
                   {/* Nama Pengirim di Grup */}
                   {activeRoom.isGroup && !isMe && msg.sender?.senderName && (
-                    <span className="ml-1 mb-0.5 text-[10px] font-bold text-gray-500">
+                    <span className="ml-1 mb-0.5 text-[10px] font-bold text-slate-500">
                       {msg.sender.senderName}
                     </span>
                   )}
@@ -602,21 +610,21 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   <div
                     className={`relative px-3 py-2 rounded-2xl text-sm transition-all duration-500 ${
                       highlightedMessageId === msg.textId
-                        ? "ring-1 ring-yellow-400 scale-[1.02] z-10"
+                        ? "ring-2 ring-amber-300 scale-[1.02] z-10 shadow-lg"
                         : ""
                     } ${
                       isMe
-                        ? "bg-blue-600 text-white rounded-br-none"
-                        : "bg-white text-gray-900 border border-gray-100 rounded-bl-none"
+                        ? "bg-blue-600 text-white rounded-br-none shadow-sm"
+                        : "bg-white text-slate-800 border border-slate-200/60 rounded-bl-none shadow-sm"
                     }`}
                   >
                     {/* --- QUOTED MESSAGE (REPLY) --- */}
                     {msg.replyTo && (
                       <div
-                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-4 ${
+                        className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-4 transition-colors ${
                           isMe
-                            ? "bg-white-700/50 border-blue-300 text-blue-50"
-                            : "bg-gray-100 border-indigo-400 text-gray-600"
+                            ? "bg-white/20 border-blue-200 text-blue-50"
+                            : "bg-slate-50 border-blue-400 text-slate-600"
                         }`}
                         onClick={() => {
                           const targetId = msg.replyTo?.id;
@@ -656,7 +664,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                     {/* --- TIMESTAMP & READ STATUS --- */}
                     <div
                       className={`text-[9px] mt-1 flex items-center justify-end gap-1 ${
-                        isMe ? "text-blue-100" : "text-gray-400"
+                        isMe ? "text-blue-100/80" : "text-slate-400"
                       }`}
                     >
                       <span>
@@ -695,7 +703,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   {/* Reply Button */}
                   <button
                     onClick={() => setReplyToMessage(msg)}
-                    className="p-1.5 text-gray-400 hover:text-blue-600 hover:bg-gray-100 rounded-full transition-colors"
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-full transition-colors"
                     title="Reply"
                   >
                     <Reply size={14} />
@@ -714,7 +722,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                             );
                           }
                         }}
-                        className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-full transition-colors"
+                        className="p-1.5 text-slate-400 hover:text-red-500 hover:bg-red-50 rounded-full transition-colors"
                         title="Unsend"
                       >
                         <Trash size={14} />
@@ -729,32 +737,31 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       </div>
 
       {/* Input Area */}
-      <div className="p-4 pt-2">
+      <div className="p-4 pt-2 bg-white/80 backdrop-blur-sm border-t border-slate-100">
         {/* Reply Preview Panel */}
         {replyToMessage && (
-          <div className="flex items-center justify-between bg-gray-50 border-l-4 border-blue-500 p-2 mb-2 rounded-r-lg animate-in slide-in-from-bottom-2 fade-in duration-200">
+          <div className="flex items-center justify-between bg-blue-50/80 border-l-4 border-blue-500 p-2 mb-2 rounded-r-lg animate-in slide-in-from-bottom-2 fade-in duration-200 backdrop-blur-sm">
             <div className="overflow-hidden">
-              <span className="block text-xs font-bold text-blue-600 mb-0.5">
+              <span className="block text-xs font-bold text-blue-700 mb-0.5">
                 Replying to{" "}
                 {replyToMessage.sender?.senderId === myUserId
                   ? "Yourself"
                   : replyToMessage.sender?.senderName || "Someone"}
               </span>
-              <p className="text-xs text-gray-500 truncate max-w-xs md:max-w-md">
+              <p className="text-xs text-slate-600 truncate max-w-xs md:max-w-md">
                 {replyToMessage.text}
               </p>
             </div>
             <button
               onClick={() => setReplyToMessage(null)}
-              className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
+              className="p-1 text-slate-400 hover:text-red-600 hover:bg-slate-200/50 rounded-full transition-colors"
             >
-              <Trash size={14} className="rotate-45" />{" "}
-              {/* Using Trash rotated as X */}
+              <X size={14} />{" "}
             </button>
           </div>
         )}
 
-        <div className="flex items-center gap-2 mx-auto">
+        <div className="flex items-center gap-3 mx-auto">
           <div className="flex-1 relative">
             <input
               type="text"
@@ -762,15 +769,15 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               value={inputText}
               onChange={handleInputChange}
               onKeyDown={handleInputKeyPress}
-              className="w-full pl-4 pr-10 py-2 border-b border-gray-300 focus:ring-0 focus:outline-none focus:border-blue-500 text-sm transition-all"
+              className="w-full pl-4 pr-4 py-3 bg-slate-50/80 border border-slate-200 rounded-full focus:ring-2 focus:ring-blue-500/20 focus:outline-none focus:border-blue-400 focus:bg-white text-sm transition-all placeholder-slate-400"
             />
           </div>
           <button
             onClick={handleSendMessage}
             disabled={!inputText.trim()}
-            className="p-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-500/20 transition-all active:scale-95 disabled:opacity-50"
+            className="p-3 bg-blue-600 text-white rounded-full hover:bg-blue-700 shadow-lg shadow-blue-500/25 transition-all active:scale-95 disabled:opacity-50 disabled:shadow-none"
           >
-            <SendHorizonal size={20} />
+            <SendHorizonal size={18} />
           </button>
         </div>
       </div>
