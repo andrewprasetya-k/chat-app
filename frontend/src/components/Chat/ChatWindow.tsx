@@ -58,6 +58,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
   const [replyToMessage, setReplyToMessage] = useState<ChatMessage | null>(
     null,
   );
+  const [highlightedMessageId, setHighlightedMessageId] = useState<
+    string | null
+  >(null);
 
   const typingTimeout = React.useRef<NodeJS.Timeout | null>(null); //jeda antara ketikan terakhir dan pengiriman event stop typing
   const typingTimeoutsRef = React.useRef<Record<string, NodeJS.Timeout>>({}); // Fail-safe timeouts
@@ -425,7 +428,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
       const newMessage = await chatService.sendMessage(
         activeRoom.roomId,
         text,
-        currentReply?.textId // Kirim ID pesan yang dibalas
+        currentReply?.textId, // Kirim ID pesan yang dibalas
       );
 
       // Manual Injection untuk UI (jika backend response belum lengkap relasinya)
@@ -577,7 +580,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   isMe ? "flex-row-reverse" : "flex-row"
                 }`}
               >
-                {/* Avatar Lawan Bicara (Opsional, tapi bagus untuk grup) */}
+                {/* Avatar Lawan Bicara ( bisa untuk grup) */}
                 {/* {!isMe && activeRoom.isGroup && (
                   <div className="w-6 h-6 rounded-full bg-gray-300 shrink-0 flex items-center justify-center text-[10px] font-bold text-gray-600 mb-1">
                     {msg.sender?.senderName?.[0] || "?"}
@@ -597,7 +600,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                   )}
 
                   <div
-                    className={`relative px-3 py-2 rounded-2xl border-gray-200 text-sm ${
+                    className={`relative px-3 py-2 rounded-2xl text-sm transition-all duration-500 ${
+                      highlightedMessageId === msg.textId
+                        ? "ring-1 ring-yellow-400 scale-[1.02] z-10"
+                        : ""
+                    } ${
                       isMe
                         ? "bg-blue-600 text-white rounded-br-none"
                         : "bg-white text-gray-900 border border-gray-100 rounded-bl-none"
@@ -608,14 +615,17 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                       <div
                         className={`mb-2 p-2 rounded-lg text-xs cursor-pointer border-l-4 ${
                           isMe
-                            ? "bg-blue-700/50 border-blue-300 text-blue-50"
+                            ? "bg-white-700/50 border-blue-300 text-blue-50"
                             : "bg-gray-100 border-indigo-400 text-gray-600"
                         }`}
                         onClick={() => {
-                          // TODO: Scroll to original message
-                          const el = document.getElementById(
-                            `msg-${msg.replyTo?.id}`,
-                          );
+                          const targetId = msg.replyTo?.id;
+                          if (!targetId) return;
+
+                          setHighlightedMessageId(targetId);
+                          setTimeout(() => setHighlightedMessageId(null), 2000);
+
+                          const el = document.getElementById(`msg-${targetId}`);
                           if (el)
                             el.scrollIntoView({
                               behavior: "smooth",
@@ -626,7 +636,9 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
                         <span className="block font-bold mb-0.5 opacity-90">
                           {msg.replyTo.senderName}
                         </span>
-                        <p className="truncate opacity-80">{msg.replyTo.text}</p>
+                        <p className="truncate opacity-80">
+                          {msg.replyTo.text}
+                        </p>
                       </div>
                     )}
 
@@ -736,7 +748,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
               onClick={() => setReplyToMessage(null)}
               className="p-1 text-gray-400 hover:text-gray-600 hover:bg-gray-200 rounded-full transition-colors"
             >
-              <Trash size={14} className="rotate-45" /> {/* Using Trash rotated as X */}
+              <Trash size={14} className="rotate-45" />{" "}
+              {/* Using Trash rotated as X */}
             </button>
           </div>
         )}
