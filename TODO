@@ -1,6 +1,4 @@
-show active and inactive chat room
-mark left group as deactivated chat room (check the backend first)
-pagination chat room (cursor masih di bawah kalau pindah room)
+make user cannot see deactivated room chat contents from sidebar
 
 --auth--
 email konfirmation
