@@ -1,5 +1,5 @@
 show active and inactive chat room
-deactivate chat room
+deactivate chat room cuma ada yang deleted, yg leave ga masuk
 mark left group as deactivated chat room (check the backend first)
 pagination chat room (cursor masih di bawah kalau pindah room)
 
