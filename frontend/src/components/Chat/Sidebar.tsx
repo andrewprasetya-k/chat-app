@@ -248,7 +248,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
             }`}
           >
             {typingStatus[chat.roomId]?.length > 0 ? (
-              <span className="text-blue-500 font-medium">Typing...</span>
+              <span className="text-blue-500 font-medium italic animate-pulse">
+                {chat.isGroup
+                  ? `${typingStatus[chat.roomId][0]}${
+                      typingStatus[chat.roomId].length > 1
+                        ? ` & ${typingStatus[chat.roomId].length - 1} others`
+                        : ""
+                    } is typing...`
+                  : "Typing..."}
+              </span>
             ) : chat.lastMessage ? (
               <>
                 {/* 1. Status: You + Read Receipt */}

@@ -440,8 +440,8 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (typingUsers.length === 1)
       return `${typingUsers[0].userName} is typing...`;
     if (typingUsers.length === 2)
-      return `${typingUsers.map((u) => u.userName.split(","))} are typing...`;
-    return `${typingUsers[0].userName} and others are typing...`;
+      return `${typingUsers[0].userName} and ${typingUsers[1].userName} are typing...`;
+    return `${typingUsers[0].userName} and ${typingUsers.length - 1} others are typing...`;
   };
 
   if (!activeRoom) {
@@ -456,9 +456,7 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
     if (typingUsers.length > 0) {
       return (
         <span className="text-xs text-blue-500 font-medium animate-pulse">
-          {typingUsers.length === 1
-            ? `${typingUsers[0].userName} is typing...`
-            : `${typingUsers.length} users are typing...`}
+          {renderTypingText()}
         </span>
       );
     }
