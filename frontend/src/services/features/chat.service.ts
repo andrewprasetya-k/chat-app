@@ -16,6 +16,11 @@ export const chatService = {
     return response.data;
   },
 
+  async getDeactivatedRooms(): Promise<ChatRoom[]> {
+    const response = await api.get<ChatRoom[]>("/room/deactivated");
+    return response.data;
+  },
+
   async getRoomInfo(roomId: string): Promise<ChatRoomInfo> {
     const response = await api.get<ChatRoomInfo>(`/room/${roomId}`);
     return response.data;

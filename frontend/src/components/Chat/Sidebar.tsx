@@ -22,6 +22,8 @@ interface SidebarProps {
   selectedRoomId?: string | null;
   onSelectRoom?: (roomId: string) => void;
   onlineUsers: Set<string>;
+  roomType: "active" | "inactive";
+  onRoomTypeChange: (type: "active" | "inactive") => void;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -29,6 +31,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   selectedRoomId,
   onSelectRoom,
   onlineUsers,
+  roomType,
+  onRoomTypeChange,
 }) => {
   // ==================================================================================
   // 1. STATE & CONFIGURATION
@@ -424,7 +428,33 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* C. List Area (Normal vs Search Mode) */}
+      {/* C. Room Type Tabs */}
+      <div className="flex border-b border-gray-100 bg-white">
+        <button
+          onClick={() => onRoomTypeChange("active")}
+          className={`flex-1 py-3 text-xs font-bold transition-all relative ${
+            roomType === "active" ? "text-blue-600" : "text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Active
+          {roomType === "active" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 animate-in fade-in duration-300" />
+          )}
+        </button>
+        <button
+          onClick={() => onRoomTypeChange("inactive")}
+          className={`flex-1 py-3 text-xs font-bold transition-all relative ${
+            roomType === "inactive" ? "text-blue-600" : "text-gray-400 hover:text-gray-600"
+          }`}
+        >
+          Archived
+          {roomType === "inactive" && (
+            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 animate-in fade-in duration-300" />
+          )}
+        </button>
+      </div>
+
+      {/* D. List Area (Normal vs Search Mode) */}
       <div className="flex-1 overflow-y-auto custom-scrollbar">
         {isSearchFocused && !globalSearchTerm ? (
           // MODE 1: Discovery (Klik Search tapi belum ngetik)

@@ -281,6 +281,11 @@ export const ChatWindow: React.FC<ChatWindowProps> = ({
 
     if (isRoomChange || isAtBottom) {
       setTimeout(() => {
+        if (isRoomChange && scrollContainerRef.current) {
+          // Paksa ke bawah instan saat pindah room
+          scrollContainerRef.current.scrollTop = scrollContainerRef.current.scrollHeight;
+        }
+        
         messagesEndRef.current?.scrollIntoView({
           behavior: isRoomChange ? "auto" : "smooth",
         });

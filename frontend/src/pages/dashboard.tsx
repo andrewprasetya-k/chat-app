@@ -16,6 +16,7 @@ export default function DashboardPage() {
   const [loading, setLoading] = useState<boolean>(true);
   const [onlineUsers, setOnlineUsers] = useState<Set<string>>(new Set());
   const [isMeMyId, setIsMyId] = useState<string>("");
+  const [roomType, setRoomType] = useState<"active" | "inactive">("active");
 
   // Refs untuk mengatasi stale closure di dalam socket listeners
   const activeRoomRef = useRef<ChatRoom | null>(null);
@@ -33,6 +34,41 @@ export default function DashboardPage() {
   useEffect(() => {
     myIdRef.current = isMeMyId;
   }, [isMeMyId]);
+
+  // Fetch active or inactive chat rooms
+  const fetchRooms = async () => {
+    setLoading(true);
+    try {
+      const data =
+        roomType === "active"
+          ? await chatService.getActiveRooms()
+          : await chatService.getDeactivatedRooms();
+      setRooms(data);
+      if (data.length > 0 && !activeRoom) {
+        setActiveRoom(data[0]);
+      }
+      
+      if (roomType === "active") {
+        setOnlineUsers((prevOnline) => {
+          const initialOnline = new Set<string>();
+          data.forEach((room) => {
+            if (room.isOnline && room.otherUserId) {
+              initialOnline.add(room.otherUserId);
+            }
+          });
+          return initialOnline;
+        });
+      }
+    } catch (error: any) {
+      console.error("Failed to fetch chat rooms:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRooms();
+  }, [roomType]);
 
   // Anticipate browser sleep mode & keep connection alive
   useEffect(() => {
@@ -281,6 +317,8 @@ export default function DashboardPage() {
       <Sidebar
         rooms={rooms}
         selectedRoomId={activeRoom?.roomId} //mengirim roomId yang sedang aktif
+        roomType={roomType}
+        onRoomTypeChange={setRoomType}
         onSelectRoom={(roomId) => {
           const selectedRoom = rooms.find((room) => room.roomId === roomId);
           if (selectedRoom) {

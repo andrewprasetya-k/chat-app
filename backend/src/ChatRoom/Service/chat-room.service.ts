@@ -218,6 +218,7 @@ export class ChatRoomService {
         .from('chat_room_member')
         .select(
           `
+          leave_at,
           chat_room:crm_cr_id!inner(
             cr_id,
             cr_name,
@@ -246,8 +247,7 @@ export class ChatRoomService {
         `,
         )
         .eq('crm_usr_id', userId)
-        .is('leave_at', null)
-        .not('chat_room.deleted_at', 'is', null) // Filter ARCHIVED only
+        .or('leave_at.not.is.null,chat_room.deleted_at.not.is.null')
         .order('created_at', {
           foreignTable: 'chat_room.chat_message',
           ascending: false,
