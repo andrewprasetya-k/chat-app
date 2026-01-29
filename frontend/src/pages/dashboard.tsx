@@ -217,11 +217,11 @@ export default function DashboardPage() {
     return () => {
       socketClient.off("new_room_created", handleNewRoom);
       socketClient.off("connect");
-      socketClient.off("new_message", handleNewMessageSidebar);
       socketClient.off("message_unsent", handleUnsentMessageSidebar);
       socketClient.off("messages_read_update", handleReadMessage);
       socketClient.off("user_online", handleUserOnline);
       socketClient.off("user_offline", handleUserOffline);
+      socketClient.off("new_message", handleNewMessageSidebar);
       socketClient.disconnect();
     };
   }, []);
