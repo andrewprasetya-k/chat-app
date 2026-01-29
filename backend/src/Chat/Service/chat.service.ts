@@ -362,7 +362,7 @@ export class ChatService {
   async countUnreadMessages(roomId: string, userId: string) {
     const client = this.supabase.getClient();
     try {
-      console.log(`[DEBUG_BACKEND] Counting unread for Room: ${roomId}, User: ${userId}`);
+      // console.log(`[DEBUG_BACKEND] Counting unread for Room: ${roomId}, User: ${userId}`);
 
       const { data: readReceipts, error: readError } = await client
         .from('read_receipts')
@@ -374,7 +374,7 @@ export class ChatService {
       }
 
       const readMessageIds = readReceipts.map((item) => item.rr_cm_id);
-      console.log(`[DEBUG_BACKEND] User has read ${readMessageIds.length} messages globally.`);
+      // console.log(`[DEBUG_BACKEND] User has read ${readMessageIds.length} messages globally.`);
 
       if (readMessageIds.length === 0) {
         const { count, error: totalError } = await client
@@ -384,7 +384,7 @@ export class ChatService {
           .neq('cm_usr_id', userId); // Exclude own messages
 
         if (totalError) throw totalError;
-        console.log(`[DEBUG_BACKEND] No receipts found. Total unread (excluding own): ${count}`);
+        // console.log(`[DEBUG_BACKEND] No receipts found. Total unread (excluding own): ${count}`);
         return { success: true, unreadCount: count };
       }
 
@@ -399,7 +399,7 @@ export class ChatService {
         throw new InternalServerErrorException(countError.message);
       }
       
-      console.log(`[DEBUG_BACKEND] Final Unread Count for room ${roomId}: ${count}`);
+      // console.log(`[DEBUG_BACKEND] Final Unread Count for room ${roomId}: ${count}`);
 
       return { unreadCount: count };
     } catch (error: any) {
