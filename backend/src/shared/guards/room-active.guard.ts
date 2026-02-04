@@ -31,9 +31,6 @@ export class RoomActiveGuard implements CanActivate {
     }
 
     if (room.deleted_at) {
-      if (method === 'GET') {
-        return true;
-      }
       throw new ForbiddenException(
         'This chat room has been deleted and cannot be modified.',
       );

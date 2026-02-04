@@ -153,7 +153,7 @@ export class ChatRoomService {
     const all = await this.getAllRoomsData(userId);
     // Active if user HAS NOT left AND room is NOT deleted
     const filtered = all.filter((r) => !r?.leaveAt && !r?.deletedAt);
-    const rooms = [{ ...filtered, isDeactivated: false }];
+    const rooms = filtered.map((r) => ({ ...r, isDeactivated: false }));
     return this.populateUnreadAndSort(rooms, userId);
   }
 
@@ -161,7 +161,7 @@ export class ChatRoomService {
     const all = await this.getAllRoomsData(userId);
     // Inactive if user HAS left OR room IS deleted
     const filtered = all.filter((r) => r?.leaveAt || r?.deletedAt);
-    const rooms = [{ ...filtered, isDeactivated: true }];
+    const rooms = filtered.map((r) => ({ ...r, isDeactivated: true }));
     return this.populateUnreadAndSort(rooms, userId);
   }
 
