@@ -22,6 +22,7 @@ export default function DashboardPage() {
   const activeRoomRef = useRef<ChatRoom | null>(null);
   const myIdRef = useRef<string>("");
   const roomsRef = useRef<ChatRoom[]>(rooms);
+  const roomTypeRef = useRef<"active" | "inactive">(roomType);
 
   useEffect(() => {
     roomsRef.current = rooms;
@@ -34,6 +35,10 @@ export default function DashboardPage() {
   useEffect(() => {
     myIdRef.current = isMeMyId;
   }, [isMeMyId]);
+
+  useEffect(() => {
+    roomTypeRef.current = roomType;
+  }, [roomType]);
 
   // Fetch active or inactive chat rooms
   const fetchRooms = async () => {
@@ -146,7 +151,12 @@ export default function DashboardPage() {
     const handleNewMessageSidebar = (msg: any) => {
       setRooms((prevRooms) => {
         const roomToUpdate = prevRooms.find((r) => r.roomId === msg.roomId);
-        if (roomToUpdate?.isDeactivated) return prevRooms;
+        if (
+          roomToUpdate?.isDeactivated ||
+          roomToUpdate?.leaveAt ||
+          roomToUpdate?.deletedAt
+        )
+          return prevRooms;
 
         const updatedRooms = prevRooms.map((room) => {
           if (room.roomId === msg.roomId) {
@@ -196,7 +206,12 @@ export default function DashboardPage() {
     }) => {
       setRooms((prevRooms) => {
         const roomToUpdate = prevRooms.find((r) => r.roomId === data.roomId);
-        if (roomToUpdate?.isDeactivated) return prevRooms;
+        if (
+          roomToUpdate?.isDeactivated ||
+          roomToUpdate?.leaveAt ||
+          roomToUpdate?.deletedAt
+        )
+          return prevRooms;
 
         return prevRooms.map((room) => {
           if (room.roomId === data.roomId) {
@@ -237,7 +252,12 @@ export default function DashboardPage() {
     }) => {
       setRooms((prevRooms) => {
         const roomToUpdate = prevRooms.find((r) => r.roomId === data.roomId);
-        if (roomToUpdate?.isDeactivated) return prevRooms;
+        if (
+          roomToUpdate?.isDeactivated ||
+          roomToUpdate?.leaveAt ||
+          roomToUpdate?.deletedAt
+        )
+          return prevRooms;
 
         return prevRooms.map((room) => {
           if (room.roomId === data.roomId) {
@@ -251,12 +271,28 @@ export default function DashboardPage() {
       });
     };
 
+    // Handler: Room Deleted
+    const handleRoomDeleted = (data: { roomId: string }) => {
+      if (roomTypeRef.current === "active") {
+        setRooms((prev) => prev.filter((r) => r.roomId !== data.roomId));
+      }
+    };
+
+    // Handler: Member Left
+    const handleMemberLeft = (data: { roomId: string; userId: string }) => {
+      if (data.userId === myIdRef.current && roomTypeRef.current === "active") {
+        setRooms((prev) => prev.filter((r) => r.roomId !== data.roomId));
+      }
+    };
+
     // Register Listeners
     socketClient.on("new_message", handleNewMessageSidebar);
     socketClient.on("message_unsent", handleUnsentMessageSidebar);
     socketClient.on("messages_read_update", handleReadMessage);
     socketClient.on("user_online", handleUserOnline);
     socketClient.on("user_offline", handleUserOffline);
+    socketClient.on("room_deleted", handleRoomDeleted);
+    socketClient.on("member_left", handleMemberLeft);
 
     // Cleanup
     return () => {
@@ -267,6 +303,8 @@ export default function DashboardPage() {
       socketClient.off("user_online", handleUserOnline);
       socketClient.off("user_offline", handleUserOffline);
       socketClient.off("new_message", handleNewMessageSidebar);
+      socketClient.off("room_deleted", handleRoomDeleted);
+      socketClient.off("member_left", handleMemberLeft);
       socketClient.disconnect();
     };
   }, []);
