@@ -309,34 +309,6 @@ export default function DashboardPage() {
     };
   }, []);
 
-  // Fetch active chat rooms
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const activeRoom = await chatService.getActiveRooms();
-        setRooms(activeRoom); //ini ambil semua room yang aktif
-        if (activeRoom.length > 0) {
-          setActiveRoom(activeRoom[0]); //ini set room pertama sebagai room aktif
-        }
-        //mengisi
-        setOnlineUsers((prevOnline) => {
-          const initialOnline = new Set<string>();
-          activeRoom.forEach((room) => {
-            if (room.isOnline && room.otherUserId) {
-              initialOnline.add(room.otherUserId);
-            }
-          });
-          return initialOnline;
-        });
-      } catch (error: any) {
-        console.error("Failed to fetch chat rooms:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRooms();
-  }, []);
-
   //fetch profile untuk mengetahui apakah itu saya
   useEffect(() => {
     const fetchProfile = async () => {
