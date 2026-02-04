@@ -332,6 +332,7 @@ export default function DashboardPage() {
           }
         }}
         onlineUsers={onlineUsers}
+        isLoading={loading}
       />
 
       {/* Main Chat Window - Right Section */}

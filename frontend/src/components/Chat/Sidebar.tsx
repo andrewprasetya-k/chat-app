@@ -24,6 +24,7 @@ interface SidebarProps {
   onlineUsers: Set<string>;
   roomType: "active" | "inactive";
   onRoomTypeChange: (type: "active" | "inactive") => void;
+  isLoading: boolean;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -33,6 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   onlineUsers,
   roomType,
   onRoomTypeChange,
+  isLoading,
 }) => {
   // ==================================================================================
   // 1. STATE & CONFIGURATION
@@ -42,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const [userInfo, setUserInfo] = useState<User>();
   const [myUserId, setMyUserId] = useState<string>("");
   const [typingStatus, setTypingStatus] = useState<Record<string, string[]>>(
-    {}
+    {},
   );
   const typingTimeoutsRef = useRef<Record<string, NodeJS.Timeout>>({});
 
@@ -67,7 +69,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (!rooms) return [];
     return rooms
       .filter(
-        (room) => !room.isGroup && room.otherUserId && room.roomName !== "Me"
+        (room) => !room.isGroup && room.otherUserId && room.roomName !== "Me",
       )
       .map(
         (room) =>
@@ -75,7 +77,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             id: room.otherUserId as string,
             fullName: room.roomName,
             email: "", // Kita tidak butuh email lengkap di sini, tapi interface butuh placeholder
-          } as User)
+          }) as User,
       );
   }, [rooms]);
 
@@ -145,7 +147,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         clearTimeout(typingTimeoutsRef.current[timeoutKey]);
       typingTimeoutsRef.current[timeoutKey] = setTimeout(
         () => handleStopTypingStatus({ userName, roomId }),
-        5000
+        5000,
       );
     };
 
@@ -168,9 +170,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
     const timer = setTimeout(async () => {
       setIsSearching(true);
       try {
-        const results: any = await chatService.globalSearchQuery(
-          globalSearchTerm
-        );
+        const results: any =
+          await chatService.globalSearchQuery(globalSearchTerm);
         setGlobalSearchResults(results);
       } catch (error) {
         // console.error("Global search failed:", error);
@@ -433,7 +434,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => onRoomTypeChange("active")}
           className={`flex-1 py-3 text-xs font-bold transition-all relative ${
-            roomType === "active" ? "text-blue-600" : "text-gray-400 hover:text-gray-600"
+            roomType === "active"
+              ? "text-blue-600"
+              : "text-gray-400 hover:text-gray-600"
           }`}
         >
           Active
@@ -444,7 +447,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         <button
           onClick={() => onRoomTypeChange("inactive")}
           className={`flex-1 py-3 text-xs font-bold transition-all relative ${
-            roomType === "inactive" ? "text-blue-600" : "text-gray-400 hover:text-gray-600"
+            roomType === "inactive"
+              ? "text-blue-600"
+              : "text-gray-400 hover:text-gray-600"
           }`}
         >
           Archived
@@ -521,7 +526,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                         .filter(
                           (msg) =>
                             msg.text !== "[This message was unsent]" &&
-                            msg.text !== "This message was unsent"
+                            msg.text !== "This message was unsent",
                         )
                         .map((msg) => (
                           <div
@@ -557,7 +562,19 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </div>
         ) : // MODE 3: Normal (Daftar Chat Inbox)
-        rooms?.length ? (
+        isLoading ? (
+          <div className="flex flex-col gap-2 p-4 animate-pulse">
+            {[1, 2, 3].map((i) => (
+              <div key={i} className="flex items-center gap-3">
+                <div className="w-12 h-12 bg-gray-200 rounded-full shrink-0" />
+                <div className="flex-1 space-y-2">
+                  <div className="h-3 bg-gray-200 rounded w-1/3" />
+                  <div className="h-2 bg-gray-200 rounded w-3/4" />
+                </div>
+              </div>
+            ))}
+          </div>
+        ) : rooms?.length ? (
           rooms.map((chat) => <ChatListItem key={chat.roomId} chat={chat} />)
         ) : (
           <div className="p-8 text-center text-gray-400 text-xs italic mt-10">
@@ -574,7 +591,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         onGroupCreated={(roomId) => onSelectRoom && onSelectRoom(roomId)}
       />
 
-      <ProfileModal 
+      <ProfileModal
         isOpen={isProfileModalOpen}
         onClose={() => setIsProfileModalOpen(false)}
         user={userInfo || null}
