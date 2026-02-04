@@ -564,6 +564,9 @@ export const Sidebar: React.FC<SidebarProps> = ({
         ) : // MODE 3: Normal (Daftar Chat Inbox)
         isLoading ? (
           <div className="flex flex-col gap-2 p-4 animate-pulse">
+            <div className="text-center text-xs text-gray-400 mt-2">
+              Loading chats...
+            </div>
             {[1, 2, 3].map((i) => (
               <div key={i} className="flex items-center gap-3">
                 <div className="w-12 h-12 bg-gray-200 rounded-full shrink-0" />
