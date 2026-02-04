@@ -47,9 +47,9 @@ export default function DashboardPage() {
       if (data.length > 0 && !activeRoom) {
         setActiveRoom(data[0]);
       }
-      
+
       if (roomType === "active") {
-        setOnlineUsers((prevOnline) => {
+        setOnlineUsers(() => {
           const initialOnline = new Set<string>();
           data.forEach((room) => {
             if (room.isOnline && room.otherUserId) {
@@ -105,8 +105,8 @@ export default function DashboardPage() {
       setOnlineUsers((prev) => new Set(prev).add(data.userId));
       setRooms((prevRooms) =>
         prevRooms.map((room) =>
-          room.otherUserId === data.userId ? { ...room, isOnline: true } : room
-        )
+          room.otherUserId === data.userId ? { ...room, isOnline: true } : room,
+        ),
       );
     };
 
@@ -122,8 +122,8 @@ export default function DashboardPage() {
         prevRooms.map((room) =>
           room.otherUserId === data.userId
             ? { ...room, isOnline: false, lastSeen: data.lastSeen }
-            : room
-        )
+            : room,
+        ),
       );
     };
 
@@ -335,8 +335,8 @@ export default function DashboardPage() {
             // Optimistic Update: Reset unread count immediately
             setRooms((prev) =>
               prev.map((r) =>
-                r.roomId === roomId ? { ...r, unreadCount: 0 } : r
-              )
+                r.roomId === roomId ? { ...r, unreadCount: 0 } : r,
+              ),
             );
           }
         }}
