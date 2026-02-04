@@ -220,7 +220,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               : "rounded-full bg-gray-100 text-gray-600"
           }`}
         >
-          {chat.roomName.substring(0, 2).toUpperCase()}
+          {chat.roomName?.substring(0, 2).toUpperCase()}
         </div>
         {!chat.isGroup && chat.roomName !== "Me" && (
           <div
