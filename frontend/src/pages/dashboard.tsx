@@ -145,6 +145,9 @@ export default function DashboardPage() {
     // Handler: New Message (Update Sidebar & Unread Count)
     const handleNewMessageSidebar = (msg: any) => {
       setRooms((prevRooms) => {
+        const roomToUpdate = prevRooms.find((r) => r.roomId === msg.roomId);
+        if (roomToUpdate?.isDeactivated) return prevRooms;
+
         const updatedRooms = prevRooms.map((room) => {
           if (room.roomId === msg.roomId) {
             // Gunakan Ref untuk data terbaru
@@ -191,8 +194,11 @@ export default function DashboardPage() {
       readerId: string;
       messageIds: string[];
     }) => {
-      setRooms((prevRooms) =>
-        prevRooms.map((room) => {
+      setRooms((prevRooms) => {
+        const roomToUpdate = prevRooms.find((r) => r.roomId === data.roomId);
+        if (roomToUpdate?.isDeactivated) return prevRooms;
+
+        return prevRooms.map((room) => {
           if (room.roomId === data.roomId) {
             const isMeReading = data.readerId === myIdRef.current;
 
@@ -220,8 +226,8 @@ export default function DashboardPage() {
             };
           }
           return room;
-        })
-      );
+        });
+      });
     };
 
     // Handler: Unsend Message Sidebar
@@ -229,8 +235,11 @@ export default function DashboardPage() {
       roomId: string;
       messageId: string;
     }) => {
-      setRooms((prevRooms) =>
-        prevRooms.map((room) => {
+      setRooms((prevRooms) => {
+        const roomToUpdate = prevRooms.find((r) => r.roomId === data.roomId);
+        if (roomToUpdate?.isDeactivated) return prevRooms;
+
+        return prevRooms.map((room) => {
           if (room.roomId === data.roomId) {
             return {
               ...room,
@@ -238,8 +247,8 @@ export default function DashboardPage() {
             };
           }
           return room;
-        })
-      );
+        });
+      });
     };
 
     // Register Listeners
