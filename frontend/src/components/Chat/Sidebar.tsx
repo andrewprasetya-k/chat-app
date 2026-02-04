@@ -205,107 +205,114 @@ export const Sidebar: React.FC<SidebarProps> = ({
   // ==================================================================================
 
   // Komponen Kartu Chat (Inbox Utama & Existing Chats)
-  const ChatListItem = ({ chat }: { chat: ChatRoom }) => (
-    <div
-      key={chat.roomId}
-      className={`p-4 flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100 last:border-0 ${
-        selectedRoomId === chat.roomId ? "bg-gray-100" : "bg-white"
-      }`}
-      onClick={() => onSelectRoom && onSelectRoom(chat.roomId)}
-    >
-      <div className="relative">
-        <div
-          className={`w-12 h-12 flex items-center justify-center font-bold text-sm ${
-            chat.isGroup
-              ? "rounded-xl bg-indigo-100 text-indigo-600"
-              : "rounded-full bg-gray-100 text-gray-600"
-          }`}
-        >
-          {chat.roomName?.substring(0, 2).toUpperCase()}
-        </div>
-        {!chat.isGroup && chat.roomName !== "Me" && (
+  const ChatListItem = ({ chat }: { chat: ChatRoom }) => {
+    const isArchived = chat.isDeactivated || chat.leaveAt || chat.deletedAt;
+
+    return (
+      <div
+        key={chat.roomId}
+        className={`p-4 flex items-center gap-3 hover:bg-gray-100 cursor-pointer transition-colors border-b border-gray-100 last:border-0 ${
+          selectedRoomId === chat.roomId ? "bg-gray-100" : "bg-white"
+        } ${isArchived ? "opacity-75 grayscale-[0.2]" : ""}`}
+        onClick={() => onSelectRoom && onSelectRoom(chat.roomId)}
+      >
+        <div className="relative">
           <div
-            className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
-              chat.otherUserId && onlineUsers.has(chat.otherUserId)
-                ? "bg-green-500"
-                : "bg-gray-300"
-            }`}
-          ></div>
-        )}
-      </div>
-      <div className="flex-1 min-w-0">
-        <div className="flex justify-between items-baseline mb-0.5">
-          <h3 className="text-sm font-semibold text-gray-900 truncate">
-            {chat.roomName}
-          </h3>
-          <span className="text-[10px] text-gray-500 whitespace-nowrap">
-            {chat.lastMessageTime
-              ? formatRelativeTime(chat.lastMessageTime)
-              : ""}
-          </span>
-        </div>
-        <div className="flex justify-between items-center gap-2">
-          <div
-            className={`text-xs truncate flex items-center gap-1 ${
-              chat.lastMessage === "This message was unsent"
-                ? "italic text-gray-400"
-                : "text-gray-500"
+            className={`w-12 h-12 flex items-center justify-center font-bold text-sm ${
+              chat.isGroup
+                ? "rounded-xl bg-indigo-100 text-indigo-600"
+                : "rounded-full bg-gray-100 text-gray-600"
             }`}
           >
-            {typingStatus[chat.roomId]?.length > 0 ? (
-              <span className="text-blue-500 font-medium italic animate-pulse">
-                {chat.isGroup
-                  ? `${typingStatus[chat.roomId][0]}${
-                      typingStatus[chat.roomId].length > 1
-                        ? ` & ${typingStatus[chat.roomId].length - 1} others`
-                        : ""
-                    } is typing...`
-                  : "Typing..."}
-              </span>
-            ) : chat.lastMessage ? (
-              <>
-                {/* 1. Status: You + Read Receipt */}
-                {chat.senderId === myUserId && (
-                  <div className="flex items-center gap-0.5 shrink-0">
-                    {chat.lastMessage === "This message was unsent" ? null : (
-                      <span
-                        className={`${
-                          chat.isLastMessageRead
-                            ? "text-blue-500"
-                            : "text-gray-400"
-                        }`}
-                      >
-                        ({chat.isLastMessageRead ? "Read" : "Sent"})
-                      </span>
-                    )}
-                  </div>
-                )}
-
-                {/* 2. Sender Name (untuk grup) */}
-                {chat.isGroup &&
-                  chat.senderId !== myUserId &&
-                  chat.lastMessageType !== "system" && (
-                    <span className="font-medium text-gray-600 shrink-0">
-                      {chat.senderName?.split(" ")[0]}:
-                    </span>
-                  )}
-
-                {/* 3. Pesan Terakhir */}
-                <span className="truncate">{chat.lastMessage}</span>
-              </>
-            ) : (
-              "Start a conversation"
-            )}
+            {chat.roomName?.substring(0, 2).toUpperCase()}
           </div>
-          {(chat.unreadCount ?? 0) > 0 && (
-            <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
-              {chat.unreadCount}
-            </span>
+          {!chat.isGroup && chat.roomName !== "Me" && (
+            <div
+              className={`absolute bottom-0 right-0 w-3 h-3 border-2 border-white rounded-full ${
+                chat.otherUserId && onlineUsers.has(chat.otherUserId)
+                  ? "bg-green-500"
+                  : "bg-gray-300"
+              }`}
+            ></div>
           )}
         </div>
+        <div className="flex-1 min-w-0">
+          <div className="flex justify-between items-baseline mb-0.5">
+            <h3 className="text-sm font-semibold text-gray-900 truncate">
+              {chat.roomName}
+            </h3>
+            <span className="text-[10px] text-gray-500 whitespace-nowrap">
+              {chat.lastMessageTime
+                ? formatRelativeTime(chat.lastMessageTime)
+                : ""}
+            </span>
+          </div>
+          <div className="flex justify-between items-center gap-2">
+            <div
+              className={`text-xs truncate flex items-center gap-1 ${
+                chat.lastMessage === "This message was unsent" || isArchived
+                  ? "italic text-gray-400"
+                  : "text-gray-500"
+              }`}
+            >
+              {typingStatus[chat.roomId]?.length > 0 && !isArchived ? (
+                <span className="text-blue-500 font-medium italic animate-pulse">
+                  {chat.isGroup
+                    ? `${typingStatus[chat.roomId][0]}${
+                        typingStatus[chat.roomId].length > 1
+                          ? ` & ${typingStatus[chat.roomId].length - 1} others`
+                          : ""
+                      } is typing...`
+                    : "Typing..."}
+                </span>
+              ) : chat.lastMessage || isArchived ? (
+                <>
+                  {/* 1. Status: You + Read Receipt */}
+                  {chat.senderId === myUserId && !isArchived && (
+                    <div className="flex items-center gap-0.5 shrink-0">
+                      {chat.lastMessage === "This message was unsent" ? null : (
+                        <span
+                          className={`${
+                            chat.isLastMessageRead
+                              ? "text-blue-500"
+                              : "text-gray-400"
+                          }`}
+                        >
+                          ({chat.isLastMessageRead ? "Read" : "Sent"})
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 2. Sender Name (untuk grup) */}
+                  {chat.isGroup &&
+                    chat.senderId !== myUserId &&
+                    chat.lastMessageType !== "system" &&
+                    !isArchived && (
+                      <span className="font-medium text-gray-600 shrink-0">
+                        {chat.senderName?.split(" ")[0]}:
+                      </span>
+                    )}
+
+                  {/* 3. Pesan Terakhir */}
+                  <span className="truncate">
+                    {isArchived ? "Chat Inactive" : chat.lastMessage}
+                  </span>
+                </>
+              ) : (
+                "Start a conversation"
+              )}
+            </div>
+            {(chat.unreadCount ?? 0) > 0 && !isArchived && (
+              <span className="bg-blue-600 text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full shrink-0">
+                {chat.unreadCount}
+              </span>
+            )}
+          </div>
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   // Komponen Kartu User (Hasil Search / Discovery)
   const UserListItem = ({
@@ -452,7 +459,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               : "text-gray-400 hover:text-gray-600"
           }`}
         >
-          Archived
+          Inactive
           {roomType === "inactive" && (
             <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-blue-600 animate-in fade-in duration-300" />
           )}
