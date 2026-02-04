@@ -1,3 +1,5 @@
+migrate db to add usr_is_verified and usr_verification_token for email verification
+
 --auth--
 email konfirmation
 forgot password
