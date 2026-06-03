@@ -18,9 +18,18 @@ import { SupabaseModule } from './Supabase/supabase.module';
 import { ChatModule } from './Chat/chat.module';
 import { ChatRoomModule } from './ChatRoom/chat-room.module';
 import { SharedModule } from './shared/shared.module';
+import { MailModule } from './Mail/mail.module';
 
 @Module({
-  imports: [SharedModule, AuthModule, SupabaseModule, UserModule, ChatModule, ChatRoomModule],
+  imports: [
+    SharedModule,
+    AuthModule,
+    SupabaseModule,
+    UserModule,
+    ChatModule,
+    ChatRoomModule,
+    MailModule,
+  ],
   controllers: [AppController],
   providers: [AppService],
 })
