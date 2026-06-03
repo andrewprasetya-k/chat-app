@@ -19,9 +19,11 @@ import { ChatModule } from './Chat/chat.module';
 import { ChatRoomModule } from './ChatRoom/chat-room.module';
 import { SharedModule } from './shared/shared.module';
 import { MailModule } from './Mail/mail.module';
+import { ConfigModule } from '@nestjs/config';
 
 @Module({
   imports: [
+    ConfigModule.forRoot({ isGlobal: true, envFilePath: '.env' }),
     SharedModule,
     AuthModule,
     SupabaseModule,

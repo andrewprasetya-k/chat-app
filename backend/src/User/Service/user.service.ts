@@ -388,6 +388,74 @@ export class UserService {
     }
   }
 
+  async setResetPasswordToken(email: string, token: string) {
+    const client = this.supabase.getClient();
+    try {
+      // 1. Delete existing tokens for this email to avoid duplicates
+      await client
+        .from('password_reset_tokens')
+        .delete()
+        .eq('email', email);
+
+      // 2. Insert new token
+      const { error } = await client
+        .from('password_reset_tokens')
+        .insert({
+          email,
+          token,
+          expires_at: new Date(Date.now() + 3600000).toISOString(),
+        });
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return { success: true };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to set reset password token',
+      );
+    }
+  }
+
+  async resetPassword(token: string, passwordHash: string) {
+    const client = this.supabase.getClient();
+    try {
+      // 1. Find and validate token
+      const { data: tokenData, error: tokenError } = await client
+        .from('password_reset_tokens')
+        .select('*')
+        .eq('token', token)
+        .single();
+
+      if (tokenError || !tokenData || new Date(tokenData.expires_at) < new Date()) {
+        throw new BadRequestException('Invalid or expired reset token');
+      }
+
+      // 2. Update user password
+      const { error: userError } = await client
+        .from('user')
+        .update({ usr_password: passwordHash })
+        .eq('usr_email', tokenData.email);
+
+      if (userError) {
+        throw new InternalServerErrorException(userError.message);
+      }
+
+      // 3. Delete the token
+      await client
+        .from('password_reset_tokens')
+        .delete()
+        .eq('token', token);
+
+      return { success: true, message: 'Password reset successfully' };
+    } catch (error: any) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to reset password',
+      );
+    }
+  }
+
   async verifyUserByEmail(email: string) {
     const client = this.supabase.getClient();
     try {

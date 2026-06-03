@@ -22,6 +22,8 @@ import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
 import { LoginDto } from '../Dto/login.dto';
 import { RegisterDto } from '../Dto/register.dto';
+import { ForgotPasswordDto } from '../Dto/forgot-password.dto';
+import { ResetPasswordDto } from '../Dto/reset-password.dto';
 import { UserService } from 'src/User/Service/user.service';
 import { MailService } from 'src/Mail/mail.service';
 import { v4 as uuidv4 } from 'uuid';
@@ -65,6 +67,22 @@ export class AuthService {
         err?.message ?? 'Failed to register user',
       );
     }
+  }
+
+  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
+    const user = await this.userService.findByEmailForAuth(forgotPasswordDto.email);
+    if (!user) {
+        throw new BadRequestException('User not found');
+    }
+    const token = uuidv4();
+    await this.userService.setResetPasswordToken(user.usr_email, token);
+    await this.mailService.sendResetPasswordEmail(user.usr_email, token);
+    return { message: 'Reset password email sent' };
+  }
+
+  async resetPassword(resetPasswordDto: ResetPasswordDto) {
+    const passwordHash = await bcrypt.hash(resetPasswordDto.password, 10);
+    return await this.userService.resetPassword(resetPasswordDto.token, passwordHash);
   }
 
   async verifyEmail(token: string) {

@@ -14,6 +14,8 @@ import type { Response, Request } from 'express';
 import { AuthService } from '../Service/auth.service';
 import { LoginDto } from '../Dto/login.dto';
 import { RegisterDto } from '../Dto/register.dto';
+import { ForgotPasswordDto } from '../Dto/forgot-password.dto';
+import { ResetPasswordDto } from '../Dto/reset-password.dto';
 import { AuthGuard } from '../auth.guard';
 import { User } from '../user.decorator';
 
@@ -24,6 +26,16 @@ export class AuthController {
   @Post('register')
   async register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  @Post('forgot-password')
+  async forgotPassword(@Body() forgotPasswordDto: ForgotPasswordDto) {
+    return this.authService.forgotPassword(forgotPasswordDto);
+  }
+
+  @Post('reset-password')
+  async resetPassword(@Body() resetPasswordDto: ResetPasswordDto) {
+    return this.authService.resetPassword(resetPasswordDto);
   }
 
   @Post('login')
