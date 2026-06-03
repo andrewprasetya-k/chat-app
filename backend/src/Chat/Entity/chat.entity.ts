@@ -5,19 +5,19 @@ import { UserEntity } from '../../User/Entity/user.entity';
 export class ChatMessageEntity extends BaseEntity {
   @Expose()
   @Transform(({ obj }) => obj.cm_id, { toClassOnly: true })
-  textId: string;
+  textId!: string;
 
   @Expose()
   @Transform(({ obj }) => obj.cm_cr_id, { toClassOnly: true })
-  roomId: string;
+  roomId!: string;
 
   @Expose()
   @Transform(({ obj }) => obj.message_text, { toClassOnly: true })
-  text: string;
+  text!: string;
 
   @Expose()
   @Transform(({ obj }) => obj.cm_type || 'user', { toClassOnly: true })
-  type: string;
+  type!: string;
 
   @Expose()
   @Transform(
@@ -78,5 +78,5 @@ export class ChatMessageEntity extends BaseEntity {
     },
     { toClassOnly: true },
   )
-  readBy: any[];
+  readBy!: any[];
 }
