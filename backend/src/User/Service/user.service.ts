@@ -241,6 +241,18 @@ export class UserService {
         insertPayload.usr_role = payload.role;
       }
 
+      // Email Verification
+      if ((payload as any).verificationToken) {
+        insertPayload.usr_is_verified = false;
+        insertPayload.usr_verification_token = (payload as any).verificationToken;
+      } else {
+        // Default to true if no token provided (legacy behavior or admin creation)
+        // Or keep it false if you want strict enforcement.
+        // For now, let's default to TRUE if no token to avoid breaking existing flows if any.
+        // BUT for registration flow, we will pass a token.
+        insertPayload.usr_is_verified = true;
+      }
+
       const { data, error } = await client
         .from('user')
         .insert(insertPayload)
@@ -349,6 +361,29 @@ export class UserService {
     } catch (error) {
       throw new InternalServerErrorException(
         error?.message || 'Failed to update avatar',
+      );
+    }
+  }
+
+  async verifyUser(token: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { data, error } = await client
+        .from('user')
+        .update({ usr_is_verified: true, usr_verification_token: null })
+        .eq('usr_verification_token', token)
+        .select()
+        .single();
+
+      if (error || !data) {
+        throw new BadRequestException('Invalid or expired verification token');
+      }
+
+      return { success: true, message: 'Email verified successfully' };
+    } catch (error: any) {
+      if (error instanceof BadRequestException) throw error;
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to verify user',
       );
     }
   }
