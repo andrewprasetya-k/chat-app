@@ -23,6 +23,8 @@ import { ConfigService } from '@nestjs/config';
 import { LoginDto } from '../Dto/login.dto';
 import { RegisterDto } from '../Dto/register.dto';
 import { UserService } from 'src/User/Service/user.service';
+import { MailService } from 'src/Mail/mail.service';
+import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
 export class AuthService {
@@ -30,26 +32,28 @@ export class AuthService {
     private readonly jwtService: JwtService,
     private readonly userService: UserService,
     private readonly configService: ConfigService,
+    private readonly mailService: MailService,
   ) {}
 
   // Register user baru (menggunakan UserService -> Supabase)
-  //todo: sebelum prod tambahkan email verification dan tambah kolom role
   async register(registerDto: RegisterDto) {
     try {
       const { email, password, fullName } = registerDto;
+      const verificationToken = uuidv4();
 
       const created = await this.userService.createUser({
         email,
         fullName,
         password,
-        // role is not exposed in RegisterDto for public registration
-      });
+        verificationToken, // Pass the token here
+      } as any);
 
-      // Auto login or just return success
-      // Let's generate tokens for seamless UX if needed, but standard is usually return success
-      // For now, let's keep returning success message
+      // Send verification email
+      await this.mailService.sendVerificationEmail(email, verificationToken);
+
       return {
-        message: 'User registered successfully',
+        message:
+          'User registered successfully. Please check your email to verify your account.',
         userId: created?.id,
       };
     } catch (err) {
@@ -61,6 +65,10 @@ export class AuthService {
         err?.message ?? 'Failed to register user',
       );
     }
+  }
+
+  async verifyEmail(token: string) {
+    return this.userService.verifyUser(token);
   }
 
   // Login user -> cari di DB dan verifikasi password
@@ -75,10 +83,17 @@ export class AuthService {
         usr_nama_lengkap: string;
         usr_role: string;
         usr_password: string;
+        usr_is_verified: boolean;
       } | null;
 
       if (!user) {
         throw new UnauthorizedException('Invalid credentials');
+      }
+
+      if (user.usr_is_verified === false) {
+        throw new UnauthorizedException(
+          'Email not verified. Please check your inbox.',
+        );
       }
 
       const isPasswordValid = await bcrypt.compare(

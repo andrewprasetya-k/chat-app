@@ -12,22 +12,28 @@ export const authService = {
     return response.data;
   },
 
-  //untuk register (apa perlu langsung login?)
+  //untuk register
   async register(
     fullName: string,
     email: string,
     password: string
-  ): Promise<User> {
-    const response = await api.post<User>("/auth/register", {
-      fullName,
-      email,
-      password,
-    });
-    try {
-      await this.login(email, password); // Auto-login setelah registrasi
-    } catch (error) {
-      // console.warn("Auto-login failed after registration:", error);
-    }
+  ): Promise<{ message: string; userId?: string }> {
+    const response = await api.post<{ message: string; userId?: string }>(
+      "/auth/register",
+      {
+        fullName,
+        email,
+        password,
+      }
+    );
+    // No auto-login, wait for verification
+    return response.data;
+  },
+
+  async verifyEmail(token: string): Promise<{ message: string }> {
+    const response = await api.get<{ message: string }>(
+      `/auth/verify-email?token=${token}`
+    );
     return response.data;
   },
 

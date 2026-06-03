@@ -7,6 +7,7 @@ import {
   Res,
   Req,
   UnauthorizedException,
+  Query,
 } from '@nestjs/common';
 import type { Response, Request } from 'express';
 import { AuthService } from '../Service/auth.service';
@@ -102,6 +103,11 @@ export class AuthController {
     });
 
     return { message: 'Token refreshed' };
+  }
+
+  @Get('verify-email')
+  async verifyEmail(@Query('token') token: string) {
+    return this.authService.verifyEmail(token);
   }
 
   @Get('api-check')
