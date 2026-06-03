@@ -46,10 +46,6 @@ export class AuthController {
     const tokens = await this.authService.login(loginDto);
 
     // COOKIE POLICY: Cross-Site Authentication
-    // httpOnly: Mencegah akses JavaScript (aman dari XSS).
-    // secure: true: WAJIB aktif saat SameSite=None agar Cookie dikirim lewat HTTPS.
-    // sameSite: 'none': Mengizinkan Cookie dikirim antar domain yang berbeda (Cross-Site).
-
     // 1. Set Refresh Token (Long Lived)
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
