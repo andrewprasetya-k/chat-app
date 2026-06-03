@@ -19,9 +19,9 @@ export class MailService {
   }
 
   async sendVerificationEmail(to: string, token: string) {
-    // In a real app, use a frontend URL from config
-    // For now, let's assume localhost:3000
-    const url = `http://localhost:3000/verify-email?token=${token}`;
+    const frontendUrl =
+      this.configService.get<string>('FRONTEND_URL') || 'http://localhost:3000';
+    const url = `${frontendUrl}/verify-email?token=${token}`;
 
     const mailOptions = {
       from: '"Chat App" <noreply@chatapp.com>',
