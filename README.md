@@ -8,7 +8,11 @@ A modern, full-stack messaging platform engineered for performance and real-time
 
 ### 🚀 Core Experience
 
-- **Secure Authentication:** JWT-based secure login and registration system.
+- **Secure Authentication:** 
+  - JWT-based secure login and registration.
+  - **Email Verification:** Ensures user account authenticity via verification links.
+  - **Social Login:** Sign in seamlessly with Google OAuth.
+  - **Forgot Password:** Secure password reset flow with email confirmation.
 - **Rich Messaging:** Send text messages with support for replies and unsending messages.
 - **Message History:** Persistent chat history with optimized loading.
 - **Global Search:** Unified search bar to find people, groups, and specific messages instantly.
@@ -39,7 +43,7 @@ A modern, full-stack messaging platform engineered for performance and real-time
 - **Language:** TypeScript
 - **Database:** Supabase (PostgreSQL)
 - **Real-time Engine:** Socket.io
-- **Auth:** Passport JWT strategy
+- **Auth:** Passport JWT strategy & Google OAuth
 - **Architecture:** Modular Service-Repository pattern
 
 ### **Frontend (Next.js)**
@@ -60,7 +64,7 @@ The project is structured as a monorepo containing both client and server applic
 chat-app/
 ├── backend/           # NestJS Server Application
 │   ├── src/
-│   │   ├── Auth/      # JWT Authentication & Guards
+│   │   ├── Auth/      # Authentication (JWT, Google, Forgot Password)
 │   │   ├── Chat/      # Message Handling & Gateway
 │   │   ├── ChatRoom/  # Room & Member Management
 │   │   └── User/      # User Profile Logic
@@ -68,8 +72,8 @@ chat-app/
 │
 ├── frontend/          # Next.js Client Application
 │   ├── src/
-│   │   ├── components/ # Reusable UI Components (ChatWindow, Sidebar, etc.)
-│   │   ├── pages/      # Application Routes
+│   │   ├── components/ # Reusable UI Components
+│   │   ├── pages/      # Application Routes (including Auth pages)
 │   │   └── services/   # API Integration & Socket Logic
 │   └── ...
 ```
@@ -102,16 +106,25 @@ cd backend
 npm install
 ```
 
-Create a `.env` file in `backend/` based on your Supabase credentials:
+Create a `.env` file in the root directory (or `backend/`) based on your Supabase and Auth credentials:
 
 ```env
 SUPABASE_URL=your_supabase_url
-SUPABASE_KEY=your_supabase_anon_key
 SUPABASE_SERVICE_ROLE_KEY=your_service_role_key
 
-JWT_SECRET=your_super_secret_jwt_key
-JWT_EXPIRES_IN=7d
+JWT_SECRET=your_jwt_secret
+JWT_REFRESH_SECRET=your_jwt_refresh_secret
 
+MAIL_HOST=smtp.gmail.com
+MAIL_PORT=587
+MAIL_USER=your_email@gmail.com
+MAIL_PASSWORD=your_app_password
+
+GOOGLE_CLIENT_ID=your_google_client_id
+GOOGLE_CLIENT_SECRET=your_google_client_secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/auth/google/callback
+
+FRONTEND_URL=http://localhost:3001
 PORT=3000
 ```
 
@@ -120,8 +133,6 @@ Start the backend server:
 ```bash
 npm run start:dev
 ```
-
-_The server will start on `http://localhost:3000`_
 
 ### 3. Frontend Setup
 
@@ -132,11 +143,10 @@ cd ../frontend
 npm install
 ```
 
-Configure the environment in `frontend/.env.local` (optional, defaults are usually set in code):
+Configure the environment in `frontend/.env.local`:
 
 ```env
 NEXT_PUBLIC_API_URL=http://localhost:3000
-NEXT_PUBLIC_SOCKET_URL=http://localhost:3000
 ```
 
 Start the frontend application:
@@ -154,20 +164,7 @@ _The application will be accessible at `http://localhost:3001`_
 For deeper dive into the implementation details, check the internal documentation:
 
 - **[API Reference](./backend/API_REFERENCE.md):** Comprehensive list of REST endpoints.
-- **[WebSocket Architecture](./backend/WEBSOCKET_ARCHITECTURE.md):** Details on socket events (`join_room`, `new_message`, `messages_read_update`) and payloads.
-- **[WebSocket Events](./backend/WEBSOCKET_EVENTS.md):** Specific event definitions and trigger scenarios.
-
----
-
-## 🤝 Contributing
-
-Contributions are welcome! Please feel free to submit a Pull Request.
-
-1. Fork the project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
+- **[WebSocket Architecture](./backend/WEBSOCKET_ARCHITECTURE.md):** Details on socket events.
 
 ---
 

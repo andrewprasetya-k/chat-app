@@ -1,7 +1,5 @@
-migrate db to add usr_is_verified and usr_verification_token for email verification
-test email verification in registration process
+## TODO
 
---auth--i
-email konfirmation
-forgot password
-etc..
+- [ ] Write automated tests for email verification process.
+- [ ] Implement group chat features polishing (e.g., message search).
+- [ ] Add file upload support for chat messages.
