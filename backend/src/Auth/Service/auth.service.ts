@@ -86,8 +86,8 @@ export class AuthService {
         email: googleUser.email,
         fullName: googleUser.name,
         password: hashedPassword,
-        role: 'user',
-        // TANDAI LANGSUNG TERVERIFIKASI
+        // Remove role: 'user' to let the DB use its default value if defined, 
+        // or ensure it matches the exact ENUM string.
       } as any);
 
       user = await this.userService.findByIdForAuth(created.id);
