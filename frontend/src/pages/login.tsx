@@ -213,6 +213,16 @@ export default function LoginPage() {
               >
                 Create New Account
               </a>
+
+              {/* Google Login Button */}
+              <a
+                href={process.env.NEXT_PUBLIC_API_URL + "/auth/google"}
+                className={`block w-full text-center bg-white hover:bg-gray-50 text-gray-700 font-semibold py-3 px-4 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-offset-2 transition-all shadow-sm ${
+                  isLoading ? "pointer-events-none opacity-50" : ""
+                }`}
+              >
+                Sign in with Google
+              </a>
             </form>
           </div>
 

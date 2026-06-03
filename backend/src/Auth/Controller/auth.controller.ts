@@ -9,6 +9,7 @@ import {
   UnauthorizedException,
   Query,
 } from '@nestjs/common';
+import { AuthGuard as PassportAuthGuard } from '@nestjs/passport';
 import type { Response, Request } from 'express';
 import { AuthService } from '../Service/auth.service';
 import { LoginDto } from '../Dto/login.dto';
@@ -85,7 +86,7 @@ export class AuthController {
     const tokens = await this.authService.refreshTokens(refreshToken);
 
     // COOKIE POLICY: Cross-Site Authentication (Consistent with Login)
-    
+
     // Rotate Refresh Token
     res.cookie('refresh_token', tokens.refresh_token, {
       httpOnly: true,
@@ -108,6 +109,39 @@ export class AuthController {
   @Get('verify-email')
   async verifyEmail(@Query('token') token: string) {
     return this.authService.verifyEmail(token);
+  }
+
+  @Get('google')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuth() {
+    // Initiates the Google OAuth flow
+  }
+
+  @Get('google/callback')
+  @UseGuards(PassportAuthGuard('google'))
+  async googleAuthCallback(
+    @Req() req: any,
+    @Res({ passthrough: true }) res: Response,
+  ) {
+    // Handle the callback from Google
+    const tokens = await this.authService.handleGoogleLogin(req.user);
+
+    // COOKIE POLICY: Cross-Site Authentication
+    res.cookie('refresh_token', tokens.refresh_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 14 * 24 * 60 * 60 * 1000, // 14 days
+    });
+
+    res.cookie('access_token', tokens.access_token, {
+      httpOnly: true,
+      secure: true,
+      sameSite: 'none',
+      maxAge: 15 * 60 * 1000, // 15 minutes
+    });
+
+    res.redirect(process.env.FRONTEND_URL + '/dashboard');
   }
 
   @Get('api-check')

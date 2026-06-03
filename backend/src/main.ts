@@ -9,17 +9,14 @@ async function bootstrap() {
   app.use(cookieParser());
 
   // CONFIGURATION: Cross-Origin Resource Sharing (CORS)
-  // 'credentials: true' sangat penting agar browser diizinkan mengirim Cookie 
-  // (access_token & refresh_token) dari domain Vercel ke domain Railway.
-  // Pastikan URL origin tidak diakhiri dengan slash (/).
   app.enableCors({
     origin: [
       'http://localhost:3001',
-      'https://c8sfg3vs-3001.asse.devtunnels.ms',
+      'https://6rbdpss1-3001.asse.devtunnels.ms',
       'https://chat-app-fawn-one-16.vercel.app',
     ],
     methods: 'GET,HEAD,PUT,PATCH,POST,DELETE,OPTIONS',
-    credentials: true, 
+    credentials: true,
   });
   app.useGlobalPipes(
     new ValidationPipe({

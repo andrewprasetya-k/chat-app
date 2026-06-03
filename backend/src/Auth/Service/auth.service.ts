@@ -71,6 +71,46 @@ export class AuthService {
     return this.userService.verifyUser(token);
   }
 
+  async handleGoogleLogin(googleUser: { email: string; name: string }) {
+    // 1. Cari user berdasarkan email
+    let user = (await this.userService.findByEmailForAuth(
+      googleUser.email,
+    )) as any;
+
+    // 2. Jika user belum ada, buat baru
+    if (!user) {
+      const randomPassword = uuidv4(); // Generate random password
+      const hashedPassword = await bcrypt.hash(randomPassword, 10);
+
+      const created = await this.userService.createUser({
+        email: googleUser.email,
+        fullName: googleUser.name,
+        password: hashedPassword,
+        role: 'user',
+        // TANDAI LANGSUNG TERVERIFIKASI
+      } as any);
+
+      user = await this.userService.findByIdForAuth(created.id);
+    } else {
+      // 3. Jika user ada, pastikan statusnya terverifikasi
+      if (user.usr_is_verified === false) {
+        // Logic to verify user if they were not verified yet
+        await this.userService.verifyUserByEmail(user.usr_email); // You might need to add this method to UserService
+      }
+    }
+
+    // 4. Generate JWT Tokens
+    const tokens = await this.getTokens(
+      user.usr_id,
+      user.usr_email,
+      user.usr_nama_lengkap,
+      user.usr_role || 'user',
+    );
+    await this.updateRefreshToken(user.usr_id, tokens.refresh_token);
+
+    return tokens;
+  }
+
   // Login user -> cari di DB dan verifikasi password
   async login(loginDto: LoginDto) {
     try {

@@ -388,6 +388,25 @@ export class UserService {
     }
   }
 
+  async verifyUserByEmail(email: string) {
+    const client = this.supabase.getClient();
+    try {
+      const { error } = await client
+        .from('user')
+        .update({ usr_is_verified: true, usr_verification_token: null })
+        .eq('usr_email', email);
+
+      if (error) {
+        throw new InternalServerErrorException(error.message);
+      }
+      return { success: true };
+    } catch (error: any) {
+      throw new InternalServerErrorException(
+        error?.message || 'Failed to verify user by email',
+      );
+    }
+  }
+
   async updateOnlineStatus(userId: string, isOnline: boolean) {
     const client = this.supabase.getClient();
     try {
