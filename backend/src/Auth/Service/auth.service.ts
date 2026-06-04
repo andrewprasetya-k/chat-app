@@ -1,4 +1,10 @@
-import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException, ForbiddenException } from '@nestjs/common';
+import {
+  Injectable,
+  UnauthorizedException,
+  BadRequestException,
+  InternalServerErrorException,
+  ForbiddenException,
+} from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -21,7 +27,10 @@ export class AuthService {
 
   async register(dto: RegisterDto) {
     const token = uuidv4();
-    const created = await this.userService.createUser({ ...dto, verificationToken: token });
+    const created = await this.userService.createUser({
+      ...dto,
+      verificationToken: token,
+    });
     await this.mailService.sendVerificationEmail(dto.email, token);
     return { message: 'Registered. Check email.', userId: created.id };
   }
@@ -47,23 +56,29 @@ export class AuthService {
   async handleGoogleLogin(googleUser: { email: string; name: string }) {
     let u = await this.userService.findByEmailForAuth(googleUser.email);
     if (!u) {
-      const created = await this.userService.createUser({ email: googleUser.email, fullName: googleUser.name, password: uuidv4() });
+      const created = await this.userService.createUser({
+        email: googleUser.email,
+        fullName: googleUser.name,
+        password: uuidv4(),
+      });
       u = await this.userService.findByIdForAuth(created.id);
     } else if (!u.usr_is_verified) {
       await this.userService.verifyUserByEmail(u.usr_email);
     }
 
-    const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap, u.usr_role || 'user');
+    const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap);
     await this.updateRefreshToken(u.usr_id, t.refresh_token);
     return t;
   }
 
   async login(dto: LoginDto) {
     const u = await this.userService.findByEmailForAuth(dto.email);
-    if (!u || !(await bcrypt.compare(dto.password, u.usr_password || ''))) throw new UnauthorizedException('Invalid credentials');
-    if (!u.usr_is_verified) throw new UnauthorizedException('Email not verified');
+    if (!u || !(await bcrypt.compare(dto.password, u.usr_password || '')))
+      throw new UnauthorizedException('Invalid credentials');
+    if (!u.usr_is_verified)
+      throw new UnauthorizedException('Email not verified');
 
-    const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap, u.usr_role);
+    const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap);
     await this.updateRefreshToken(u.usr_id, t.refresh_token);
     return t;
   }
@@ -75,10 +90,17 @@ export class AuthService {
 
   async refreshTokens(rt: string) {
     try {
-      const p = await this.jwtService.verifyAsync(rt, { secret: this.configService.get('JWT_REFRESH_SECRET') });
+      const p = await this.jwtService.verifyAsync(rt, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+      });
       const u = await this.userService.findByIdForAuth(p.sub);
-      if (!u || !u.usr_refresh_token || !(await bcrypt.compare(rt, u.usr_refresh_token))) throw new ForbiddenException();
-      const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap, u.usr_role);
+      if (
+        !u ||
+        !u.usr_refresh_token ||
+        !(await bcrypt.compare(rt, u.usr_refresh_token))
+      )
+        throw new ForbiddenException();
+      const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap);
       await this.updateRefreshToken(u.usr_id, t.refresh_token);
       return t;
     } catch {
@@ -91,12 +113,22 @@ export class AuthService {
     await this.userService.updateRefreshToken(uid, hash);
   }
 
-  async getTokens(uid: string, email: string, name: string, role: string) {
-    const payload = { sub: uid, email, name, role };
+  async getTokens(uid: string, email: string, name: string) {
+    const payload = { sub: uid, email, name };
     const [at, rt] = await Promise.all([
-      this.jwtService.signAsync(payload, { secret: this.configService.get('JWT_SECRET'), expiresIn: '12h' }),
-      this.jwtService.signAsync(payload, { secret: this.configService.get('JWT_REFRESH_SECRET'), expiresIn: '14d' }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get('JWT_SECRET'),
+        expiresIn: '12h',
+      }),
+      this.jwtService.signAsync(payload, {
+        secret: this.configService.get('JWT_REFRESH_SECRET'),
+        expiresIn: '14d',
+      }),
     ]);
-    return { access_token: at, refresh_token: rt, user: { id: uid, email, fullName: name, role } };
+    return {
+      access_token: at,
+      refresh_token: rt,
+      user: { id: uid, email, fullName: name },
+    };
   }
 }

@@ -18,10 +18,6 @@ export class UserEntity extends BaseEntity {
   @Transform(({ obj }) => obj.usr_avatar, { toClassOnly: true })
   userAvatar: string;
 
-  @Expose()
-  @Transform(({ obj }) => obj.usr_role, { toClassOnly: true }) // Default value
-  role?: string; // Optional with default
-
   @Exclude()
   password?: string;
 

@@ -19,9 +19,7 @@ export class UserService {
     const { data, error } = await this.supabase
       .getClient()
       .from('user')
-      .select(
-        'usr_id, usr_nama_lengkap, usr_email, usr_role, created_at, updated_at',
-      );
+      .select();
     if (error) throw new InternalServerErrorException(error.message);
     return plainToInstance(UserEntity, data || [], {
       excludeExtraneousValues: true,
@@ -100,7 +98,7 @@ export class UserService {
     const { data, error } = await this.supabase
       .getClient()
       .from('user')
-      .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
+      .select('usr_id, usr_nama_lengkap, usr_email')
       .eq('usr_id', userId)
       .limit(1);
     if (error) throw new InternalServerErrorException(error.message);
@@ -125,7 +123,6 @@ export class UserService {
       usr_password: hash,
       created_at: now,
       updated_at: now,
-      usr_role: payload.role || 'user',
       usr_is_verified: !payload.verificationToken,
       usr_verification_token: payload.verificationToken || null,
     };
