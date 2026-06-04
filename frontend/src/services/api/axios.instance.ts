@@ -18,7 +18,7 @@ const processQueue = (error: any, token: string | null = null) => {
     if (error) {
       prom.reject(error);
     } else {
-    prom.resolve(token);
+      prom.resolve(token);
     }
   });
 
@@ -32,7 +32,7 @@ api.interceptors.request.use(
   },
   (error) => {
     return Promise.reject(error);
-  }
+  },
 );
 
 api.interceptors.response.use(
@@ -45,7 +45,8 @@ api.interceptors.response.use(
       error.response &&
       error.response.status === 401 &&
       !originalRequest._retry &&
-      originalRequest.url !== "/auth/refresh"
+      originalRequest.url !== "/auth/refresh" &&
+      originalRequest.url !== "/auth/login"
     ) {
       if (isRefreshing) {
         // Jika sedang refresh, masukkan ke queue
@@ -80,7 +81,7 @@ api.interceptors.response.use(
       }
     }
     return Promise.reject(error);
-  }
+  },
 );
 
 export default api;

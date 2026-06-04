@@ -35,15 +35,11 @@ export default function LoginPage() {
 
     try {
       await authService.login(email, password);
-
-      router.push("/dashboard");
     } catch (err: any) {
       // Handle axios error response
-
       const message =
         err.response?.data?.message ||
         "Invalid email or password. Please try again.";
-
       setError(message);
     } finally {
       setIsLoading(false);
