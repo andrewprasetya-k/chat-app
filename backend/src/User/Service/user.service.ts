@@ -8,495 +8,235 @@ import * as bcrypt from 'bcrypt';
 import { SupabaseService } from 'src/Supabase/supabase.service';
 import { EditUserDto } from '../Dto/edit-user.dto';
 import { UserEntity } from '../Entity/user.entity';
-import { plainToInstance, TransformPlainToInstance } from 'class-transformer';
+import { plainToInstance } from 'class-transformer';
 import { CreateUserDto } from '../Dto/create-user.dto';
 
 @Injectable()
 export class UserService {
   constructor(private readonly supabase: SupabaseService) {}
 
-  async getAllUsers() {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select(
-          'usr_id, usr_nama_lengkap, usr_email, usr_role, created_at, updated_at',
-        );
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      const transformedData = plainToInstance(UserEntity, data || [], {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      });
-      return transformedData;
-    } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      )
-        throw err;
-      throw new InternalServerErrorException('Failed to fetch users');
-    }
+  async getAllUsers(): Promise<UserEntity[]> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select(
+        'usr_id, usr_nama_lengkap, usr_email, usr_role, created_at, updated_at',
+      );
+    if (error) throw new InternalServerErrorException(error.message);
+    return plainToInstance(UserEntity, data || [], {
+      excludeExtraneousValues: true,
+      enableImplicitConversion: true,
+    });
   }
 
-  async findByEmail(email: string) {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select('usr_id,usr_nama_lengkap, usr_email')
-        .ilike('usr_email', `${email}%`);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      const transformedData = plainToInstance(UserEntity, data || [], {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      });
-      return transformedData;
-    } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      )
-        throw err;
-      throw new InternalServerErrorException('Failed to query user by email');
-    }
+  async findByEmail(email: string): Promise<UserEntity[]> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select('usr_id, usr_nama_lengkap, usr_email')
+      .ilike('usr_email', `${email}%`);
+    if (error) throw new InternalServerErrorException(error.message);
+    return plainToInstance(UserEntity, data || [], {
+      excludeExtraneousValues: true,
+      enableImplicitConversion: true,
+    });
   }
 
   async findByEmailForRegister(email: string) {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select('usr_email')
-        .eq('usr_email', email);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return data;
-    } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      )
-        throw err;
-      throw new InternalServerErrorException('Failed to query user by email');
-    }
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select('usr_email')
+      .eq('usr_email', email);
+    if (error) throw new InternalServerErrorException(error.message);
+    return data;
   }
 
   async findByEmailForAuth(email: string) {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select('*')
-        .eq('usr_email', email);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return data && data.length > 0 ? data[0] : null;
-    } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      )
-        throw err;
-      throw new InternalServerErrorException('Failed to query user by email');
-    }
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select('*')
+      .eq('usr_email', email);
+    if (error) throw new InternalServerErrorException(error.message);
+    return data && data.length > 0 ? data[0] : null;
   }
 
   async findByIdForAuth(id: string) {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select('*')
-        .eq('usr_id', id)
-        .single();
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return data;
-    } catch (err) {
-      throw new InternalServerErrorException(
-        err?.message || 'Failed to query user by id',
-      );
-    }
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select('*')
+      .eq('usr_id', id)
+      .single();
+    if (error) throw new InternalServerErrorException(error.message);
+    return data;
   }
 
   async updateRefreshToken(userId: string, refreshToken: string | null) {
-    const client = this.supabase.getClient();
-    try {
-      const { error } = await client
-        .from('user')
-        .update({ usr_refresh_token: refreshToken })
-        .eq('usr_id', userId);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return { success: true };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to update refresh token',
-      );
-    }
+    const { error } = await this.supabase
+      .getClient()
+      .from('user')
+      .update({ usr_refresh_token: refreshToken })
+      .eq('usr_id', userId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
   }
 
-  async findByFullName(fullName: string) {
-    try {
-      const client = this.supabase.getClient();
-      const { data, error } = await client
-        .from('user')
-        .select('usr_id, usr_nama_lengkap, usr_email')
-        .ilike('usr_nama_lengkap', `${fullName}%`);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      const transformedData = plainToInstance(UserEntity, data || [], {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      });
-      return transformedData;
-    } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      )
-        throw err;
-      throw new InternalServerErrorException(
-        'Failed to query user by full name',
-      );
-    }
+  async findByFullName(fullName: string): Promise<UserEntity[]> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select('usr_id, usr_nama_lengkap, usr_email')
+      .ilike('usr_nama_lengkap', `${fullName}%`);
+    if (error) throw new InternalServerErrorException(error.message);
+    return plainToInstance(UserEntity, data || [], {
+      excludeExtraneousValues: true,
+      enableImplicitConversion: true,
+    });
   }
 
-  async getUserByIdService(userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('user')
-        .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
-        .eq('usr_id', userId)
-        .limit(1);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      if (!data || data.length === 0) {
-        throw new NotFoundException(`User with ID ${userId} not found`);
-      }
-
-      const transformedData = plainToInstance(UserEntity, data, {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      });
-      return transformedData;
-    } catch (error: any) {
-      // Re-throw known exceptions
-      if (
-        error instanceof NotFoundException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to get user',
-      );
-    }
+  async getUserByIdService(userId: string): Promise<UserEntity> {
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .select('usr_id, usr_nama_lengkap, usr_role, usr_email')
+      .eq('usr_id', userId)
+      .limit(1);
+    if (error) throw new InternalServerErrorException(error.message);
+    if (!data || data.length === 0)
+      throw new NotFoundException(`User ${userId} not found`);
+    return plainToInstance(UserEntity, data[0], {
+      excludeExtraneousValues: true,
+      enableImplicitConversion: true,
+    });
   }
 
-  async createUser(payload: CreateUserDto) {
-    try {
-      const client = this.supabase.getClient();
-      const existing = await this.findByEmailForRegister(payload.email);
-      if (existing && existing.length > 0) {
+  async createUser(payload: CreateUserDto & { verificationToken?: string }) {
+    const existing = await this.findByEmailForRegister(payload.email);
+    if (existing && existing.length > 0)
+      throw new BadRequestException('Email already registered');
+
+    const hash = await bcrypt.hash(payload.password, 10);
+    const now = new Date().toISOString();
+    const insertData = {
+      usr_nama_lengkap: payload.fullName || null,
+      usr_email: payload.email,
+      usr_password: hash,
+      created_at: now,
+      updated_at: now,
+      usr_role: payload.role || 'user',
+      usr_is_verified: !payload.verificationToken,
+      usr_verification_token: payload.verificationToken || null,
+    };
+
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .insert(insertData)
+      .select()
+      .single();
+    if (error) {
+      if (error.code === '23505')
         throw new BadRequestException('Email already registered');
-      }
-
-      const passwordHash = await bcrypt.hash(payload.password, 10);
-
-      const now = new Date().toISOString();
-
-      const insertPayload: any = {
-        usr_nama_lengkap: payload.fullName ?? null,
-        usr_email: payload.email,
-        usr_password: passwordHash,
-        created_at: now,
-        updated_at: now,
-      };
-
-      if (payload.role !== undefined && payload.role !== null) {
-        insertPayload.usr_role = payload.role;
-      }
-
-      // Email Verification
-      if ((payload as any).verificationToken) {
-        insertPayload.usr_is_verified = false;
-        insertPayload.usr_verification_token = (payload as any).verificationToken;
-      } else {
-        // Default to true if no token provided (legacy behavior or admin creation)
-        // Or keep it false if you want strict enforcement.
-        // For now, let's default to TRUE if no token to avoid breaking existing flows if any.
-        // BUT for registration flow, we will pass a token.
-        insertPayload.usr_is_verified = true;
-      }
-
-      const { data, error } = await client
-        .from('user')
-        .insert(insertPayload)
-        .select()
-        .single();
-
-      if (error) {
-        const msg = String(error.message || error);
-
-        if (msg.includes('invalid input value for enum')) {
-          throw new BadRequestException(
-            'Invalid role value for usr_role; please use a valid role defined in the database enum',
-          );
-        }
-
-        if (error.code === '23505') {
-          // '23505' is the code for unique_violation
-          if (error.message.includes('user_usr_email_key')) {
-            throw new BadRequestException('Email address already registered');
-          }
-          // Fallback for other unique constraints
-          throw new BadRequestException(
-            'A record with this value already exists.',
-          );
-        }
-
-        if (error.code && String(error.code).startsWith('235')) {
-          throw new BadRequestException(error.message);
-        }
-
-        throw new InternalServerErrorException(error.message);
-      }
-
-      if (data && typeof data === 'object') {
-        // delete (data as any).usr_password;
-      }
-
-      return { success: true, id: data.usr_id };
-    } catch (err) {
-      if (
-        err instanceof BadRequestException ||
-        err instanceof InternalServerErrorException
-      )
-        throw err;
-      throw new InternalServerErrorException('Failed to create user');
+      throw new InternalServerErrorException(error.message);
     }
+    return { success: true, id: data.usr_id };
   }
 
   async editUserService(body: EditUserDto, userId: string) {
-    const client = this.supabase.getClient();
-    try {
-      const updatePayload: any = {};
+    const updateData: any = {};
+    if (body.fullName !== undefined)
+      updateData.usr_nama_lengkap = body.fullName;
+    if (body.email !== undefined) updateData.usr_email = body.email;
 
-      if (body.fullName !== undefined) {
-        updatePayload.usr_nama_lengkap = body.fullName;
-      }
-
-      if (body.email !== undefined) {
-        updatePayload.usr_email = body.email;
-      }
-
-      const { error } = await client
-        .from('user')
-        .update(updatePayload)
-        .eq('usr_id', userId);
-
-      if (error) {
-        if (
-          error.code === '23505' &&
-          error.message.includes('user_usr_email_key')
-        ) {
-          throw new BadRequestException(
-            'This email address is already in use by another account.',
-          );
-        }
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return { success: true, message: 'User updated successfully' };
-    } catch (error: any) {
-      if (
-        error instanceof BadRequestException ||
-        error instanceof InternalServerErrorException
-      ) {
-        throw error;
-      }
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to edit user',
-      );
+    const { error } = await this.supabase
+      .getClient()
+      .from('user')
+      .update(updateData)
+      .eq('usr_id', userId);
+    if (error) {
+      if (error.code === '23505')
+        throw new BadRequestException('Email already in use');
+      throw new InternalServerErrorException(error.message);
     }
+    return { success: true };
   }
 
-  async updateAvatar(userId: string, avatarUrl: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { error } = await client
-        .from('user')
-        .update({ usr_avatar: avatarUrl })
-        .eq('usr_id', userId);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return { success: true };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to update avatar',
-      );
-    }
+  async updateAvatar(userId: string, url: string) {
+    const { error } = await this.supabase
+      .getClient()
+      .from('user')
+      .update({ usr_avatar: url })
+      .eq('usr_id', userId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
   }
 
   async verifyUser(token: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { data, error } = await client
-        .from('user')
-        .update({ usr_is_verified: true, usr_verification_token: null })
-        .eq('usr_verification_token', token)
-        .select()
-        .single();
-
-      if (error || !data) {
-        throw new BadRequestException('Invalid or expired verification token');
-      }
-
-      return { success: true, message: 'Email verified successfully' };
-    } catch (error: any) {
-      if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to verify user',
-      );
-    }
+    const { data, error } = await this.supabase
+      .getClient()
+      .from('user')
+      .update({ usr_is_verified: true, usr_verification_token: null })
+      .eq('usr_verification_token', token)
+      .select()
+      .single();
+    if (error || !data) throw new BadRequestException('Invalid token');
+    return { success: true };
   }
 
   async setResetPasswordToken(email: string, token: string) {
     const client = this.supabase.getClient();
-    try {
-      // 1. Delete existing tokens for this email to avoid duplicates
-      await client
-        .from('password_reset_tokens')
-        .delete()
-        .eq('email', email);
-
-      // 2. Insert new token
-      const { error } = await client
-        .from('password_reset_tokens')
-        .insert({
-          email,
-          token,
-          expires_at: new Date(Date.now() + 3600000).toISOString(),
-        });
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return { success: true };
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to set reset password token',
-      );
-    }
+    await client.from('password_reset_tokens').delete().eq('email', email);
+    const { error } = await client
+      .from('password_reset_tokens')
+      .insert({
+        email,
+        token,
+        expires_at: new Date(Date.now() + 3600000).toISOString(),
+      });
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
   }
 
-  async resetPassword(token: string, passwordHash: string) {
+  async resetPassword(token: string, hash: string) {
     const client = this.supabase.getClient();
-    try {
-      // 1. Find and validate token
-      const { data: tokenData, error: tokenError } = await client
-        .from('password_reset_tokens')
-        .select('*')
-        .eq('token', token)
-        .single();
+    const { data: t, error: te } = await client
+      .from('password_reset_tokens')
+      .select('*')
+      .eq('token', token)
+      .single();
+    if (te || !t || new Date(t.expires_at) < new Date())
+      throw new BadRequestException('Invalid token');
 
-      if (tokenError || !tokenData || new Date(tokenData.expires_at) < new Date()) {
-        throw new BadRequestException('Invalid or expired reset token');
-      }
-
-      // 2. Update user password
-      const { error: userError } = await client
-        .from('user')
-        .update({ usr_password: passwordHash })
-        .eq('usr_email', tokenData.email);
-
-      if (userError) {
-        throw new InternalServerErrorException(userError.message);
-      }
-
-      // 3. Delete the token
-      await client
-        .from('password_reset_tokens')
-        .delete()
-        .eq('token', token);
-
-      return { success: true, message: 'Password reset successfully' };
-    } catch (error: any) {
-      if (error instanceof BadRequestException) throw error;
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to reset password',
-      );
-    }
+    const { error: ue } = await client
+      .from('user')
+      .update({ usr_password: hash })
+      .eq('usr_email', t.email);
+    if (ue) throw new InternalServerErrorException(ue.message);
+    await client.from('password_reset_tokens').delete().eq('token', token);
+    return { success: true };
   }
 
   async verifyUserByEmail(email: string) {
-    const client = this.supabase.getClient();
-    try {
-      const { error } = await client
-        .from('user')
-        .update({ usr_is_verified: true, usr_verification_token: null })
-        .eq('usr_email', email);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return { success: true };
-    } catch (error: any) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to verify user by email',
-      );
-    }
+    const { error } = await this.supabase
+      .getClient()
+      .from('user')
+      .update({ usr_is_verified: true, usr_verification_token: null })
+      .eq('usr_email', email);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
   }
 
   async updateOnlineStatus(userId: string, isOnline: boolean) {
-    const client = this.supabase.getClient();
-    try {
-      const updatePayload: any = { usr_is_online: isOnline };
-
-      if (!isOnline) {
-        updatePayload.usr_last_seen = new Date().toISOString();
-      }
-
-      const { error } = await client
-        .from('user')
-        .update(updatePayload)
-        .eq('usr_id', userId);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-      return { success: true };
-    } catch (error) {
-      throw new InternalServerErrorException(
-        error?.message || 'Failed to update online status',
-      );
-    }
+    const data: any = { usr_is_online: isOnline };
+    if (!isOnline) data.usr_last_seen = new Date().toISOString();
+    const { error } = await this.supabase
+      .getClient()
+      .from('user')
+      .update(data)
+      .eq('usr_id', userId);
+    if (error) throw new InternalServerErrorException(error.message);
+    return { success: true };
   }
 }

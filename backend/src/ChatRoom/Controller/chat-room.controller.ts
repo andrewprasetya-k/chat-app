@@ -15,7 +15,6 @@ import {
 } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { ChatRoomService } from '../Service/chat-room.service';
-import { SupabaseService } from 'src/Supabase/supabase.service';
 import { CreateRoomDto } from '../Dto/create-room.dto';
 import { AuthGuard } from 'src/Auth/auth.guard';
 import { User } from 'src/Auth/user.decorator';
@@ -23,15 +22,11 @@ import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { RoomMemberGuard } from 'src/shared/guards/room-member.guard';
 import { RoomAdminGuard } from 'src/shared/guards/room-admin.guard';
 import { RoomActiveGuard } from 'src/shared/guards/room-active.guard';
-
 import { GetRoomMessagesQueryDto } from '../Dto/get-room-messages.query.dto';
 
 @Controller('room')
 export class ChatRoomController {
-  constructor(
-    private readonly chatRoomService: ChatRoomService,
-    private readonly supabaseService: SupabaseService,
-  ) {}
+  constructor(private readonly chatRoomService: ChatRoomService) {}
 
   @Post(':roomId/icon')
   @UseGuards(AuthGuard, RoomActiveGuard, RoomAdminGuard)
@@ -48,15 +43,10 @@ export class ChatRoomController {
     )
     file: Express.Multer.File,
   ) {
-    // 1. Upload ke Supabase (folder: rooms/{roomId})
-    const iconUrl = await this.supabaseService.uploadFile(
+    const iconUrl = await this.chatRoomService.updateGroupIconService(
+      roomId,
       file,
-      'avatars', // Menggunakan bucket yang sama dengan user avatar
-      `rooms/${roomId}`,
     );
-
-    // 2. Update URL di Database
-    await this.chatRoomService.updateGroupIcon(roomId, iconUrl);
 
     return {
       success: true,
@@ -138,11 +128,7 @@ export class ChatRoomController {
 
   @Post(':roomId')
   @UseGuards(AuthGuard, RoomActiveGuard)
-  joinRoom(
-    @Param('roomId') roomId: string,
-
-    @User('sub') userId: string,
-  ) {
+  joinRoom(@Param('roomId') roomId: string, @User('sub') userId: string) {
     return this.chatRoomService.joinRoomService(roomId, userId);
   }
 

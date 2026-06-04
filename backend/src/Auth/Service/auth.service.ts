@@ -1,22 +1,4 @@
-/**
- * AuthService
- * -----------
- * Responsible for user registration and authentication flows. Currently
- * this service uses an in-memory array (`users`) as a temporary store.
- * In a production setup this should delegate to a persistent user store
- * (e.g. Supabase via `UserService`).
- *
- * Public methods:
- * - register(registerDto) -> creates a new user (temporary in-memory)
- * - login(loginDto) -> validates credentials and returns a signed JWT
- */
-import {
-  Injectable,
-  UnauthorizedException,
-  BadRequestException,
-  InternalServerErrorException,
-  ForbiddenException,
-} from '@nestjs/common';
+import { Injectable, UnauthorizedException, BadRequestException, InternalServerErrorException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcrypt';
 import { ConfigService } from '@nestjs/config';
@@ -37,52 +19,25 @@ export class AuthService {
     private readonly mailService: MailService,
   ) {}
 
-  // Register user baru (menggunakan UserService -> Supabase)
-  async register(registerDto: RegisterDto) {
-    try {
-      const { email, password, fullName } = registerDto;
-      const verificationToken = uuidv4();
-
-      const created = await this.userService.createUser({
-        email,
-        fullName,
-        password,
-        verificationToken, // Pass the token here
-      } as any);
-
-      // Send verification email
-      await this.mailService.sendVerificationEmail(email, verificationToken);
-
-      return {
-        message:
-          'User registered successfully. Please check your email to verify your account.',
-        userId: created?.id,
-      };
-    } catch (err) {
-      if (err instanceof BadRequestException) throw err;
-
-      if (err instanceof InternalServerErrorException) throw err;
-
-      throw new InternalServerErrorException(
-        err?.message ?? 'Failed to register user',
-      );
-    }
-  }
-
-  async forgotPassword(forgotPasswordDto: ForgotPasswordDto) {
-    const user = await this.userService.findByEmailForAuth(forgotPasswordDto.email);
-    if (!user) {
-        throw new BadRequestException('User not found');
-    }
+  async register(dto: RegisterDto) {
     const token = uuidv4();
-    await this.userService.setResetPasswordToken(user.usr_email, token);
-    await this.mailService.sendResetPasswordEmail(user.usr_email, token);
-    return { message: 'Reset password email sent' };
+    const created = await this.userService.createUser({ ...dto, verificationToken: token });
+    await this.mailService.sendVerificationEmail(dto.email, token);
+    return { message: 'Registered. Check email.', userId: created.id };
   }
 
-  async resetPassword(resetPasswordDto: ResetPasswordDto) {
-    const passwordHash = await bcrypt.hash(resetPasswordDto.password, 10);
-    return await this.userService.resetPassword(resetPasswordDto.token, passwordHash);
+  async forgotPassword(dto: ForgotPasswordDto) {
+    const u = await this.userService.findByEmailForAuth(dto.email);
+    if (!u) throw new BadRequestException('User not found');
+    const token = uuidv4();
+    await this.userService.setResetPasswordToken(u.usr_email, token);
+    await this.mailService.sendResetPasswordEmail(u.usr_email, token);
+    return { message: 'Email sent' };
+  }
+
+  async resetPassword(dto: ResetPasswordDto) {
+    const hash = await bcrypt.hash(dto.password, 10);
+    return await this.userService.resetPassword(dto.token, hash);
   }
 
   async verifyEmail(token: string) {
@@ -90,179 +45,58 @@ export class AuthService {
   }
 
   async handleGoogleLogin(googleUser: { email: string; name: string }) {
-    // 1. Cari user berdasarkan email
-    let user = (await this.userService.findByEmailForAuth(
-      googleUser.email,
-    )) as any;
-
-    // 2. Jika user belum ada, buat baru
-    if (!user) {
-      const randomPassword = uuidv4(); // Generate random password
-      const hashedPassword = await bcrypt.hash(randomPassword, 10);
-
-      const created = await this.userService.createUser({
-        email: googleUser.email,
-        fullName: googleUser.name,
-        password: hashedPassword,
-        // Remove role: 'user' to let the DB use its default value if defined, 
-        // or ensure it matches the exact ENUM string.
-      } as any);
-
-      user = await this.userService.findByIdForAuth(created.id);
-    } else {
-      // 3. Jika user ada, pastikan statusnya terverifikasi
-      if (user.usr_is_verified === false) {
-        // Logic to verify user if they were not verified yet
-        await this.userService.verifyUserByEmail(user.usr_email); // You might need to add this method to UserService
-      }
+    let u = await this.userService.findByEmailForAuth(googleUser.email);
+    if (!u) {
+      const created = await this.userService.createUser({ email: googleUser.email, fullName: googleUser.name, password: uuidv4() });
+      u = await this.userService.findByIdForAuth(created.id);
+    } else if (!u.usr_is_verified) {
+      await this.userService.verifyUserByEmail(u.usr_email);
     }
 
-    // 4. Generate JWT Tokens
-    const tokens = await this.getTokens(
-      user.usr_id,
-      user.usr_email,
-      user.usr_nama_lengkap,
-      user.usr_role || 'user',
-    );
-    await this.updateRefreshToken(user.usr_id, tokens.refresh_token);
-
-    return tokens;
+    const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap, u.usr_role || 'user');
+    await this.updateRefreshToken(u.usr_id, t.refresh_token);
+    return t;
   }
 
-  // Login user -> cari di DB dan verifikasi password
-  async login(loginDto: LoginDto) {
+  async login(dto: LoginDto) {
+    const u = await this.userService.findByEmailForAuth(dto.email);
+    if (!u || !(await bcrypt.compare(dto.password, u.usr_password || ''))) throw new UnauthorizedException('Invalid credentials');
+    if (!u.usr_is_verified) throw new UnauthorizedException('Email not verified');
+
+    const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap, u.usr_role);
+    await this.updateRefreshToken(u.usr_id, t.refresh_token);
+    return t;
+  }
+
+  async logout(uid: string) {
+    await this.userService.updateRefreshToken(uid, null);
+    return { success: true };
+  }
+
+  async refreshTokens(rt: string) {
     try {
-      const { email, password } = loginDto;
-
-      // Type assertion for the raw DB user object since findByEmailForAuth returns any/unknown
-      const user = (await this.userService.findByEmailForAuth(email)) as {
-        usr_id: string;
-        usr_email: string;
-        usr_nama_lengkap: string;
-        usr_role: string;
-        usr_password: string;
-        usr_is_verified: boolean;
-      } | null;
-
-      if (!user) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      if (user.usr_is_verified === false) {
-        throw new UnauthorizedException(
-          'Email not verified. Please check your inbox.',
-        );
-      }
-
-      const isPasswordValid = await bcrypt.compare(
-        password,
-        user.usr_password || '',
-      );
-      if (!isPasswordValid) {
-        throw new UnauthorizedException('Invalid credentials');
-      }
-
-      const tokens = await this.getTokens(
-        user.usr_id,
-        user.usr_email,
-        user.usr_nama_lengkap,
-        user.usr_role,
-      );
-      await this.updateRefreshToken(user.usr_id, tokens.refresh_token);
-
-      return tokens;
-    } catch (err) {
-      // Forward Unauthorized errors unchanged
-      if (err instanceof UnauthorizedException) throw err;
-
-      // If lower layer already produced a Nest HTTP error, forward it
-      if (
-        err instanceof InternalServerErrorException ||
-        err instanceof BadRequestException
-      )
-        throw err;
-
-      throw new InternalServerErrorException(err?.message ?? 'Failed to login');
+      const p = await this.jwtService.verifyAsync(rt, { secret: this.configService.get('JWT_REFRESH_SECRET') });
+      const u = await this.userService.findByIdForAuth(p.sub);
+      if (!u || !u.usr_refresh_token || !(await bcrypt.compare(rt, u.usr_refresh_token))) throw new ForbiddenException();
+      const t = await this.getTokens(u.usr_id, u.usr_email, u.usr_nama_lengkap, u.usr_role);
+      await this.updateRefreshToken(u.usr_id, t.refresh_token);
+      return t;
+    } catch {
+      throw new ForbiddenException();
     }
   }
 
-  async logout(userId: string) {
-    await this.userService.updateRefreshToken(userId, null);
-    return { message: 'User logged out successfully' };
+  async updateRefreshToken(uid: string, rt: string) {
+    const hash = await bcrypt.hash(rt, 10);
+    await this.userService.updateRefreshToken(uid, hash);
   }
 
-  async refreshTokens(refreshToken: string) {
-    let payload;
-    try {
-      payload = await this.jwtService.verifyAsync(refreshToken, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-      });
-    } catch (e) {
-      throw new ForbiddenException('Invalid Refresh Token Signature');
-    }
-
-    const userId = payload.sub;
-    const user = (await this.userService.findByIdForAuth(userId)) as {
-      usr_id: string;
-      usr_email: string;
-      usr_nama_lengkap: string;
-      usr_role: string;
-      usr_refresh_token: string;
-    } | null;
-
-    if (!user || !user.usr_refresh_token)
-      throw new ForbiddenException('Access Denied');
-
-    const refreshTokenMatches = await bcrypt.compare(
-      refreshToken,
-      user.usr_refresh_token,
-    );
-
-    if (!refreshTokenMatches) throw new ForbiddenException('Access Denied');
-
-    const tokens = await this.getTokens(
-      user.usr_id,
-      user.usr_email,
-      user.usr_nama_lengkap,
-      user.usr_role,
-    );
-    await this.updateRefreshToken(user.usr_id, tokens.refresh_token);
-    return tokens;
-  }
-
-  async updateRefreshToken(userId: string, refreshToken: string) {
-    const hash = await bcrypt.hash(refreshToken, 10);
-    await this.userService.updateRefreshToken(userId, hash);
-  }
-
-  async getTokens(userId: string, email: string, name: string, role: string) {
-    const payload = {
-      sub: userId,
-      email: email,
-      name: name,
-      role: role,
-    };
-
-    const [accessToken, refreshToken] = await Promise.all([
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_SECRET'),
-        expiresIn: '12h', // Access token short lived
-      }),
-      this.jwtService.signAsync(payload, {
-        secret: this.configService.get<string>('JWT_REFRESH_SECRET'),
-        expiresIn: '14d', // Refresh token long lived
-      }),
+  async getTokens(uid: string, email: string, name: string, role: string) {
+    const payload = { sub: uid, email, name, role };
+    const [at, rt] = await Promise.all([
+      this.jwtService.signAsync(payload, { secret: this.configService.get('JWT_SECRET'), expiresIn: '12h' }),
+      this.jwtService.signAsync(payload, { secret: this.configService.get('JWT_REFRESH_SECRET'), expiresIn: '14d' }),
     ]);
-
-    return {
-      access_token: accessToken,
-      refresh_token: refreshToken,
-      user: {
-        id: userId,
-        email: email,
-        fullName: name,
-        role: role,
-      },
-    };
+    return { access_token: at, refresh_token: rt, user: { id: uid, email, fullName: name, role } };
   }
 }
