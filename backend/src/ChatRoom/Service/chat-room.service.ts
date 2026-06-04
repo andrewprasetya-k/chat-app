@@ -357,14 +357,12 @@ export class ChatRoomService {
         `${u.usr_nama_lengkap} left`,
         userId,
       );
-    this.chatGateway.server
-      .to(`room_${roomId}`)
-      .emit('member_left', {
-        roomId,
-        userId,
-        userName: u?.usr_nama_lengkap,
-        leftAt: now,
-      });
+    this.chatGateway.server.to(`room_${roomId}`).emit('member_left', {
+      roomId,
+      userId,
+      userName: u?.usr_nama_lengkap,
+      leftAt: now,
+    });
     return plainToInstance(
       BasicActionResponseEntity,
       { success: true, message: 'Left', now },
@@ -455,13 +453,11 @@ export class ChatRoomService {
       .update({ deleted_at: new Date().toISOString() })
       .eq('cr_id', roomId);
     if (error) throw new InternalServerErrorException(error.message);
-    this.chatGateway.server
-      .to(`room_${roomId}`)
-      .emit('room_deleted', {
-        roomId,
-        deletedAt: new Date().toISOString(),
-        deletedBy: userId,
-      });
+    this.chatGateway.server.to(`room_${roomId}`).emit('room_deleted', {
+      roomId,
+      deletedAt: new Date().toISOString(),
+      deletedBy: userId,
+    });
     return { success: true };
   }
 

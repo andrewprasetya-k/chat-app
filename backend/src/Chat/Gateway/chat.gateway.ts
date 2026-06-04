@@ -83,7 +83,7 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     if (userId) {
       const lastSeen = new Date().toISOString();
-      
+
       // 1. Update Offline Status in DB
       await this.userService.updateOnlineStatus(userId, false).catch(() => {});
 
@@ -92,7 +92,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (roomIds.length > 0) {
         const socketRoomIds = roomIds.map((id) => `room_${id}`);
         // Send offline event only to relevant rooms
-        this.server.to(socketRoomIds).emit('user_offline', { userId, lastSeen });
+        this.server
+          .to(socketRoomIds)
+          .emit('user_offline', { userId, lastSeen });
       }
     }
   }
@@ -105,10 +107,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const userId = client.data.userId;
       if (!userId) throw new WsException('Unauthorized');
-      
-      const isMember = await this.chatSharedService.isUserMemberOfRoom(roomId, userId);
+
+      const isMember = await this.chatSharedService.isUserMemberOfRoom(
+        roomId,
+        userId,
+      );
       if (!isMember) throw new WsException('Not a member');
-      
+
       client.join(`room_${roomId}`);
       return { event: 'joined_room', data: roomId };
     } catch (error) {
