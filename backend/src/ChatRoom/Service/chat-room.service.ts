@@ -9,14 +9,11 @@ import {
   CreateRoomResponseEntity,
   MemberActionResponseEntity,
   BasicActionResponseEntity,
-  SearchResponseEntity,
-  SearchMessageEntity,
 } from '../Entity/chat-room.entity';
 import { AddRemoveMemberDto } from '../Dto/add-remove-member.dto';
 import { ChatSharedService } from 'src/shared/chat-shared.service';
 import { ChatService } from 'src/Chat/Service/chat.service';
 import { ChatGateway } from 'src/Chat/Gateway/chat.gateway';
-import { last } from 'rxjs';
 
 @Injectable()
 export class ChatRoomService {
@@ -29,12 +26,13 @@ export class ChatRoomService {
 
   /**
    * Mengambil SEMUA data room member tanpa filter status.
-   * Digunakan sebagai basis data untuk getActiveRooms dan getDeactivatedRooms.
+   * Dioptimalkan untuk menghindari N+1 query.
    */
   private async getAllRoomsData(userId: string) {
     try {
       const client = this.supabase.getClient();
 
+      // 1. Ambil data room, last message, dan info member dasar
       const { data, error } = await client
         .from('chat_room_member')
         .select(
@@ -80,9 +78,7 @@ export class ChatRoomService {
           foreignTable: 'chat_room.chat_message',
         });
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
+      if (error) throw new InternalServerErrorException(error.message);
 
       return (data ?? [])
         .map((item) => {
@@ -91,59 +87,54 @@ export class ChatRoomService {
             : item.chat_room;
           if (!room) return null;
 
-          const messages = room?.chat_message ?? [];
-          const lastMessage = messages.length > 0 ? messages[0] : null;
+          const lastMessage = room?.chat_message?.[0] || null;
           const sender = lastMessage?.sender;
           const senderId = Array.isArray(sender)
             ? sender[0]?.usr_id
-            : (sender as any)?.usr_id;
+            : sender?.usr_id;
           const senderName = Array.isArray(sender)
             ? sender[0]?.usr_nama_lengkap
-            : (sender as any)?.usr_nama_lengkap;
+            : sender?.usr_nama_lengkap;
 
-          const isLastMessageRead = lastMessage
-            ? (lastMessage.read_receipts ?? []).some(
-                (rr) => rr.rr_usr_id === userId,
-              )
-            : false;
+          const isLastMessageRead = (lastMessage?.read_receipts ?? []).some(
+            (rr) => rr.rr_usr_id === userId,
+          );
 
-          let roomName = room?.cr_name;
+          // Gunakan helper sentralisasi untuk nama room
+          const roomName = this.sharedService.getDisplayRoomName(room, userId);
+
           const members = room?.members ?? [];
           const otherMemberRaw = members.find((m: any) => {
             const user = Array.isArray(m.user) ? m.user[0] : m.user;
             return user?.usr_id !== userId;
           });
-          const otherMember = otherMemberRaw
+          const otherUser = otherMemberRaw
             ? Array.isArray(otherMemberRaw.user)
               ? otherMemberRaw.user[0]
               : otherMemberRaw.user
             : null;
 
-          if (!room?.cr_is_group && otherMember) {
-            roomName = otherMember.usr_nama_lengkap;
-          }
-
           return {
-            roomId: room?.cr_id,
-            roomName: roomName,
-            isGroup: room?.cr_is_group,
+            roomId: room.cr_id,
+            roomName,
+            isGroup: room.cr_is_group,
             lastMessageId: lastMessage?.cm_id ?? null,
             lastMessage: lastMessage?.message_text ?? null,
             lastMessageType: lastMessage?.cm_type ?? 'user',
-            lastMessageTime: lastMessage?.created_at || room?.created_at,
+            lastMessageTime: lastMessage?.created_at || room.created_at,
             senderId: senderId ?? null,
             senderName: senderName ?? null,
             isLastMessageRead,
-            deletedAt: room?.deleted_at ?? null,
-            leaveAt: item.leave_at ?? null, // Simpan status leave user
+            deletedAt: room.deleted_at ?? null,
+            leaveAt: item.leave_at ?? null,
             memberCount: members.length,
-            otherUserId: otherMember?.usr_id ?? null,
-            otherUserEmail: otherMember?.usr_email ?? null,
-            isOnline: otherMember?.usr_is_online ?? null,
-            lastSeen: otherMember?.usr_last_seen ?? null,
+            otherUserId: otherUser?.usr_id ?? null,
+            otherUserEmail: otherUser?.usr_email ?? null,
+            isOnline: otherUser?.usr_is_online ?? null,
+            lastSeen: otherUser?.usr_last_seen ?? null,
           };
         })
-        .filter(Boolean);
+        .filter((r): r is NonNullable<typeof r> => r !== null);
     } catch (error: any) {
       throw new InternalServerErrorException(error.message);
     }
@@ -151,48 +142,74 @@ export class ChatRoomService {
 
   async getActiveRoomsNew(userId: string) {
     const all = await this.getAllRoomsData(userId);
-    // Active if user HAS NOT left AND room is NOT deleted
-    const filtered = all.filter((r) => !r?.leaveAt && !r?.deletedAt);
-    const rooms = filtered.map((r) => ({ ...r, isDeactivated: false }));
-    return this.populateUnreadAndSort(rooms, userId);
+    const filtered = all.filter((r) => !r.leaveAt && !r.deletedAt);
+    return this.populateUnreadAndSort(filtered, userId);
   }
 
   async getDeactivatedRoomsNew(userId: string) {
     const all = await this.getAllRoomsData(userId);
-    // Inactive if user HAS left OR room IS deleted
-    const filtered = all.filter((r) => r?.leaveAt || r?.deletedAt);
-    const rooms = filtered.map((r) => ({ ...r, isDeactivated: true }));
-    return this.populateUnreadAndSort(rooms, userId);
+    const filtered = all.filter((r) => r.leaveAt || r.deletedAt);
+    return this.populateUnreadAndSort(filtered, userId);
   }
 
+  /**
+   * Menghitung unread messages secara batch untuk menghindari N+1 query.
+   */
   private async populateUnreadAndSort(rooms: any[], userId: string) {
-    const transformed = rooms.map((r) =>
-      plainToInstance(ChatRoomListEntity, r, {
-        excludeExtraneousValues: true,
-        enableImplicitConversion: true,
-      }),
-    );
+    if (rooms.length === 0) return [];
 
-    const result = await Promise.all(
-      transformed.map(async (room) => {
-        try {
-          const { unreadCount } = await this.chatService.countUnreadMessages(
-            room.roomId,
-            userId,
-          );
-          room.unreadCount = unreadCount ?? 0;
-        } catch {
-          room.unreadCount = 0;
+    const client = this.supabase.getClient();
+    const roomIds = rooms.map((r) => r.roomId);
+
+    try {
+      // 1. Ambil semua read receipts user ini
+      const { data: readReceipts } = await client
+        .from('read_receipts')
+        .select('rr_cm_id')
+        .eq('rr_usr_id', userId);
+
+      const readMessageIds = new Set(
+        (readReceipts ?? []).map((rr) => rr.rr_cm_id),
+      );
+
+      // 2. Ambil semua pesan yang BUKAN dikirim oleh user ini di room-room tersebut
+      const { data: potentialUnread } = await client
+        .from('chat_message')
+        .select('cm_id, cm_cr_id')
+        .in('cm_cr_id', roomIds)
+        .neq('cm_usr_id', userId);
+
+      // 3. Hitung secara in-memory (lebih cepat daripada N+1 query database)
+      const unreadCountsMap: Record<string, number> = {};
+      (potentialUnread ?? []).forEach((msg) => {
+        if (!readMessageIds.has(msg.cm_id)) {
+          unreadCountsMap[msg.cm_cr_id] =
+            (unreadCountsMap[msg.cm_cr_id] || 0) + 1;
         }
-        return room;
-      }),
-    );
+      });
 
-    return result.sort(
-      (a, b) =>
-        new Date(b.lastMessageTime || 0).getTime() -
-        new Date(a.lastMessageTime || 0).getTime(),
-    );
+      // 4. Map ke Entity
+      const result = rooms.map((r) => {
+        const roomEntity = plainToInstance(ChatRoomListEntity, r, {
+          excludeExtraneousValues: true,
+          enableImplicitConversion: true,
+        });
+        roomEntity.unreadCount = unreadCountsMap[r.roomId] || 0;
+        return roomEntity;
+      });
+
+      return result.sort(
+        (a, b) =>
+          new Date(b.lastMessageTime || 0).getTime() -
+          new Date(a.lastMessageTime || 0).getTime(),
+      );
+    } catch (error) {
+      return rooms.map((r) =>
+        plainToInstance(ChatRoomListEntity, r, {
+          excludeExtraneousValues: true,
+        }),
+      );
+    }
   }
 
   async getRoomMessages(
@@ -266,16 +283,7 @@ export class ChatRoomService {
         throw new InternalServerErrorException('Chat room not found');
       }
 
-      let roomName = room.cr_name ?? '';
-
-      //cek kalau personal, nama roomnya itu nama user lainnya
-      if (!room.cr_is_group) {
-        const otherUser = room.members
-          .flatMap((m) => m.user)
-          .find((u) => u.usr_id !== userId);
-
-        roomName = otherUser?.usr_nama_lengkap ?? '';
-      }
+      const roomName = this.sharedService.getDisplayRoomName(room, userId);
 
       const sortedMessages = (messages ?? []).reverse() as any[];
 
@@ -750,18 +758,7 @@ export class ChatRoomService {
         );
       }
 
-      let roomName = data.cr_name;
-      if (!data.cr_is_group) {
-        const otherMember = (data.members ?? []).find(
-          (m: any) => m.crm_usr_id !== userId,
-        );
-        const otherUser = otherMember
-          ? Array.isArray(otherMember.user)
-            ? otherMember.user[0]
-            : otherMember.user
-          : null;
-        roomName = otherUser?.usr_nama_lengkap || 'Personal Chat';
-      }
+      const roomName = this.sharedService.getDisplayRoomName(data, userId);
 
       const allMembers = (data.members ?? []).map((m: any) => {
         const user = Array.isArray(m.user) ? m.user[0] : m.user;
@@ -814,25 +811,17 @@ export class ChatRoomService {
   private async findExistingSelfChat(memberId: string): Promise<string | null> {
     const client = this.supabase.getClient();
     try {
-      // Step 1: Get all rooms where this user is a member
-      const { data: userRooms, error: roomsError } = await client
+      const { data, error: roomsError } = await client
         .from('chat_room_member')
         .select('crm_cr_id')
         .eq('crm_usr_id', memberId)
         .is('leave_at', null);
 
-      if (roomsError) {
-        throw new InternalServerErrorException(
-          'Database error during self chat validation',
-        );
-      }
+      if (roomsError)
+        throw new InternalServerErrorException(roomsError.message);
+      if (!data || data.length === 0) return null;
 
-      if (!userRooms || userRooms.length === 0) {
-        return null;
-      }
-
-      // Step 2: For each room, check if it only has 1 member (self chat)
-      for (const room of userRooms) {
+      for (const room of data) {
         const { count, error: countError } = await client
           .from('chat_room_member')
           .select('*', { count: 'exact', head: true })
@@ -840,13 +829,8 @@ export class ChatRoomService {
           .is('leave_at', null);
 
         if (countError) continue;
-
-        // If room has exactly 1 member, it's a self chat
-        if (count === 1) {
-          return room.crm_cr_id;
-        }
+        if (count === 1) return room.crm_cr_id;
       }
-
       return null;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -861,52 +845,31 @@ export class ChatRoomService {
     const client = this.supabase.getClient();
     try {
       const [userId1, userId2] = memberIds;
-
-      // Step 1: Get all rooms where first user is a member
       const { data: user1Rooms, error: user1Error } = await client
         .from('chat_room_member')
         .select('crm_cr_id')
         .eq('crm_usr_id', userId1)
         .is('leave_at', null);
 
-      if (user1Error) {
-        throw new InternalServerErrorException(
-          'Database error during room validation',
-        );
-      }
+      if (user1Error)
+        throw new InternalServerErrorException(user1Error.message);
+      if (!user1Rooms || user1Rooms.length === 0) return null;
 
-      if (!user1Rooms || user1Rooms.length === 0) {
-        return null;
-      }
-
-      // Step 2: Get all rooms where second user is a member
       const { data: user2Rooms, error: user2Error } = await client
         .from('chat_room_member')
         .select('crm_cr_id')
         .eq('crm_usr_id', userId2)
         .is('leave_at', null);
 
-      if (user2Error) {
-        throw new InternalServerErrorException(
-          'Database error during room validation',
-        );
-      }
+      if (user2Error)
+        throw new InternalServerErrorException(user2Error.message);
+      if (!user2Rooms || user2Rooms.length === 0) return null;
 
-      if (!user2Rooms || user2Rooms.length === 0) {
-        return null;
-      }
-
-      // Step 3: Find common rooms (where both users are members)
       const user1RoomIds = new Set(user1Rooms.map((r) => r.crm_cr_id));
       const commonRoomIds = user2Rooms
         .map((r) => r.crm_cr_id)
         .filter((roomId) => user1RoomIds.has(roomId));
 
-      if (commonRoomIds.length === 0) {
-        return null;
-      }
-
-      // Step 4: Check each common room to find one with exactly 2 members
       for (const roomId of commonRoomIds) {
         const { count, error: countError } = await client
           .from('chat_room_member')
@@ -915,13 +878,8 @@ export class ChatRoomService {
           .is('leave_at', null);
 
         if (countError) continue;
-
-        // If room has exactly 2 members, it's a personal chat
-        if (count === 2) {
-          return roomId;
-        }
+        if (count === 2) return roomId;
       }
-
       return null;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -940,9 +898,7 @@ export class ChatRoomService {
         .in('crm_usr_id', userIds)
         .is('leave_at', null);
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
+      if (error) throw new InternalServerErrorException(error.message);
 
       const existingMembers = (data || []).map((member) => ({
         id: member.crm_usr_id,
@@ -961,12 +917,10 @@ export class ChatRoomService {
           .filter((m) => alreadyMembers.includes(m.id))
           .map((m) => m.name)
           .join(', ');
-
         throw new InternalServerErrorException(
-          `One or more users are already members of the chat room. Member: ${memberNames}`,
+          `One or more users are already members: ${memberNames}`,
         );
       }
-
       return true;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -985,9 +939,7 @@ export class ChatRoomService {
         .in('crm_usr_id', userIds)
         .is('leave_at', null);
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
+      if (error) throw new InternalServerErrorException(error.message);
 
       const existingMemberIds = (data || []).map((member) => member.crm_usr_id);
       const notMembers = userIds.filter(
@@ -995,24 +947,17 @@ export class ChatRoomService {
       );
 
       if (notMembers.length > 0) {
-        const { data: userNotMembers, error: userError } = await client
+        const { data: userNotMembers } = await client
           .from('user')
           .select('usr_id, usr_nama_lengkap')
           .in('usr_id', notMembers);
-
-        if (userError) {
-          throw new InternalServerErrorException(userError.message);
-        }
-
         const memberNames = (userNotMembers || [])
           .map((u) => u.usr_nama_lengkap)
           .join(', ');
-
         throw new InternalServerErrorException(
-          `One or more users are not members of the chat room. User: ${memberNames}`,
+          `One or more users are not members: ${memberNames}`,
         );
       }
-
       return true;
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -1023,27 +968,15 @@ export class ChatRoomService {
 
   async joinRoomService(roomId: string, userId: string) {
     const client = this.supabase.getClient();
-
     try {
-      if (!(await this.sharedService.isGroupRoom(roomId))) {
-        throw new InternalServerErrorException(
-          'You can only join group rooms.',
-        );
-      }
-
+      if (!(await this.sharedService.isGroupRoom(roomId)))
+        throw new InternalServerErrorException('Only groups allowed.');
       await this.sharedService.validateRoomExists(roomId);
-
       await this.sharedService.validateUsers([userId]);
-
       await this.ensureUsersNotInRoom(roomId, [userId]);
 
       const isPrivate = await this.sharedService.isGroupPrivateRoom(roomId);
-
       const approvedToJoin = !isPrivate;
-
-      // if (error) {
-      //   throw new InternalServerErrorException(error.message);
-      // }
 
       if (approvedToJoin) {
         const { data: userData } = await client
@@ -1053,17 +986,13 @@ export class ChatRoomService {
           .single();
         await this.chatService.sendSystemMessage(
           roomId,
-          `${userData?.usr_nama_lengkap || 'Someone'} joined the group`,
+          `${userData?.usr_nama_lengkap || 'Someone'} joined`,
           userId,
         );
       }
-
       return {
         success: true,
-
-        message: approvedToJoin
-          ? 'Joined room successfully'
-          : 'Join request sent, awaiting approval',
+        message: approvedToJoin ? 'Joined successfully' : 'Request sent',
       };
     } catch (error: any) {
       throw new InternalServerErrorException(
@@ -1078,23 +1007,14 @@ export class ChatRoomService {
     adminId: string,
   ) {
     const client = this.supabase.getClient();
-
     try {
       const { error } = await client
         .from('chat_room_member')
-        .update({
-          crm_join_approved: true,
-          crm_added_approved_by: adminId,
-        })
+        .update({ crm_join_approved: true, crm_added_approved_by: adminId })
         .eq('crm_cr_id', roomId)
         .eq('crm_usr_id', requesterId)
         .is('crm_join_approved', false);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      // System Message
+      if (error) throw new InternalServerErrorException(error.message);
       const { data: userData } = await client
         .from('user')
         .select('usr_nama_lengkap')
@@ -1102,17 +1022,13 @@ export class ChatRoomService {
         .single();
       await this.chatService.sendSystemMessage(
         roomId,
-        `${userData?.usr_nama_lengkap || 'Someone'} joined the group`,
+        `${userData?.usr_nama_lengkap || 'Someone'} joined`,
         adminId,
       );
-
-      return {
-        success: true,
-        message: 'Join request approved successfully',
-      };
+      return { success: true, message: 'Approved' };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error?.message || 'Failed to approve join request',
+        error?.message || 'Failed to approve',
       );
     }
   }
@@ -1123,7 +1039,6 @@ export class ChatRoomService {
     adminId: string,
   ) {
     const client = this.supabase.getClient();
-
     try {
       const { error } = await client
         .from('chat_room_member')
@@ -1131,18 +1046,11 @@ export class ChatRoomService {
         .eq('crm_cr_id', roomId)
         .eq('crm_usr_id', requesterId)
         .is('crm_join_approved', false);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      return {
-        success: true,
-        message: 'Join request declined successfully',
-      };
+      if (error) throw new InternalServerErrorException(error.message);
+      return { success: true, message: 'Rejected' };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error?.message || 'Failed to decline join request',
+        error?.message || 'Failed to decline',
       );
     }
   }
@@ -1153,27 +1061,11 @@ export class ChatRoomService {
     promoteUserId: string,
   ) {
     const client = this.supabase.getClient();
-
     try {
-      const isMember = await this.sharedService.isUserMemberOfRoom(
-        roomId,
-        promoteUserId,
-      );
-      if (!isMember) {
-        throw new InternalServerErrorException(
-          'The user to be promoted is not a member of this chat room.',
-        );
-      }
-
-      const isMemberAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        promoteUserId,
-      );
-      if (isMemberAdmin) {
-        throw new InternalServerErrorException(
-          'The user is already an admin of this chat room.',
-        );
-      }
+      if (!(await this.sharedService.isUserMemberOfRoom(roomId, promoteUserId)))
+        throw new InternalServerErrorException('Not a member.');
+      if (await this.sharedService.isUserAdminOfRoom(roomId, promoteUserId))
+        throw new InternalServerErrorException('Already admin.');
 
       const { error } = await client
         .from('chat_room_member')
@@ -1181,17 +1073,12 @@ export class ChatRoomService {
         .eq('crm_cr_id', roomId)
         .eq('crm_usr_id', promoteUserId)
         .is('leave_at', null);
+      if (error) throw new InternalServerErrorException(error.message);
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      // System Message
       const { data: usersData } = await client
         .from('user')
         .select('usr_id, usr_nama_lengkap')
         .in('usr_id', [userId, promoteUserId]);
-
       const adminName = usersData?.find(
         (u) => u.usr_id === userId,
       )?.usr_nama_lengkap;
@@ -1201,11 +1088,9 @@ export class ChatRoomService {
 
       await this.chatService.sendSystemMessage(
         roomId,
-        `${adminName} promoted ${targetName} to admin`,
+        `${adminName} promoted ${targetName}`,
         userId,
       );
-
-      // Broadcast role change
       this.chatGateway.server.to(`room_${roomId}`).emit('member_role_changed', {
         roomId,
         userId: promoteUserId,
@@ -1214,14 +1099,10 @@ export class ChatRoomService {
         changedBy: userId,
         changedByName: adminName,
       });
-
-      return {
-        success: true,
-        message: 'Member promoted to admin successfully',
-      };
+      return { success: true, message: 'Promoted' };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error?.message || 'Failed to promote member to admin',
+        error?.message || 'Failed to promote',
       );
     }
   }
@@ -1232,17 +1113,9 @@ export class ChatRoomService {
     demoteUserId: string,
   ) {
     const client = this.supabase.getClient();
-
     try {
-      const isMemberAdmin = await this.sharedService.isUserAdminOfRoom(
-        roomId,
-        demoteUserId,
-      );
-      if (!isMemberAdmin) {
-        throw new InternalServerErrorException(
-          'The user is not an admin of this chat room.',
-        );
-      }
+      if (!(await this.sharedService.isUserAdminOfRoom(roomId, demoteUserId)))
+        throw new InternalServerErrorException('Not an admin.');
 
       const { error } = await client
         .from('chat_room_member')
@@ -1250,17 +1123,12 @@ export class ChatRoomService {
         .eq('crm_cr_id', roomId)
         .eq('crm_usr_id', demoteUserId)
         .is('leave_at', null);
+      if (error) throw new InternalServerErrorException(error.message);
 
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
-      // System Message
       const { data: usersData } = await client
         .from('user')
         .select('usr_id, usr_nama_lengkap')
         .in('usr_id', [userId, demoteUserId]);
-
       const adminName = usersData?.find(
         (u) => u.usr_id === userId,
       )?.usr_nama_lengkap;
@@ -1270,11 +1138,9 @@ export class ChatRoomService {
 
       await this.chatService.sendSystemMessage(
         roomId,
-        `${adminName} demoted ${targetName} to member`,
+        `${adminName} demoted ${targetName}`,
         userId,
       );
-
-      // Broadcast role change
       this.chatGateway.server.to(`room_${roomId}`).emit('member_role_changed', {
         roomId,
         userId: demoteUserId,
@@ -1283,14 +1149,10 @@ export class ChatRoomService {
         changedBy: userId,
         changedByName: adminName,
       });
-
-      return {
-        success: true,
-        message: 'Admin demoted to member successfully',
-      };
+      return { success: true, message: 'Demoted' };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error?.message || 'Failed to demote admin to member',
+        error?.message || 'Failed to demote',
       );
     }
   }
@@ -1302,15 +1164,11 @@ export class ChatRoomService {
         .from('chat_room')
         .update({ cr_avatar: iconUrl })
         .eq('cr_id', roomId);
-
-      if (error) {
-        throw new InternalServerErrorException(error.message);
-      }
-
+      if (error) throw new InternalServerErrorException(error.message);
       return { success: true };
     } catch (error: any) {
       throw new InternalServerErrorException(
-        error?.message || 'Failed to update group icon',
+        error?.message || 'Failed to update icon',
       );
     }
   }
@@ -1318,73 +1176,32 @@ export class ChatRoomService {
   async searchMessages(userId: string, query: string) {
     const client = this.supabase.getClient();
     try {
-      // Step 1: Get Room IDs where the user is currently a member
       const { data: memberData, error: memberError } = await client
         .from('chat_room_member')
         .select('crm_cr_id')
         .eq('crm_usr_id', userId)
         .is('leave_at', null);
-
       if (memberError) throw memberError;
-
       const roomIds = memberData.map((r) => r.crm_cr_id);
-
       if (roomIds.length === 0) return [];
 
-      // Step 2: Search messages in those rooms
       const { data: messagesData, error: messagesError } = await client
         .from('chat_message')
         .select(
-          `
-          cm_id,
-          message_text,
-          created_at,
-          sender:cm_usr_id (
-            usr_id,
-            usr_nama_lengkap
-          ),
-          chat_room:cm_cr_id (
-            cr_id,
-            cr_name,
-            cr_is_group,
-            members:chat_room_member (
-              user:crm_usr_id (
-                usr_id,
-                usr_nama_lengkap
-              )
-            )
-          )
-        `,
+          `cm_id, message_text, created_at, sender:cm_usr_id (usr_id, usr_nama_lengkap), chat_room:cm_cr_id (cr_id, cr_name, cr_is_group, members:chat_room_member (user:crm_usr_id (usr_id, usr_nama_lengkap)))`,
         )
         .in('cm_cr_id', roomIds)
         .ilike('message_text', `%${query}%`)
         .order('created_at', { ascending: false })
         .limit(50);
-
       if (messagesError) throw messagesError;
 
       return messagesData.map((msg: any) => {
-        const senderRaw = msg.sender;
-        const sender = Array.isArray(senderRaw) ? senderRaw[0] : senderRaw;
-
-        const roomRaw = msg.chat_room;
-        const room = Array.isArray(roomRaw) ? roomRaw[0] : roomRaw;
-
-        let roomName = room?.cr_name || 'Unknown Room';
-
-        // Fix room name for personal chats
-        if (!room?.cr_is_group && room?.members) {
-          const members = Array.isArray(room.members)
-            ? room.members
-            : [room.members];
-          const otherUser = members
-            .flatMap((m: any) => (Array.isArray(m.user) ? m.user : [m.user]))
-            .find((u: any) => u?.usr_id !== userId);
-
-          if (otherUser) {
-            roomName = otherUser.usr_nama_lengkap;
-          }
-        }
+        const sender = Array.isArray(msg.sender) ? msg.sender[0] : msg.sender;
+        const room = Array.isArray(msg.chat_room)
+          ? msg.chat_room[0]
+          : msg.chat_room;
+        const roomName = this.sharedService.getDisplayRoomName(room, userId);
 
         return {
           messageId: msg.cm_id,
@@ -1398,8 +1215,6 @@ export class ChatRoomService {
         };
       });
     } catch (error: any) {
-      // Log error but return empty array to avoid breaking the whole search
-      // console.error('Search messages error:', error);
       return [];
     }
   }
