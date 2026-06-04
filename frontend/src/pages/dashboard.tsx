@@ -79,11 +79,11 @@ export default function DashboardPage() {
   useEffect(() => {
     const handleVisibilityChange = () => {
       if (document.visibilityState === "visible") {
-        // Bangunkan socket jika terputus saat tab tidak aktif
+        // panggil socket jika terputus saat tab tidak aktif
         // console.log("Tab is visible, ensuring socket connection...");
         socketClient.connect();
       }
-      // Kita tidak memanggil disconnect() saat hidden agar pesan tetap bisa masuk
+      // tidak memanggil disconnect() saat hidden agar pesan tetap bisa masuk
       // di background selama diizinkan oleh browser.
     };
 

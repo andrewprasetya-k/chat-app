@@ -10,12 +10,6 @@ interface CreateGroupModalProps {
   onGroupCreated: (roomId: string) => void;
 }
 
-/**
- * CreateGroupModal Component
- * -------------------------
- * Modal modular untuk membuat grup chat baru.
- * Menangani input nama grup dan seleksi anggota.
- */
 export const CreateGroupModal: React.FC<CreateGroupModalProps> = ({
   isOpen,
   onClose,

@@ -92,25 +92,20 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         userRooms.forEach((room) => {
           client.join(`room_${room.crm_cr_id}`);
         });
-        // console.log(
-        //   `User ${payload.sub} auto-joined ${userRooms.length} rooms`,
-        // );
       }
 
       await this.userService.updateOnlineStatus(payload.sub, true);
       this.server.emit('user_online', { userId: payload.sub });
     } catch (e) {
-      // console.log('Connection rejected:', e.message);
       client.disconnect();
     }
   }
 
   async handleDisconnect(client: Socket) {
-    // console.log(`Client disconnected: ${client.id}`);
     const userId = client.data.userId;
     if (userId) {
       const lastSeen = new Date().toISOString();
-      // Kita tidak await di sini agar tidak memblokir event loop, tapi idealnya di-handle error-nya
+      // tidak await di sini agar tidak memblokir event loop, tapi idealnya di-handle error-nya
       this.userService.updateOnlineStatus(userId, false).catch((err) => {
         console.error(
           `Failed to update offline status for user ${userId}:`,
