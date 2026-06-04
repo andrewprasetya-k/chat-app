@@ -265,7 +265,7 @@ export class ChatRoomService {
       .single();
     if (error) throw new InternalServerErrorException(error.message);
 
-    const members = groupMembers.map((uid) => ({
+    const membersToInsert = groupMembers.map((uid) => ({
       crm_cr_id: room.cr_id,
       crm_usr_id: uid,
       crm_role:
@@ -276,7 +276,9 @@ export class ChatRoomService {
             : 'member',
       crm_join_approved: true,
     }));
-    const { error: me } = await client.from('chat_room_member').insert(members);
+    const { error: me } = await client
+      .from('chat_room_member')
+      .insert(membersToInsert);
     if (me) throw new InternalServerErrorException(me.message);
 
     if (dto.isGroup)
@@ -285,18 +287,46 @@ export class ChatRoomService {
         `Group "${groupName}" created`,
         creatorId,
       );
-    groupMembers.forEach((uid) =>
-      this.chatGateway.server
-        .to(`user_${uid}`)
-        .emit('new_room_created', {
+
+    // Fetch complete data for new_room_created event and forced WebSocket join
+    const { data: fullRoom, error: fetchError } = await client
+      .from('chat_room')
+      .select(
+        `cr_id, cr_name, cr_is_group, created_at, members:chat_room_member (user:crm_usr_id (usr_id, usr_nama_lengkap, usr_email, usr_is_online, usr_last_seen))`,
+      )
+      .eq('cr_id', room.cr_id)
+      .single();
+
+    if (!fetchError && fullRoom) {
+      groupMembers.forEach((uid) => {
+        // 1. Force WebSocket join
+        this.chatGateway.forceUserToJoinRoom(uid, room.cr_id);
+
+        // 2. Prepare payload for frontend
+        const membersArr = fullRoom.members || [];
+        const otherMemberRaw = membersArr.find((m: any) => {
+          const u = Array.isArray(m.user) ? m.user[0] : m.user;
+          return u?.usr_id !== uid;
+        });
+        const otherUser = otherMemberRaw
+          ? Array.isArray(otherMemberRaw.user)
+            ? otherMemberRaw.user[0]
+            : otherMemberRaw.user
+          : null;
+
+        this.chatGateway.server.to(`user_${uid}`).emit('new_room_created', {
           roomId: room.cr_id,
-          roomName: groupName,
-          isGroup: dto.isGroup,
+          roomName: this.sharedService.getDisplayRoomName(fullRoom, uid),
+          isGroup: room.cr_is_group,
           lastMessage: null,
-          lastMessageTime: new Date().toISOString(),
+          lastMessageTime: room.created_at,
           unreadCount: 0,
-        }),
-    );
+          otherUserId: otherUser?.usr_id ?? null,
+          isOnline: otherUser?.usr_is_online ?? false,
+          lastSeen: otherUser?.usr_last_seen ?? null,
+        });
+      });
+    }
 
     return plainToInstance(
       CreateRoomResponseEntity,

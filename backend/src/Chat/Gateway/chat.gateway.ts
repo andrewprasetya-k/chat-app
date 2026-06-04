@@ -148,4 +148,12 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       roomId,
     });
   }
+
+  /**
+   * Memaksa socket user untuk join ke room tertentu.
+   * Digunakan saat room baru dibuat agar user langsung terhubung.
+   */
+  forceUserToJoinRoom(userId: string, roomId: string) {
+    this.server.in(`user_${userId}`).socketsJoin(`room_${roomId}`);
+  }
 }
