@@ -98,11 +98,8 @@ export default function DashboardPage() {
   useEffect(() => {
     socketClient.connect();
     socketClient.on("connect", () => {
-      // console.log("Reconnected with socket ID, rejoining rooms...");
-      roomsRef.current.forEach((room) => {
-        socketClient.emit("join_room", room.roomId);
-      });
-      // console.log("Rejoined all rooms after reconnecting: ", roomsRef.current);
+      // Backend automatically joins rooms during handleConnection
+      // console.log("Socket connected, backend already joined rooms.");
     });
 
     // Handler: User Online

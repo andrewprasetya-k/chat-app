@@ -188,13 +188,11 @@ export class UserService {
   async setResetPasswordToken(email: string, token: string) {
     const client = this.supabase.getClient();
     await client.from('password_reset_tokens').delete().eq('email', email);
-    const { error } = await client
-      .from('password_reset_tokens')
-      .insert({
-        email,
-        token,
-        expires_at: new Date(Date.now() + 3600000).toISOString(),
-      });
+    const { error } = await client.from('password_reset_tokens').insert({
+      email,
+      token,
+      expires_at: new Date(Date.now() + 3600000).toISOString(),
+    });
     if (error) throw new InternalServerErrorException(error.message);
     return { success: true };
   }

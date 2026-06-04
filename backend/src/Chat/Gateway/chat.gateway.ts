@@ -49,22 +49,31 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
         return;
       }
 
-      client.data.userId = payload.sub;
-      client.join(`user_${payload.sub}`);
+      const userId = payload.sub;
+      client.data.userId = userId;
 
-      const user = await this.userService.findByIdForAuth(payload.sub);
+      // 1. Join personal room for targeted notification to this specific user
+      client.join(`user_${userId}`);
+
+      // 2. Fetch user data
+      const user = await this.userService.findByIdForAuth(userId);
       if (user) client.data.userName = user.usr_nama_lengkap;
 
-      const roomIds = await this.chatSharedService.getUserActiveRoomIds(
-        payload.sub,
-      );
+      // 3. Batch Join to all active chat rooms
+      const roomIds = await this.chatSharedService.getUserActiveRoomIds(userId);
       if (roomIds.length > 0) {
         const socketRoomIds = roomIds.map((id) => `room_${id}`);
-        client.join(socketRoomIds);
-      }
+        await client.join(socketRoomIds);
 
-      await this.userService.updateOnlineStatus(payload.sub, true);
-      this.server.emit('user_online', { userId: payload.sub });
+        // 4. Update Online Status in DB BEFORE broadcasting
+        await this.userService.updateOnlineStatus(userId, true);
+
+        // 5. Targeted Broadcast: notify ONLY members of shared rooms
+        client.to(socketRoomIds).emit('user_online', { userId });
+      } else {
+        // Fallback for user with no rooms yet
+        await this.userService.updateOnlineStatus(userId, true);
+      }
     } catch (e) {
       client.disconnect();
     }
@@ -74,8 +83,17 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     const userId = client.data.userId;
     if (userId) {
       const lastSeen = new Date().toISOString();
-      this.userService.updateOnlineStatus(userId, false).catch(() => {});
-      this.server.emit('user_offline', { userId, lastSeen });
+      
+      // 1. Update Offline Status in DB
+      await this.userService.updateOnlineStatus(userId, false).catch(() => {});
+
+      // 2. Get rooms for targeted broadcast
+      const roomIds = await this.chatSharedService.getUserActiveRoomIds(userId);
+      if (roomIds.length > 0) {
+        const socketRoomIds = roomIds.map((id) => `room_${id}`);
+        // Send offline event only to relevant rooms
+        this.server.to(socketRoomIds).emit('user_offline', { userId, lastSeen });
+      }
     }
   }
 
@@ -87,8 +105,10 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
     try {
       const userId = client.data.userId;
       if (!userId) throw new WsException('Unauthorized');
-      if (!(await this.chatSharedService.isUserMemberOfRoom(roomId, userId)))
-        throw new WsException('Not a member');
+      
+      const isMember = await this.chatSharedService.isUserMemberOfRoom(roomId, userId);
+      if (!isMember) throw new WsException('Not a member');
+      
       client.join(`room_${roomId}`);
       return { event: 'joined_room', data: roomId };
     } catch (error) {

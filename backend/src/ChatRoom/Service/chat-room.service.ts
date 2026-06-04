@@ -51,6 +51,18 @@ export class ChatRoomService {
         if (!room) return null;
         const lastMsg = room.chat_message?.[0];
         const sender = lastMsg?.sender;
+
+        const members = room.members || [];
+        const otherMemberRaw = members.find((m: any) => {
+          const u = Array.isArray(m.user) ? m.user[0] : m.user;
+          return u?.usr_id !== userId;
+        });
+        const otherUser = otherMemberRaw
+          ? Array.isArray(otherMemberRaw.user)
+            ? otherMemberRaw.user[0]
+            : otherMemberRaw.user
+          : null;
+
         return {
           roomId: room.cr_id,
           roomName: this.sharedService.getDisplayRoomName(room, userId),
@@ -69,6 +81,9 @@ export class ChatRoomService {
           deletedAt: room.deleted_at,
           leaveAt: item.leave_at,
           memberCount: (room.members || []).length,
+          otherUserId: otherUser?.usr_id ?? null,
+          isOnline: otherUser?.usr_is_online ?? false,
+          lastSeen: otherUser?.usr_last_seen ?? null,
         };
       })
       .filter(Boolean);
@@ -87,10 +102,15 @@ export class ChatRoomService {
     return this.populateUnreadAndSort(
       all.filter((r: any) => r.leaveAt || r.deletedAt),
       userId,
+      true,
     );
   }
 
-  private async populateUnreadAndSort(rooms: any[], userId: string) {
+  private async populateUnreadAndSort(
+    rooms: any[],
+    userId: string,
+    isDeactivated = false,
+  ) {
     if (rooms.length === 0) return [];
     const client = this.supabase.getClient();
     const ids = rooms.map((r) => r.roomId);
@@ -118,16 +138,17 @@ export class ChatRoomService {
           enableImplicitConversion: true,
         });
         e.unreadCount = counts[r.roomId] || 0;
+        e.isDeactivated = isDeactivated;
         return e;
       })
       .sort((a, b) => {
-        const timeA = a.lastMessageTime
+        const tA = a.lastMessageTime
           ? new Date(a.lastMessageTime).getTime()
           : 0;
-        const timeB = b.lastMessageTime
+        const tB = b.lastMessageTime
           ? new Date(b.lastMessageTime).getTime()
           : 0;
-        return timeB - timeA;
+        return tB - tA;
       });
   }
 
@@ -265,14 +286,16 @@ export class ChatRoomService {
         creatorId,
       );
     groupMembers.forEach((uid) =>
-      this.chatGateway.server.to(`user_${uid}`).emit('new_room_created', {
-        roomId: room.cr_id,
-        roomName: groupName,
-        isGroup: dto.isGroup,
-        lastMessage: null,
-        lastMessageTime: new Date().toISOString(),
-        unreadCount: 0,
-      }),
+      this.chatGateway.server
+        .to(`user_${uid}`)
+        .emit('new_room_created', {
+          roomId: room.cr_id,
+          roomName: groupName,
+          isGroup: dto.isGroup,
+          lastMessage: null,
+          lastMessageTime: new Date().toISOString(),
+          unreadCount: 0,
+        }),
     );
 
     return plainToInstance(
@@ -304,12 +327,14 @@ export class ChatRoomService {
         `${u.usr_nama_lengkap} left`,
         userId,
       );
-    this.chatGateway.server.to(`room_${roomId}`).emit('member_left', {
-      roomId,
-      userId,
-      userName: u?.usr_nama_lengkap,
-      leftAt: now,
-    });
+    this.chatGateway.server
+      .to(`room_${roomId}`)
+      .emit('member_left', {
+        roomId,
+        userId,
+        userName: u?.usr_nama_lengkap,
+        leftAt: now,
+      });
     return plainToInstance(
       BasicActionResponseEntity,
       { success: true, message: 'Left', now },
@@ -400,11 +425,13 @@ export class ChatRoomService {
       .update({ deleted_at: new Date().toISOString() })
       .eq('cr_id', roomId);
     if (error) throw new InternalServerErrorException(error.message);
-    this.chatGateway.server.to(`room_${roomId}`).emit('room_deleted', {
-      roomId,
-      deletedAt: new Date().toISOString(),
-      deletedBy: userId,
-    });
+    this.chatGateway.server
+      .to(`room_${roomId}`)
+      .emit('room_deleted', {
+        roomId,
+        deletedAt: new Date().toISOString(),
+        deletedBy: userId,
+      });
     return { success: true };
   }
 
