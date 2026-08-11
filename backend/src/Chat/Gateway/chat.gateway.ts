@@ -15,11 +15,7 @@ import { UserService } from 'src/User/Service/user.service';
 
 @WebSocketGateway({
   cors: {
-    origin: [
-      'http://localhost:3001',
-      'https://6rbdpss1-3001.asse.devtunnels.ms',
-      'https://chat-app-fawn-one-16.vercel.app',
-    ],
+    origin: process.env.NEXT_PUBLIC_API_URL,
     credentials: true,
   },
   pingTimeout: 60000 * 30,
