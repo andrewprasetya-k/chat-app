@@ -8,8 +8,6 @@
 import { Injectable, InternalServerErrorException } from '@nestjs/common';
 import { ChatRoomService } from './ChatRoom/Service/chat-room.service';
 import { UserService } from './User/Service/user.service';
-import { plainToInstance } from 'class-transformer';
-import { SearchResponseEntity } from './ChatRoom/Entity/chat-room.entity';
 
 @Injectable()
 export class AppService {

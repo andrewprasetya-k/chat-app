@@ -126,40 +126,6 @@ export class ChatRoomController {
     return this.chatRoomService.getRoomInfo(roomId, userId);
   }
 
-  @Post(':roomId')
-  @UseGuards(AuthGuard, RoomActiveGuard)
-  joinRoom(@Param('roomId') roomId: string, @User('sub') userId: string) {
-    return this.chatRoomService.joinRoomService(roomId, userId);
-  }
-
-  @Post('approve/:roomId/:userId')
-  @UseGuards(AuthGuard, RoomActiveGuard, RoomAdminGuard)
-  approveJoinRequestController(
-    @Param('roomId') roomId: string,
-    @Param('userId') joinUserId: string,
-    @User('sub') userId: string,
-  ) {
-    return this.chatRoomService.approveJoinRequestService(
-      roomId,
-      joinUserId,
-      userId,
-    );
-  }
-
-  @Post('reject/:roomId/:userId')
-  @UseGuards(AuthGuard, RoomActiveGuard, RoomAdminGuard)
-  rejectJoinRequestController(
-    @Param('roomId') roomId: string,
-    @Param('userId') requesterId: string,
-    @User('sub') userId: string,
-  ) {
-    return this.chatRoomService.rejectJoinRequestService(
-      roomId,
-      requesterId,
-      userId,
-    );
-  }
-
   @Post('promote/:roomId/:userId')
   @UseGuards(AuthGuard, RoomActiveGuard, RoomAdminGuard)
   promoteToAdminController(

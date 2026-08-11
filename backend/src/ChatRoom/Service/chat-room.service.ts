@@ -600,49 +600,6 @@ export class ChatRoomService {
       throw new BadRequestException('Users not members.');
   }
 
-  async joinRoomService(rid: string, uid: string) {
-    if (!(await this.sharedService.isGroupRoom(rid)))
-      throw new BadRequestException('Groups only.');
-    await this.ensureUsersNotInRoom(rid, [uid]);
-    const approved = !(await this.sharedService.isGroupPrivateRoom(rid));
-    if (approved) {
-      const { data } = await this.supabase
-        .getClient()
-        .from('user')
-        .select('usr_nama_lengkap')
-        .eq('usr_id', uid)
-        .single();
-      await this.chatService.sendSystemMessage(
-        rid,
-        `${data?.usr_nama_lengkap} joined`,
-        uid,
-      );
-    }
-    return { success: true, message: approved ? 'Joined' : 'Requested' };
-  }
-
-  async approveJoinRequestService(rid: string, uid: string, aid: string) {
-    const { error } = await this.supabase
-      .getClient()
-      .from('chat_room_member')
-      .update({ crm_join_approved: true })
-      .eq('crm_cr_id', rid)
-      .eq('crm_usr_id', uid);
-    if (error) throw new InternalServerErrorException(error.message);
-    return { success: true };
-  }
-
-  async rejectJoinRequestService(rid: string, uid: string, aid: string) {
-    const { error } = await this.supabase
-      .getClient()
-      .from('chat_room_member')
-      .delete()
-      .eq('crm_cr_id', rid)
-      .eq('crm_usr_id', uid);
-    if (error) throw new InternalServerErrorException(error.message);
-    return { success: true };
-  }
-
   async promoteToAdminService(rid: string, aid: string, pid: string) {
     const { error } = await this.supabase
       .getClient()

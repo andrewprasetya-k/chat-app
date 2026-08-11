@@ -75,17 +75,6 @@ export class ChatSharedService {
     return true;
   }
 
-  async isGroupPrivateRoom(roomId: string) {
-    const { data, error } = await this.supabase
-      .getClient()
-      .from('chat_room')
-      .select('cr_is_group, cr_private')
-      .eq('cr_id', roomId)
-      .maybeSingle();
-    if (error) throw new InternalServerErrorException(error.message);
-    return data?.cr_is_group && data?.cr_private;
-  }
-
   async getRoomStatus(roomId: string) {
     const { data, error } = await this.supabase
       .getClient()
