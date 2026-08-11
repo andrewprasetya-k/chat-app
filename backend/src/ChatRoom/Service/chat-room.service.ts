@@ -281,13 +281,6 @@ export class ChatRoomService {
       .insert(membersToInsert);
     if (me) throw new InternalServerErrorException(me.message);
 
-    if (dto.isGroup)
-      await this.chatService.sendSystemMessage(
-        room.cr_id,
-        `Group "${groupName}" created`,
-        creatorId,
-      );
-
     // Fetch complete data for new_room_created event and forced WebSocket join
     const { data: fullRoom, error: fetchError } = await client
       .from('chat_room')
@@ -327,6 +320,13 @@ export class ChatRoomService {
         });
       });
     }
+
+    if (dto.isGroup)
+      await this.chatService.sendSystemMessage(
+        room.cr_id,
+        `Group "${groupName}" created`,
+        creatorId,
+      );
 
     return plainToInstance(
       CreateRoomResponseEntity,
@@ -439,13 +439,21 @@ export class ChatRoomService {
     if (dto.members.includes(userId))
       throw new BadRequestException('Cannot remove self.');
 
+    const now = new Date().toISOString();
     const { error } = await this.supabase
       .getClient()
       .from('chat_room_member')
-      .update({ leave_at: new Date().toISOString(), crm_removed_by: userId })
+      .update({ leave_at: now, crm_removed_by: userId })
       .eq('crm_cr_id', roomId)
       .in('crm_usr_id', dto.members);
     if (error) throw new InternalServerErrorException(error.message);
+
+    dto.members.forEach((uid) => {
+      const payload = { roomId, userId: uid, leftAt: now, removedBy: userId };
+      this.chatGateway.server.to(`room_${roomId}`).emit('member_left', payload);
+      this.chatGateway.server.to(`user_${uid}`).emit('member_left', payload);
+      this.chatGateway.forceUserToLeaveRoom(uid, roomId);
+    });
 
     const { data: u } = await this.supabase
       .getClient()
@@ -649,6 +657,7 @@ export class ChatRoomService {
       .eq('crm_cr_id', rid)
       .eq('crm_usr_id', pid);
     if (error) throw new InternalServerErrorException(error.message);
+    await this.broadcastRoleChange(rid, aid, pid, 'admin');
     return { success: true };
   }
 
@@ -660,7 +669,38 @@ export class ChatRoomService {
       .eq('crm_cr_id', rid)
       .eq('crm_usr_id', did);
     if (error) throw new InternalServerErrorException(error.message);
+    await this.broadcastRoleChange(rid, aid, did, 'member');
     return { success: true };
+  }
+
+  private async broadcastRoleChange(
+    roomId: string,
+    actorId: string,
+    targetId: string,
+    role: 'admin' | 'member',
+  ) {
+    const client = this.supabase.getClient();
+    const { data: actor } = await client
+      .from('user')
+      .select('usr_nama_lengkap')
+      .eq('usr_id', actorId)
+      .single();
+    const { data: target } = await client
+      .from('user')
+      .select('usr_nama_lengkap')
+      .eq('usr_id', targetId)
+      .single();
+
+    const verb = role === 'admin' ? 'promoted' : 'demoted';
+    await this.chatService.sendSystemMessage(
+      roomId,
+      `${actor?.usr_nama_lengkap} ${verb} ${target?.usr_nama_lengkap} ${role === 'admin' ? 'to admin' : 'to member'}`,
+      actorId,
+    );
+
+    this.chatGateway.server
+      .to(`room_${roomId}`)
+      .emit('room_member_role_updated', { roomId, userId: targetId, role });
   }
 
   async updateGroupIconService(rid: string, file: Express.Multer.File) {
@@ -671,6 +711,11 @@ export class ChatRoomService {
       .update({ cr_avatar: url })
       .eq('cr_id', rid);
     if (error) throw new InternalServerErrorException(error.message);
+
+    this.chatGateway.server
+      .to(`room_${rid}`)
+      .emit('room_icon_updated', { roomId: rid, iconUrl: url });
+
     return url;
   }
 
