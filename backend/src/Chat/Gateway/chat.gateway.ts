@@ -168,4 +168,13 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   forceUserToJoinRoom(userId: string, roomId: string) {
     this.server.in(`user_${userId}`).socketsJoin(`room_${roomId}`);
   }
+
+  /**
+   * Memaksa socket user untuk keluar dari room tertentu.
+   * Digunakan saat user di-remove dari grup agar langsung berhenti
+   * menerima broadcast room itu, tanpa perlu menunggu reconnect.
+   */
+  forceUserToLeaveRoom(userId: string, roomId: string) {
+    this.server.in(`user_${userId}`).socketsLeave(`room_${roomId}`);
+  }
 }
