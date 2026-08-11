@@ -256,8 +256,7 @@ export class ChatRoomService {
         {
           cr_name: groupName,
           cr_is_group: dto.isGroup,
-          cr_private:
-            (dto.isGroup && groupMembers.length === 2) || dto.isPrivate,
+          cr_private: dto.isPrivate,
           created_by: creatorId,
         },
       ])
@@ -268,12 +267,7 @@ export class ChatRoomService {
     const membersToInsert = groupMembers.map((uid) => ({
       crm_cr_id: room.cr_id,
       crm_usr_id: uid,
-      crm_role:
-        dto.isGroup && groupMembers.length === 2
-          ? 'personal'
-          : uid === creatorId
-            ? 'admin'
-            : 'member',
+      crm_role: uid === creatorId ? 'admin' : 'member',
       crm_join_approved: true,
     }));
     const { error: me } = await client

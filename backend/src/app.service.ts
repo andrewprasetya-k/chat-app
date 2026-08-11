@@ -49,7 +49,12 @@ export class AppService {
         room.roomName?.toLowerCase().includes(lowerQuery),
       );
 
-      const filteredUsers = users.filter((u) => u.id !== userId);
+      const filteredUsers = users.filter(
+        (u) =>
+          u.id !== userId &&
+          (u.fullName?.toLowerCase().includes(lowerQuery) ||
+            u.email?.toLowerCase().includes(lowerQuery)),
+      );
 
       return {
         rooms: filteredRooms,
