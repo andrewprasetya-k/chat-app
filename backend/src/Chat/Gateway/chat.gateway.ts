@@ -15,10 +15,15 @@ import { UserService } from 'src/User/Service/user.service';
 
 @WebSocketGateway({
   cors: {
-    origin: process.env.NEXT_PUBLIC_API_URL,
-    pingTimeout: 60000 * 30,
-    pingInterval: 25000,
+    origin: [
+      'http://localhost:3001',
+      'https://6rbdpss1-3001.asse.devtunnels.ms',
+      'https://chat-app-fawn-one-16.vercel.app',
+    ],
+    credentials: true,
   },
+  pingTimeout: 60000 * 30,
+  pingInterval: 25000,
 })
 export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
   @WebSocketServer() server: Server;
@@ -43,7 +48,9 @@ export class ChatGateway implements OnGatewayConnection, OnGatewayDisconnect {
       if (!token) throw new Error('No token provided');
 
       const cleanToken = token.replace('Bearer ', '');
-      const payload = this.jwtService.decode(cleanToken);
+      const payload = await this.jwtService.verifyAsync(cleanToken, {
+        secret: process.env.JWT_SECRET,
+      });
       if (!payload || !payload.sub) {
         client.disconnect();
         return;
