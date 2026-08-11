@@ -1,5 +1,5 @@
 ## TODO
 
-- [ ] Write automated tests for email verification process.
 - [ ] Implement group chat features polishing (e.g., message search).
 - [ ] Add file upload support for chat messages.
+- [ ] Check orphaned backend endpoint
