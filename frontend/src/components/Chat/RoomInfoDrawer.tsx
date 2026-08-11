@@ -14,6 +14,7 @@ import {
 import { chatService } from "@/services/features/chat.service";
 import { ChatRoomInfo } from "@/services/types";
 import { AddMemberModal } from "./AddMemberModal";
+import { socketClient } from "@/services/api/socket.client";
 
 interface RoomInfoDrawerProps {
   isOpen: boolean;
@@ -49,6 +50,32 @@ export const RoomInfoDrawer: React.FC<RoomInfoDrawerProps> = ({
       fetchInfo();
     }
   }, [isOpen, roomId]);
+
+  // Realtime: terapkan perubahan role admin/member langsung ke state,
+  // tanpa perlu refetch, meskipun perubahan dilakukan oleh admin lain.
+  useEffect(() => {
+    const handleRoleUpdated = (data: {
+      roomId: string;
+      userId: string;
+      role: "admin" | "member";
+    }) => {
+      if (data.roomId !== roomId) return;
+      setRoomInfo((prev) => {
+        if (!prev) return prev;
+        return {
+          ...prev,
+          activeMembers: prev.activeMembers.map((m) =>
+            m.userId === data.userId ? { ...m, role: data.role } : m,
+          ),
+        };
+      });
+    };
+
+    socketClient.on("room_member_role_updated", handleRoleUpdated);
+    return () => {
+      socketClient.off("room_member_role_updated", handleRoleUpdated);
+    };
+  }, [roomId]);
 
   const handleLeaveGroup = async () => {
     if (!window.confirm("Are you sure you want to leave this group?")) return;
