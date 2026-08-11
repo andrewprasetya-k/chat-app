@@ -390,6 +390,28 @@ export class ChatRoomService {
       .upsert(members);
     if (error) throw new InternalServerErrorException(error.message);
 
+    const { data: room } = await this.supabase
+      .getClient()
+      .from('chat_room')
+      .select('cr_name, created_at')
+      .eq('cr_id', roomId)
+      .maybeSingle();
+
+    dto.members.forEach((uid) => {
+      this.chatGateway.forceUserToJoinRoom(uid, roomId);
+      this.chatGateway.server.to(`user_${uid}`).emit('new_room_created', {
+        roomId,
+        roomName: room?.cr_name || 'Unnamed Group',
+        isGroup: true,
+        lastMessage: null,
+        lastMessageTime: room?.created_at || new Date().toISOString(),
+        unreadCount: 0,
+        otherUserId: null,
+        isOnline: null,
+        lastSeen: null,
+      });
+    });
+
     const { data: u } = await this.supabase
       .getClient()
       .from('user')
